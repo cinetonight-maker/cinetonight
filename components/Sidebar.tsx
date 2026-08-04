@@ -1,0 +1,34 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Icon from "./Icon";
+
+export const NAV: { icon: string; label: string; href: string; top?: boolean }[] = [
+  { icon: "home", label: "Home", href: "/", top: true },
+  { icon: "film", label: "Movies", href: "/movies", top: true },
+  { icon: "monitor", label: "Web Series", href: "/web-series", top: true },
+  { icon: "tv", label: "TV Shows", href: "/tv-shows", top: true },
+  { icon: "grid", label: "Genres", href: "/genres", top: true },
+  { icon: "trend", label: "Trending", href: "/trending", top: true },
+  { icon: "sparkle", label: "Latest", href: "/latest" },
+  { icon: "article", label: "Blog", href: "/blog", top: true },
+  { icon: "bookmark", label: "My List", href: "/my-list" },
+];
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  return (
+    <aside className="sidebar">
+      <nav>
+        {NAV.map((n) => (
+          <Link key={n.href} className={`nav-item${active(n.href) ? " on" : ""}`} href={n.href}>
+            <span className="nav-item__ico"><Icon name={n.icon} size={18} /></span>
+            {n.label}
+          </Link>
+        ))}
+      </nav>
+    </aside>
+  );
+}

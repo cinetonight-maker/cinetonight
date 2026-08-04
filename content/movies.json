@@ -1,0 +1,1311 @@
+[
+  {
+    "id": "stree-2",
+    "tmdbId": 1112426,
+    "title": "Stree 2",
+    "year": 2024,
+    "genres": [
+      "Horror",
+      "Comedy"
+    ],
+    "kind": "movie",
+    "rating": 6.7,
+    "votes": 97,
+    "runtime": "2h 23m",
+    "cert": "UA",
+    "language": "Hindi",
+    "director": "Amar Kaushik",
+    "writers": "Niren Bhatt",
+    "cast": [
+      {
+        "name": "Rajkummar Rao",
+        "character": "Vicky",
+        "profilePath": "/ttBY7Y8x4NCpXfGS9Tc1NN8ISos.jpg"
+      },
+      {
+        "name": "Shraddha Kapoor",
+        "character": "Unnamed Woman",
+        "profilePath": "/tFx6DRETklfkFIUu5Sl5TCN1gD9.jpg"
+      },
+      {
+        "name": "Aparshakti Khurana",
+        "character": "Bittu",
+        "profilePath": "/w7OEkPAaweO1JU105Qqvg073yW8.jpg"
+      },
+      {
+        "name": "Abhishek Banerjee",
+        "character": "'Jana' Janardan",
+        "profilePath": "/cfyRkFBFfodBbNKbsTc8eG9YtVj.jpg"
+      },
+      {
+        "name": "Pankaj Tripathi",
+        "character": "Rudra",
+        "profilePath": "/f3Vxz0QB7PHeyPcXrfJX14Xkxnu.jpg"
+      },
+      {
+        "name": "Anya Singh",
+        "character": "Chitti",
+        "profilePath": "/epszHS7QSn7FjcCv4z2sWR1KBb0.jpg"
+      },
+      {
+        "name": "Tamannaah Bhatia",
+        "character": "Shama",
+        "profilePath": "/t4WYoKiFAyO1Rhjv7O03EKmJHp4.jpg"
+      },
+      {
+        "name": "Sunil Kumar",
+        "character": "Sarkata / Udaybhan",
+        "profilePath": null
+      },
+      {
+        "name": "Bhumi Rajgor",
+        "character": "Stree",
+        "profilePath": null
+      },
+      {
+        "name": "Varun Dhawan",
+        "character": "Bhaskar",
+        "profilePath": "/gvvXYTpvO0Tu7naCDLL3tInyN2R.jpg"
+      }
+    ],
+    "desc": "Following the events of 'Stree', the town of Chanderi is being haunted again. This time, women are mysteriously abducted by a terrifying headless entity. Once again, it's up to Vicky and friends to save their town and loved ones.",
+    "posterPath": "/nfnhwfUEFuSOxxf4jDdBlY6Lccw.jpg",
+    "backdropPath": "/fVV0A67kDjTTQ4CvUn8LoletRmI.jpg",
+    "trailerKey": "VlvOgk5BHS4"
+  },
+  {
+    "id": "pushpa-2-the-rule",
+    "tmdbId": 857598,
+    "title": "Pushpa 2 - The Rule",
+    "year": 2024,
+    "genres": [
+      "Action",
+      "Drama",
+      "Thriller"
+    ],
+    "kind": "movie",
+    "rating": 6.3,
+    "votes": 154,
+    "runtime": "3h 45m",
+    "cert": "U/A 16+",
+    "language": "Telugu",
+    "director": "Sukumar",
+    "writers": "Sukumar, Vemareddi Thummallapalli",
+    "cast": [
+      {
+        "name": "Allu Arjun",
+        "character": "Pushpa Raj",
+        "profilePath": "/wHr3bKhYpiDiYVMZLZqebeauEVw.jpg"
+      },
+      {
+        "name": "Rashmika Mandanna",
+        "character": "Srivalli",
+        "profilePath": "/6PpadmUs2Mz8nRw6rmKEiZZGcZ5.jpg"
+      },
+      {
+        "name": "Fahadh Faasil",
+        "character": "Bhanwar Singh Shekhawat",
+        "profilePath": "/wmkwZWFHqMptqdt4HacMIAe8OBP.jpg"
+      },
+      {
+        "name": "Jagadeesh Bandari",
+        "character": "Kesava",
+        "profilePath": "/cntovFhpWby0XJdMszCJCTrLk2g.jpg"
+      },
+      {
+        "name": "Rao Ramesh",
+        "character": "Bhumireddy Siddappa Naidu",
+        "profilePath": "/jzO0wN21tEcmz0haekvliQU91JM.jpg"
+      },
+      {
+        "name": "Sunil Varma",
+        "character": "Mangalam Srinu",
+        "profilePath": "/ifmUCkLgpEzbfnRjIw62otrADpI.jpg"
+      },
+      {
+        "name": "Anasuya Bharadwaj",
+        "character": "Dakshayani",
+        "profilePath": "/adfyR0yHuTdj3sMiJQNDtBBXz9Q.jpg"
+      },
+      {
+        "name": "Ajay",
+        "character": "Molleti Mohan Raj",
+        "profilePath": "/uByCHJa3eaCL0SgFGDYYLlsVggC.jpg"
+      },
+      {
+        "name": "Kalpalatha",
+        "character": "Parvathamma",
+        "profilePath": "/j3sKWeC05kHdnpOmCgbv1XBaQt8.jpg"
+      },
+      {
+        "name": "Pavani Karanam",
+        "character": "Molleti Kaveri",
+        "profilePath": "/v6U8bCFGs6PmYnYoiB6XbEtBtDc.jpg"
+      }
+    ],
+    "desc": "As his smuggling empire grows, a brazen Pushpa longs for power and respect on his vengeful journey, while facing old rivals and new.",
+    "posterPath": "/7HeMz4qskfnoHeZxp6oV4xCjqZs.jpg",
+    "backdropPath": "/eUe5M3D0lLskjirOJ11R6xd7XB0.jpg",
+    "trailerKey": null
+  },
+  {
+    "id": "kalki-2898-ad",
+    "tmdbId": 801688,
+    "title": "Kalki 2898-AD",
+    "year": 2024,
+    "genres": [
+      "Drama",
+      "Action",
+      "Fantasy"
+    ],
+    "kind": "movie",
+    "rating": 6.4,
+    "votes": 185,
+    "runtime": "2h 56m",
+    "cert": "UA",
+    "language": "Telugu",
+    "director": "Nag Ashwin",
+    "writers": "Nag Ashwin",
+    "cast": [
+      {
+        "name": "Amitabh Bachchan",
+        "character": "Ashwatthama",
+        "profilePath": "/u69PvpWqGkywSm0YjFiw77j9eqS.jpg"
+      },
+      {
+        "name": "Prabhas",
+        "character": "Bhairava",
+        "profilePath": "/u6RVP8ukgLaymeoi5VmX0JRAcCn.jpg"
+      },
+      {
+        "name": "Deepika Padukone",
+        "character": "SUM-80 \"Sumathi\"",
+        "profilePath": "/rzvvBQ0r6oiqDdzcsdTRB7jN4Rx.jpg"
+      },
+      {
+        "name": "Kamal Haasan",
+        "character": "Supreme Yaskin",
+        "profilePath": "/xqnKeA127YoXfjDPjPKIJF8Kd2C.jpg"
+      },
+      {
+        "name": "Saswata Chatterjee",
+        "character": "Manas",
+        "profilePath": "/cVJVLDy7BNzIbFMcJBPOWeN0Kb.jpg"
+      },
+      {
+        "name": "Shobana",
+        "character": "Mariam",
+        "profilePath": "/t6niRFC3xCV6hJSuyC9ACWLSVXu.jpg"
+      },
+      {
+        "name": "Rajendra Prasad",
+        "character": "Rumi",
+        "profilePath": "/zh6QJ85g5KbpkjL5fgqlOGddn5C.jpg"
+      },
+      {
+        "name": "Pasupathy",
+        "character": "Veeran",
+        "profilePath": "/luiNwyZPi2snUB7mA4MTyQ1tvU3.jpg"
+      },
+      {
+        "name": "Anna Ben",
+        "character": "Kyra",
+        "profilePath": "/d0vvDEO6MWeRnc6lj1d11TnIt5i.jpg"
+      },
+      {
+        "name": "Keya Nair",
+        "character": "Raia",
+        "profilePath": null
+      }
+    ],
+    "desc": "In the year 2898 AD, around 6000 years after Kurukshetra war, Ashwatthama gears up for his final battle of redemption at the sign of hope in a dystopian world and Bhairava, a wisecracking and self-interested bounty hunter, tired of the perilous life becomes the hurdle in the process.",
+    "posterPath": "/rstcAnBeCkxNQjNp3YXrF6IP1tW.jpg",
+    "backdropPath": "/o8XSR1SONnjcsv84NRu6Mwsl5io.jpg",
+    "trailerKey": "rn7tdg6cpW4"
+  },
+  {
+    "id": "fighter",
+    "tmdbId": 784651,
+    "title": "Fighter",
+    "year": 2024,
+    "genres": [
+      "Action",
+      "Drama"
+    ],
+    "kind": "movie",
+    "rating": 6.2,
+    "votes": 161,
+    "runtime": "2h 46m",
+    "cert": "UA",
+    "language": "Hindi",
+    "director": "Siddharth Anand",
+    "writers": "Siddharth Anand, Ramon Chibb",
+    "cast": [
+      {
+        "name": "Hrithik Roshan",
+        "character": "Shamsher Pathania (Patty)",
+        "profilePath": "/5O7WrWe84WDFj7td64NVsobtHf3.jpg"
+      },
+      {
+        "name": "Deepika Padukone",
+        "character": "Minal Rathore (Minni)",
+        "profilePath": "/rzvvBQ0r6oiqDdzcsdTRB7jN4Rx.jpg"
+      },
+      {
+        "name": "Anil Kapoor",
+        "character": "Rakesh Jaisingh (Rocky)",
+        "profilePath": "/dwvnpiwg9m2zj0VHzlgzEotFl0G.jpg"
+      },
+      {
+        "name": "Karan Singh Grover",
+        "character": "Sartaaj Gill (Taj)",
+        "profilePath": "/1S5Kfl1gAIvg1WAjJgGEhX7vx74.jpg"
+      },
+      {
+        "name": "Sanjeeda Sheikh",
+        "character": "Saanchi Gill",
+        "profilePath": "/rz92hLtWoj1OCCchAZLtZvPwp0o.jpg"
+      },
+      {
+        "name": "Akshay Oberoi",
+        "character": "Basheer Khan (Bash)",
+        "profilePath": "/dsFqDJzSzUiKZpicmj05Iv1YbOs.jpg"
+      },
+      {
+        "name": "Rishabh Sawhney",
+        "character": "Azhar Akhtar",
+        "profilePath": "/muNoUZDZfP1iuN8tYOuh3FJCM6U.jpg"
+      },
+      {
+        "name": "Ashutosh Rana",
+        "character": "Abhijeet Rathore",
+        "profilePath": "/jFlhAoEP3KGEXO3SXCA4YLM2Goc.jpg"
+      },
+      {
+        "name": "Sharib Hashmi",
+        "character": "Varthaman",
+        "profilePath": "/S3J1QbSDE7wqvlQjVKVF5jLHT.jpg"
+      },
+      {
+        "name": "Mahesh Shetty",
+        "character": "Rajan Unnithan (Unni)",
+        "profilePath": "/rGxhEDfDwBffOOiUyyIlTJztO0X.jpg"
+      }
+    ],
+    "desc": "As India faces a militant attack in Kashmir, the country’s best combat aviators join forces under a reckless yet brilliant squadron leader to form 'Air Dragons', faces mortal dangers and their inner demons.",
+    "posterPath": "/zqFuriKJ6pYDvf72kXNLONnuE8k.jpg",
+    "backdropPath": "/vcc6NDwsMwNrwHgVuI9lGdWJLB8.jpg",
+    "trailerKey": "lAVYll_wBeY"
+  },
+  {
+    "id": "salaar-part-1-ceasefire",
+    "tmdbId": 770906,
+    "title": "Salaar: Part 1 - Ceasefire",
+    "year": 2023,
+    "genres": [
+      "Action",
+      "Crime",
+      "Drama"
+    ],
+    "kind": "movie",
+    "rating": 6.7,
+    "votes": 117,
+    "runtime": "2h 55m",
+    "cert": "A",
+    "language": "Telugu",
+    "director": "Prashanth Neel",
+    "writers": "Prashanth Neel",
+    "cast": [
+      {
+        "name": "Prabhas",
+        "character": "Devaratha \"Deva\" Raisaar",
+        "profilePath": "/u6RVP8ukgLaymeoi5VmX0JRAcCn.jpg"
+      },
+      {
+        "name": "Prithviraj Sukumaran",
+        "character": "Vardharaja Mannar / Siva Mannar",
+        "profilePath": "/1xhG42QU8tMQRTDdP1Ed3y9GRvm.jpg"
+      },
+      {
+        "name": "Shruti Haasan",
+        "character": "Aadya Krishnakanth",
+        "profilePath": "/1zYJuSccSA45VVBdgozpRcL99Rd.jpg"
+      },
+      {
+        "name": "Easwari Rao",
+        "character": "Deva's Mother",
+        "profilePath": "/fjyvQ45YZcovy2Egj2eux8UiuHU.jpg"
+      },
+      {
+        "name": "Jagapati Babu",
+        "character": "Raja Mannar",
+        "profilePath": "/bm72k6FmDxhxtZsl1xvxoz88Hkm.jpg"
+      },
+      {
+        "name": "Bobby Simha",
+        "character": "Bhaarava",
+        "profilePath": "/4luN7NwlKvenAkSDwjzZeWpWuoP.jpg"
+      },
+      {
+        "name": "Sriya Reddy",
+        "character": "Radha Rama Mannar",
+        "profilePath": "/6AwGUf0uj7Dr6cwZkC53KNihPdj.jpg"
+      },
+      {
+        "name": "Ramachandra Raju",
+        "character": "Rudra Raja Mannar",
+        "profilePath": "/kU1a4H8o1IQA25Lyq3cW70aufhT.jpg"
+      },
+      {
+        "name": "Mime Gopi",
+        "character": "Bilal",
+        "profilePath": "/gglNAjJMlCb0p7ig3OVpgsXMkMD.jpg"
+      },
+      {
+        "name": "Tinnu Anand",
+        "character": "Gaikwad \"Baba\"",
+        "profilePath": "/6fkEiZKNp6jnOQmfQKEjVinhUeL.jpg"
+      }
+    ],
+    "desc": "Set in the fictional dystopian city-state of Khansaar, the film follows the friendship between Deva, a tribesman, and Varadha, the prince of Khansaar. When a coup d'état is planned by his father's ministers and his relatives, Varadha enlists Deva's help to become Khansaar's undisputed ruler.",
+    "posterPath": "/nlu9WbcetNFRGXXPWITr30ob7W6.jpg",
+    "backdropPath": "/xtOCTmGemASooRkAxRorYODig1p.jpg",
+    "trailerKey": "9Im1q4gvk1M"
+  },
+  {
+    "id": "animal",
+    "tmdbId": 781732,
+    "title": "Animal",
+    "year": 2023,
+    "genres": [
+      "Action",
+      "Crime",
+      "Drama"
+    ],
+    "kind": "movie",
+    "rating": 6.2,
+    "votes": 201,
+    "runtime": "3h 21m",
+    "cert": "A",
+    "language": "Hindi",
+    "director": "Sandeep Reddy Vanga",
+    "writers": "Sandeep Reddy Vanga, Suresh Bandaru, Pranay Reddy Vanga",
+    "cast": [
+      {
+        "name": "Ranbir Kapoor",
+        "character": "Ranvijay Balbir Singh / Aziz Haque",
+        "profilePath": "/ymYNHV9luwgyrw17NXHqbOWTQkg.jpg"
+      },
+      {
+        "name": "Rashmika Mandanna",
+        "character": "Geetanjali Singh",
+        "profilePath": "/6PpadmUs2Mz8nRw6rmKEiZZGcZ5.jpg"
+      },
+      {
+        "name": "Anil Kapoor",
+        "character": "Balbir Singh",
+        "profilePath": "/dwvnpiwg9m2zj0VHzlgzEotFl0G.jpg"
+      },
+      {
+        "name": "Bobby Deol",
+        "character": "Abrar Haque",
+        "profilePath": "/2npVa3PduichY8e7qBiE54m9VVP.jpg"
+      },
+      {
+        "name": "Triptii Dimri",
+        "character": "Zoya Riaz",
+        "profilePath": "/5NBOKv8f9O0b41NPebgdB0eQ20y.jpg"
+      },
+      {
+        "name": "Prem Chopra",
+        "character": "Bade Daarji",
+        "profilePath": "/4hLAhScWZA6utfg8VCivwVH6FHy.jpg"
+      },
+      {
+        "name": "Suresh Oberoi",
+        "character": "Dadaji",
+        "profilePath": "/eU19xoD28bzCImBXNpOQCIbhUZG.jpg"
+      },
+      {
+        "name": "Shakti Kapoor",
+        "character": "Mishra",
+        "profilePath": "/8bkl6B8i8cgW5xVjCoHQkxEqqke.jpg"
+      },
+      {
+        "name": "Upendra Limaye",
+        "character": "Freddy",
+        "profilePath": "/vFELR5TiBfc6LkLvI5kC5lpEnHv.jpg"
+      },
+      {
+        "name": "Babloo Prithiveeraj",
+        "character": "Asrar Haque",
+        "profilePath": "/lnRXcRebSmfJaSaRqTt91o1vkhE.jpg"
+      }
+    ],
+    "desc": "The hardened son of a powerful industrialist returns home after years abroad and vows to take bloody revenge on those threatening his father's life.",
+    "posterPath": "/hr9rjR3J0xBBKmlJ4n3gHId9ccx.jpg",
+    "backdropPath": "/lprsAHkwMxk2iC6VZxNmV0H7g1t.jpg",
+    "trailerKey": "psnYuD4M6zY"
+  },
+  {
+    "id": "jawan",
+    "tmdbId": 872906,
+    "title": "Jawan",
+    "year": 2023,
+    "genres": [
+      "Action",
+      "Thriller"
+    ],
+    "kind": "movie",
+    "rating": 7,
+    "votes": 337,
+    "runtime": "2h 49m",
+    "cert": "UA",
+    "language": "Hindi",
+    "director": "Atlee",
+    "writers": "Atlee, Ramana Girivasan",
+    "cast": [
+      {
+        "name": "Shah Rukh Khan",
+        "character": "Vikram Rathore / Azad",
+        "profilePath": "/d8jQehnCiGuLhZbs1DyB2uDu5BA.jpg"
+      },
+      {
+        "name": "Nayanthara",
+        "character": "Narmada",
+        "profilePath": "/sYUzvjsSsqeOgBblSzda6ZwwbEa.jpg"
+      },
+      {
+        "name": "Vijay Sethupathi",
+        "character": "Kalee Gaikwad",
+        "profilePath": "/a3HWdfCAbplrvoMNEJCjnkbqqOo.jpg"
+      },
+      {
+        "name": "Deepika Padukone",
+        "character": "Aishwarya Rathore",
+        "profilePath": "/rzvvBQ0r6oiqDdzcsdTRB7jN4Rx.jpg"
+      },
+      {
+        "name": "Sanjay Dutt",
+        "character": "Madhavan Naik",
+        "profilePath": "/oq4pnvWhl1HxKpp0KVlSfAr3Tiu.jpg"
+      },
+      {
+        "name": "Priyamani",
+        "character": "Laxmi",
+        "profilePath": "/grcW2eMm77Q2Kj1xX0HvZlRpGRR.jpg"
+      },
+      {
+        "name": "Sanya Malhotra",
+        "character": "Eeram",
+        "profilePath": "/sQ0VIqGLecfpwYayO05Z7NC32yN.jpg"
+      },
+      {
+        "name": "Girija Oak",
+        "character": "Ishkra",
+        "profilePath": "/f10HPTExCVQ8mZXShctpWPsxxaw.jpg"
+      },
+      {
+        "name": "Lehar Khan",
+        "character": "Kalki",
+        "profilePath": "/qkGtsYbXbdppzNLTsqhBpKiDeme.jpg"
+      },
+      {
+        "name": "Sanjeeta Bhattacharya",
+        "character": "Helena",
+        "profilePath": "/5R43ctB6aRYvXEpS5DkiAxkfnkW.jpg"
+      }
+    ],
+    "desc": "An emotional journey of a prison warden, driven by a personal vendetta while keeping up to a promise made years ago, recruits inmates to commit outrageous crimes that shed light on corruption and injustice, in an attempt to get even with his past,  and that leads him to an unexpected reunion.",
+    "posterPath": "/jFt1gS4BGHlK8xt76Y81Alp4dbt.jpg",
+    "backdropPath": "/5LtSjMNw6j3LkG29Oa4O0iY5U8.jpg",
+    "trailerKey": "MWOlnZSnXJo"
+  },
+  {
+    "id": "pathaan",
+    "tmdbId": 864692,
+    "title": "Pathaan",
+    "year": 2023,
+    "genres": [
+      "Action",
+      "Adventure",
+      "Thriller"
+    ],
+    "kind": "movie",
+    "rating": 6.4,
+    "votes": 263,
+    "runtime": "2h 26m",
+    "cert": "UA",
+    "language": "Hindi",
+    "director": "Siddharth Anand",
+    "writers": "Siddharth Anand, Shridhar Raghavan",
+    "cast": [
+      {
+        "name": "Shah Rukh Khan",
+        "character": "Pathaan",
+        "profilePath": "/d8jQehnCiGuLhZbs1DyB2uDu5BA.jpg"
+      },
+      {
+        "name": "Deepika Padukone",
+        "character": "Rubina Mohsin",
+        "profilePath": "/rzvvBQ0r6oiqDdzcsdTRB7jN4Rx.jpg"
+      },
+      {
+        "name": "John Abraham",
+        "character": "Jim",
+        "profilePath": "/2ITVYVFou0dh3QVcJlhNJVzrA2p.jpg"
+      },
+      {
+        "name": "Dimple Kapadia",
+        "character": "Nandini",
+        "profilePath": "/nZoVs8drMLefoBN7PZ49slHuJe7.jpg"
+      },
+      {
+        "name": "Ashutosh Rana",
+        "character": "Sunil Luthra",
+        "profilePath": "/jFlhAoEP3KGEXO3SXCA4YLM2Goc.jpg"
+      },
+      {
+        "name": "Prakash Belawadi",
+        "character": "Dr. Sahani",
+        "profilePath": "/bECb7W5XUSFVOgN0z9Ob1ludIha.jpg"
+      },
+      {
+        "name": "Manish Wadhwa",
+        "character": "General Qadir",
+        "profilePath": "/dtYKUHR1kZuOBX2Ud2mEhpnTS3x.jpg"
+      },
+      {
+        "name": "Akash Bhatija",
+        "character": "Amol",
+        "profilePath": "/oB6bkmmbqRKbPzt8gQbT0gqmWnE.jpg"
+      },
+      {
+        "name": "Shaji Choudhary",
+        "character": "Raza",
+        "profilePath": "/xCH1ZS91zEouivjt4atJjvLTaYe.jpg"
+      },
+      {
+        "name": "Viraf Patel",
+        "character": "Rishi",
+        "profilePath": "/PPmfooP4eUBA2GzpBZHOLE2m70.jpg"
+      }
+    ],
+    "desc": "A soldier caught by enemies and presumed dead comes back to complete his mission, accompanied by old companions and foes.",
+    "posterPath": "/arf00BkwvXo0CFKbaD9OpqdE4Nu.jpg",
+    "backdropPath": "/9wRAIQeOv2qzcgpfvA4dYZKeezl.jpg",
+    "trailerKey": "yswBxKPFSvA"
+  },
+  {
+    "id": "12th-fail",
+    "tmdbId": 1163258,
+    "title": "12th Fail",
+    "year": 2023,
+    "genres": [
+      "Drama"
+    ],
+    "kind": "movie",
+    "rating": 7.9,
+    "votes": 255,
+    "runtime": "2h 26m",
+    "cert": "PG",
+    "language": "English",
+    "director": "Vidhu Vinod Chopra",
+    "writers": "Vidhu Vinod Chopra, Jaskunwar Kohli",
+    "cast": [
+      {
+        "name": "Vikrant Massey",
+        "character": "Manoj Kumar Sharma",
+        "profilePath": "/zvpP52P7CtVXYONmvWrH1aOcRTx.jpg"
+      },
+      {
+        "name": "Medha Shankr",
+        "character": "Shraddha Joshi",
+        "profilePath": "/aVemlgs6LIf1GzrpTPjyoV14Y2s.jpg"
+      },
+      {
+        "name": "Anant Joshi",
+        "character": "Pritam Pandey",
+        "profilePath": "/jcYbmTJZolVfFknhulko7i2KHSL.jpg"
+      },
+      {
+        "name": "Anshumaan Pushkar",
+        "character": "Gaurinandan",
+        "profilePath": "/ktbqCXjoqLuD96tTkHo1PVqVi14.jpg"
+      },
+      {
+        "name": "Priyanshu Chatterjee",
+        "character": "Dushyant Singh",
+        "profilePath": "/fPAIAZcdGD2UBMwBluqiYi5pXHb.jpg"
+      },
+      {
+        "name": "Geeta Agrawal Sharma",
+        "character": "Pushpa Sharma",
+        "profilePath": "/5Jrwb9zWG2Hjmf8PQLuDmCKnMHG.jpg"
+      },
+      {
+        "name": "Harish Khanna",
+        "character": "Ramveer Sharma",
+        "profilePath": "/uUp5UH7SpPvCBidrAIa3mMaLZIu.jpg"
+      },
+      {
+        "name": "Vikas Divyakirti",
+        "character": "Vikas Divyakirti",
+        "profilePath": "/kseQq4A4UCvELbkQNnjr1FY9R2q.jpg"
+      },
+      {
+        "name": "Sarita Joshi",
+        "character": "Dadi",
+        "profilePath": "/njUfojPEbH2Si1mEJ4DEFSO2lmF.jpg"
+      },
+      {
+        "name": "Sam Mohan",
+        "character": "Deep Mohan",
+        "profilePath": "/ec2qc89q4dui86lCQ5f3l7tyLLF.jpg"
+      }
+    ],
+    "desc": "Based on the true story of IPS officer Manoj Kumar Sharma, 12th Fail sheds limelight on fearlessly embracing the idea of restarting the academic journey despite the setbacks and challenges and reclaiming one's destiny at a place where millions of students attempt the world's toughest competitive exam: UPSC.",
+    "posterPath": "/eebUPRI4Z5e1Z7Hev4JZAwMIFkX.jpg",
+    "backdropPath": "/6RV2o8PBCEyw9ylOWViV1CtULIF.jpg",
+    "trailerKey": "KjbtuqENvVE"
+  },
+  {
+    "id": "laapataa-ladies",
+    "tmdbId": 1163194,
+    "title": "Lost Ladies",
+    "year": 2024,
+    "genres": [
+      "Comedy",
+      "Drama",
+      "Romance"
+    ],
+    "kind": "movie",
+    "rating": 7.8,
+    "votes": 165,
+    "runtime": "2h 03m",
+    "cert": "UA",
+    "language": "Hindi",
+    "director": "Kiran Rao",
+    "writers": "Sneha Desai",
+    "cast": [
+      {
+        "name": "Nitanshi Goel",
+        "character": "Phool",
+        "profilePath": "/tssZxJMnOGBaliP4NaNta8V22nd.jpg"
+      },
+      {
+        "name": "Pratibha Ranta",
+        "character": "Jaya",
+        "profilePath": "/ewSHj3r1vjlSXusQPZAzbkfcaMk.jpg"
+      },
+      {
+        "name": "Sparsh Shrivastava",
+        "character": "Deepak Kumar",
+        "profilePath": "/d123XZfocCLnc5LAjrlBifffYFf.jpg"
+      },
+      {
+        "name": "Ravi Kishan",
+        "character": "Sub-Inspector Shyam Manohar",
+        "profilePath": "/rkUTRk0tuA98RepP9jhgcCbhHqy.jpg"
+      },
+      {
+        "name": "Chhaya Kadam",
+        "character": "Manju Maai",
+        "profilePath": "/umOPkpPA4JUWLkVziYU5GF6gELD.jpg"
+      },
+      {
+        "name": "Geeta Agrawal Sharma",
+        "character": "Yasoda",
+        "profilePath": "/5Jrwb9zWG2Hjmf8PQLuDmCKnMHG.jpg"
+      },
+      {
+        "name": "Pankaj Sharma",
+        "character": "Vidur",
+        "profilePath": null
+      },
+      {
+        "name": "Abeer Sandeep Jain",
+        "character": "Bablu",
+        "profilePath": null
+      },
+      {
+        "name": "Rachna Gupta",
+        "character": "Poonam Bhabhi",
+        "profilePath": "/86Ajpx5Hjcx8ScnJ6tdehrfJqd6.jpg"
+      },
+      {
+        "name": "Kirti Jain",
+        "character": "Deepak's Grandmother",
+        "profilePath": null
+      }
+    ],
+    "desc": "In 2001, somewhere in rural India, two young brides get accidentally swapped on a train. In the ensuing chaos, they both encounter a host of colourful characters, resulting in hilarious and unexpected consequences.",
+    "posterPath": "/yXt07MYeiyQRzS69PMHy0BPjCGP.jpg",
+    "backdropPath": "/uUVXEEyMsyWxrcbmAppUCYg6egV.jpg",
+    "trailerKey": "hGM87LCJxRc"
+  },
+  {
+    "id": "rrr",
+    "tmdbId": 579974,
+    "title": "RRR",
+    "year": 2022,
+    "genres": [
+      "Action",
+      "History",
+      "Drama"
+    ],
+    "kind": "movie",
+    "rating": 7.7,
+    "votes": 1645,
+    "runtime": "3h 07m",
+    "cert": "UA",
+    "language": "English",
+    "director": "S. S. Rajamouli",
+    "writers": "S. S. Rajamouli, Vijayendra Prasad",
+    "cast": [
+      {
+        "name": "N.T. Rama Rao Jr.",
+        "character": "Komaram Bheem",
+        "profilePath": "/5ycQgZ3SPUa12bq0yn1jpToBq9X.jpg"
+      },
+      {
+        "name": "Ram Charan",
+        "character": "Alluri Sitarama Raju",
+        "profilePath": "/twGqYUCR0Yh33j3TcgRTZRBRhTd.jpg"
+      },
+      {
+        "name": "Olivia Morris",
+        "character": "Jennifer 'Jenny' Buxton",
+        "profilePath": "/iAzUTXzFWwEkRx6Ygudqnx4DmtW.jpg"
+      },
+      {
+        "name": "Ray Stevenson",
+        "character": "Scott Buxton",
+        "profilePath": "/9QCVNDgTgDEbGsa6w3JuECEPuQz.jpg"
+      },
+      {
+        "name": "Alison Doody",
+        "character": "Cassandra Buxton",
+        "profilePath": "/q5CpMFAjLP40JHgwS6qWku6arSC.jpg"
+      },
+      {
+        "name": "Ajay Devgn",
+        "character": "Alluri Venkatarama Raju",
+        "profilePath": "/vnHQQFzTjJ0sv14DGMIoKa3qTxN.jpg"
+      },
+      {
+        "name": "Alia Bhatt",
+        "character": "Sita",
+        "profilePath": "/suudEC5cdE3g5kB1BjCPfvfeQZY.jpg"
+      },
+      {
+        "name": "Samuthirakani",
+        "character": "Alluri Venkateshwarulu",
+        "profilePath": "/hicCPOdDfSRCEYkeb9g53FOY19A.jpg"
+      },
+      {
+        "name": "Twinkle Sharma",
+        "character": "Malli",
+        "profilePath": "/xYGDBO8uE6SK8n1wqUcrBBYMmrX.jpg"
+      },
+      {
+        "name": "Shriya Saran",
+        "character": "Alluri Sarojini",
+        "profilePath": "/7TVh3yF6kpZOQFyWV5jC5XqJruI.jpg"
+      }
+    ],
+    "desc": "A fictional history of two legendary revolutionaries' journey away from home before they began fighting for their country in the 1920s.",
+    "posterPath": "/u0XUBNQWlOvrh0Gd97ARGpIkL0.jpg",
+    "backdropPath": "/i0Y0wP8H6SRgjr6QmuwbtQbS24D.jpg",
+    "trailerKey": "i4pjiLGUTtk"
+  },
+  {
+    "id": "3-idiots",
+    "tmdbId": 20453,
+    "title": "3 Idiots",
+    "year": 2009,
+    "genres": [
+      "Drama",
+      "Comedy"
+    ],
+    "kind": "movie",
+    "rating": 8,
+    "votes": 2775,
+    "runtime": "2h 51m",
+    "cert": "UA",
+    "language": "English",
+    "director": "Rajkumar Hirani",
+    "writers": "Rajkumar Hirani, Vidhu Vinod Chopra, Abhijat Joshi",
+    "cast": [
+      {
+        "name": "Aamir Khan",
+        "character": "Ranchoddas \"Rancho\" Chanchad",
+        "profilePath": "/6uiZSwi2kvd1jZ7X7Xz9W9VGuV4.jpg"
+      },
+      {
+        "name": "R. Madhavan",
+        "character": "Farhan Qureshi",
+        "profilePath": "/gaDrAdXxIrbBRCd9cX8YvJDEuLb.jpg"
+      },
+      {
+        "name": "Sharman Joshi",
+        "character": "Raju Rastogi",
+        "profilePath": "/mQr8ynFFVq08qgQ4aSNl5B0ko8v.jpg"
+      },
+      {
+        "name": "Kareena Kapoor Khan",
+        "character": "Pia Sahastrabudhhe",
+        "profilePath": "/kp9xnwDALUt6nuPBGuJHlvnxGnM.jpg"
+      },
+      {
+        "name": "Boman Irani",
+        "character": "Viru \"Virus\" Sahastrabudhhe",
+        "profilePath": "/5J7GiiNar9bg9rGYeA2L30JXE2W.jpg"
+      },
+      {
+        "name": "Omi Vaidya",
+        "character": "Chatur \"Silencer\" Ramalingam",
+        "profilePath": "/G37HGmfBM8b6pTczZrpJmTFIGl.jpg"
+      },
+      {
+        "name": "Mona Singh",
+        "character": "Mona Sahastrabuddhe",
+        "profilePath": "/fBl5KYnlKY8HDUqlTs64xbDZtU8.jpg"
+      },
+      {
+        "name": "Rahul Kumar",
+        "character": "Millimeter",
+        "profilePath": "/pYw7c1T0ifdvWMUtUJl3GMkx4aP.jpg"
+      },
+      {
+        "name": "Parikshat Sahni",
+        "character": "Mr. Qureshi",
+        "profilePath": "/wQs7zYQNahLrntjqd7aIrajnbpM.jpg"
+      },
+      {
+        "name": "Farida Dadi",
+        "character": "Mrs. Qureshi",
+        "profilePath": "/uriqyktmJedfF7LHkiWhKh4IXe1.jpg"
+      }
+    ],
+    "desc": "Rascal. Joker. Dreamer. Genius... You've never met a college student quite like \"Rancho.\" From the moment he arrives at India's most prestigious university, Rancho's outlandish schemes turn the campus upside down—along with the lives of his two newfound best friends. Together, they make life miserable for \"Virus,\" the school’s uptight and heartless dean. But when Rancho catches the eye of the dean's daughter, Virus sets his sights on flunking out the \"3 idiots\" once and for all.",
+    "posterPath": "/66A9MqXOyVFCssoloscw79z8Tew.jpg",
+    "backdropPath": "/8gT3UKtglLVpu0YfccwbmXZ5Eis.jpg",
+    "trailerKey": "zIKu9k50SDo"
+  },
+  {
+    "id": "mirzapur",
+    "tmdbId": 84105,
+    "title": "Mirzapur",
+    "year": 2018,
+    "genres": [
+      "Crime",
+      "Action & Adventure",
+      "Drama"
+    ],
+    "kind": "series",
+    "rating": 8,
+    "votes": 192,
+    "runtime": "3 Seasons",
+    "cert": "A",
+    "language": "Hindi",
+    "director": "Karan Anshuman, Puneet Krishna, Vineet Krishnan",
+    "writers": "Avinash Singh Tomar, Vijay Narayan Verma, Apurva Dhar Badgaiyann",
+    "cast": [
+      {
+        "name": "Ali Fazal",
+        "character": "Govind Pandit / Guddu",
+        "profilePath": "/lLDmx3RDuMXObASvdFXeUh1GOgd.jpg"
+      },
+      {
+        "name": "Pankaj Tripathi",
+        "character": "Akhanda Tripathi / Kaleen Bhaiya",
+        "profilePath": "/f3Vxz0QB7PHeyPcXrfJX14Xkxnu.jpg"
+      },
+      {
+        "name": "Shweta Tripathi Sharma",
+        "character": "Gajgamini Gupta / Golu",
+        "profilePath": "/xZ0pk5qKzfK1oB54Mmfo1lUSSEu.jpg"
+      },
+      {
+        "name": "Rasika Dugal",
+        "character": "Beena Tripathi",
+        "profilePath": "/cMJP2OEOrKwF05BFh3zI3TyS5Ft.jpg"
+      },
+      {
+        "name": "Harshita Gaur",
+        "character": "Dimpy Pandit",
+        "profilePath": "/rYO4VrYRiCWrEq5MgM0fZnlAMwX.jpg"
+      },
+      {
+        "name": "Sheeba Chaddha",
+        "character": "Vasudha Pandit",
+        "profilePath": "/yWBQeR47GmnGJn33w4c8QzakkSh.jpg"
+      },
+      {
+        "name": "Rajesh Tailang",
+        "character": "Ramakant Pandit",
+        "profilePath": "/ou1zcrNfhXBKcpnPgtKs64SRGXm.jpg"
+      },
+      {
+        "name": "Anjum Sharma",
+        "character": "Sharad Shukla",
+        "profilePath": "/75uWNWhYgYxRlXw4Hhrl5R86mpK.jpg"
+      },
+      {
+        "name": "Isha Talwar",
+        "character": "Madhuri Tripathi",
+        "profilePath": "/dVRrb9aLf6s1XmtIkpSbzuMl0Uv.jpg"
+      },
+      {
+        "name": "Vijay Varma",
+        "character": "Bharat Tyagi",
+        "profilePath": "/A46ekiPFC3vA1442FJmiIudpxX1.jpg"
+      }
+    ],
+    "desc": "The iron-fisted Akhandanand Tripathi is a millionaire carpet exporter and the mafia don of Mirzapur. His son, Munna, is an unworthy, power-hungry heir who will stop at nothing to inherit his father's legacy. An incident at a wedding procession forces him to cross paths with Ramakant Pandit, an upstanding lawyer, and his sons, Guddu and Bablu. It snowballs into a game of ambition, power and greed that threatens the fabric of this lawless city.",
+    "posterPath": "/1rxLUFVrtTo82OxhbDXJDiJVkwL.jpg",
+    "backdropPath": "/3dV7pWAdwIPKR2lMIACMfObXdgK.jpg",
+    "trailerKey": "33o3s4Vs4Sw"
+  },
+  {
+    "id": "the-family-man",
+    "tmdbId": 93352,
+    "title": "The Family Man",
+    "year": 2019,
+    "genres": [
+      "Drama",
+      "Action & Adventure"
+    ],
+    "kind": "series",
+    "rating": 7.7,
+    "votes": 193,
+    "runtime": "3 Seasons",
+    "cert": "TV-PG",
+    "language": "Hindi",
+    "director": "Raj Nidimoru, Krishna D.K.",
+    "writers": "Krishna D.K., Raj Nidimoru, Suman Kumar",
+    "cast": [
+      {
+        "name": "Manoj Bajpayee",
+        "character": "Srikant Tiwari",
+        "profilePath": "/hBiAldG2BGMVoZUPbvK3FNDSw22.jpg"
+      },
+      {
+        "name": "Priyamani",
+        "character": "Suchitra Tiwari",
+        "profilePath": "/grcW2eMm77Q2Kj1xX0HvZlRpGRR.jpg"
+      },
+      {
+        "name": "Sharib Hashmi",
+        "character": "JK Talpade",
+        "profilePath": "/S3J1QbSDE7wqvlQjVKVF5jLHT.jpg"
+      },
+      {
+        "name": "Vedant Sinha",
+        "character": "Atharv Tiwari",
+        "profilePath": "/vPzVMeiMYKRH9tpeDZXVYB3tk5i.jpg"
+      },
+      {
+        "name": "Ashlesha Thakur",
+        "character": "Dhriti Tiwari",
+        "profilePath": "/cu3uUco7xRa4UZnMvP6dtrQnOby.jpg"
+      },
+      {
+        "name": "Shreya Dhanwanthary",
+        "character": "Zoya",
+        "profilePath": "/kzLK1i4bQeajhzRAMPZAonAM6b7.jpg"
+      },
+      {
+        "name": "Darshan Kumaar",
+        "character": "Major Sameer",
+        "profilePath": "/aKDYD0wDq7BRwdJmSjoqfOPleOf.jpg"
+      },
+      {
+        "name": "Vipin Sharma",
+        "character": "Sambit",
+        "profilePath": "/3TZHbQ1Zi3z1B721jwwTKxAMXqI.jpg"
+      },
+      {
+        "name": "Jaideep Ahlawat",
+        "character": "Rukma",
+        "profilePath": "/uILn4y8EWbMdeu71laMsh8zHY0M.jpg"
+      },
+      {
+        "name": "Nimrat Kaur",
+        "character": "Meera Eston",
+        "profilePath": "/7tJoyJygnKOweIlirFCWoOcuSzq.jpg"
+      }
+    ],
+    "desc": "The story of a middle-class man who works for a special cell of the National Investigation Agency. While he tries to protect the nation from terrorists, he also has to protect his family from the impact of his secretive, high-pressure, and low paying job.",
+    "posterPath": "/tE1NUJqw9gV6AVjQ1GTK78LbWJ9.jpg",
+    "backdropPath": "/eEzKigDI64OomZV6VTJvoPGmVu1.jpg",
+    "trailerKey": "jsauQx_Fwrg"
+  },
+  {
+    "id": "panchayat",
+    "tmdbId": 101352,
+    "title": "Panchayat",
+    "year": 2020,
+    "genres": [
+      "Comedy",
+      "Drama"
+    ],
+    "kind": "series",
+    "rating": 8.2,
+    "votes": 145,
+    "runtime": "5 Seasons",
+    "cert": "U/A 13+",
+    "language": "Hindi",
+    "director": "Chandan Kumar, Deepak Kumar Mishra, Arunabh Kumar, Akshat Vijaywargiya, Adarsh Kushwah",
+    "writers": "Chandan Kumar",
+    "cast": [
+      {
+        "name": "Jitendra Kumar",
+        "character": "Abhishek Tripathi",
+        "profilePath": "/562Mucw9YaDHUlFBqK5aot3H2lJ.jpg"
+      },
+      {
+        "name": "Raghubir Yadav",
+        "character": "Brij Bhushan Dubey",
+        "profilePath": "/khyp4vnuGKVxrtszyB7kSf3vuzw.jpg"
+      },
+      {
+        "name": "Neena Gupta",
+        "character": "Manju Devi",
+        "profilePath": "/znCPPYR79c1DU2MvA61JXhdMeCs.jpg"
+      },
+      {
+        "name": "Chandan Roy",
+        "character": "Vikas",
+        "profilePath": "/2zIIonCsFrdcmmZD0g5YIaCPnQY.jpg"
+      },
+      {
+        "name": "Faisal Malik",
+        "character": "Prahlad Pandey",
+        "profilePath": "/eztI7Y1VUqHz7OYZ4ytoyEz0amz.jpg"
+      },
+      {
+        "name": "Sanvikaa",
+        "character": "Rinky",
+        "profilePath": "/6w4tX0aU1TZBU7j4rhEr3zeLXuV.jpg"
+      },
+      {
+        "name": "Durgesh Kumar",
+        "character": "Bhushan Sharma",
+        "profilePath": "/nLt1cgrxIapn7fRVwFjqnSFXc1x.jpg"
+      },
+      {
+        "name": "Ashok Pathak",
+        "character": "Binod",
+        "profilePath": "/a60LOKJd2FTNxfLSo7QCQEyjZgO.jpg"
+      },
+      {
+        "name": "Sunita Rajwar",
+        "character": "Kranti Devi",
+        "profilePath": "/cEhnGiU6arxA4vxZCUspFWDP76F.jpg"
+      }
+    ],
+    "desc": "Panchayat is a comedy-drama, which captures the journey of an engineering graduate Abhishek, who for lack of a better job option joins as secretary of a panchayat office in a remote village of Uttar Pradesh. Stuck between crazy villagers and a difficult village lifestyle Abhishek starts his job with the sole motivation of getting out of there as soon as possible, for which he even prepares for CAT.",
+    "posterPath": "/xrfvAhrMdT6Uwg5fyTyQAZBYyiu.jpg",
+    "backdropPath": "/iZ8EtGAqKWZdRJPzWfFseNfVxjh.jpg",
+    "trailerKey": "AHMEtNAZTP4"
+  },
+  {
+    "id": "farzi",
+    "tmdbId": 132117,
+    "title": "Farzi",
+    "year": 2023,
+    "genres": [
+      "Drama",
+      "Crime"
+    ],
+    "kind": "series",
+    "rating": 7.7,
+    "votes": 177,
+    "runtime": "2 Seasons",
+    "cert": "U/A 16+",
+    "language": "Hindi",
+    "director": "Raj Nidimoru, Krishna D.K.",
+    "writers": "Krishna D.K., Sita Menon, Raj Nidimoru",
+    "cast": [
+      {
+        "name": "Shahid Kapoor",
+        "character": "Sunny / Artist",
+        "profilePath": "/q5jqLRioZgIVjXpKS8XHx27ScDQ.jpg"
+      },
+      {
+        "name": "Vijay Sethupathi",
+        "character": "Michael Vedanayagam",
+        "profilePath": "/a3HWdfCAbplrvoMNEJCjnkbqqOo.jpg"
+      },
+      {
+        "name": "Kay Kay Menon",
+        "character": "Mansoor Dalal",
+        "profilePath": "/lcCMzGpxHXTStLMN7G9SQovxSQo.jpg"
+      },
+      {
+        "name": "Bhuvan Arora",
+        "character": "Firoz",
+        "profilePath": "/AtEfX9ta8LZTWh7yZ4dVc2wpIRO.jpg"
+      },
+      {
+        "name": "Raashii Khanna",
+        "character": "Megha Vyas",
+        "profilePath": "/dUI7VAfva2t6Nwkood3llLJr6aE.jpg"
+      },
+      {
+        "name": "Chittaranjan Giri",
+        "character": "Yasir Chacha",
+        "profilePath": "/guaB9EP5Md4MgX1FUKN5eSLhzvl.jpg"
+      },
+      {
+        "name": "Amol Palekar",
+        "character": "Madhav Nanu",
+        "profilePath": "/kUnejDjArzNVxouIaIj3WxxC83G.jpg"
+      },
+      {
+        "name": "Zakir Hussain",
+        "character": "Pawan Gahlot",
+        "profilePath": "/etiL0ANjzBhTiyvUblZl6vwIog9.jpg"
+      },
+      {
+        "name": "Jaswant Singh Dalal",
+        "character": "Shekhar",
+        "profilePath": null
+      }
+    ],
+    "desc": "Sunny, a brilliant small-time artist is catapulted into the high-stakes world of counterfeiting when he creates the perfect fake currency note, even as Michael, a fiery, unorthodox task force officer wants to rid the country of the counterfeiting menace. In this thrilling cat-and-mouse race, losing is not an option!",
+    "posterPath": "/cTS86RwEBIDgCgUmjWQTSoPsK6p.jpg",
+    "backdropPath": "/rGkjtv6UdL1ysDmZuBjbNl3PAA1.jpg",
+    "trailerKey": "KQdgKpNYho8"
+  },
+  {
+    "id": "scam-1992-the-harshad-mehta-story",
+    "tmdbId": 111188,
+    "title": "Scam 1992: The Harshad Mehta Story",
+    "year": 2020,
+    "genres": [
+      "Crime",
+      "Drama"
+    ],
+    "kind": "series",
+    "rating": 8.3,
+    "votes": 149,
+    "runtime": "1 Season",
+    "cert": "TV-14",
+    "language": "English",
+    "director": "Hansal Mehta",
+    "writers": "Karan Vyas, Vaibhav Vishal, Sumit Purohit",
+    "cast": [
+      {
+        "name": "Pratik Gandhi",
+        "character": "Harshad Mehta",
+        "profilePath": "/dM6X5HrC1WKMfk3MwQJk1YFelk9.jpg"
+      },
+      {
+        "name": "Shreya Dhanwanthary",
+        "character": "Sucheta Dalal/Narrator",
+        "profilePath": "/kzLK1i4bQeajhzRAMPZAonAM6b7.jpg"
+      },
+      {
+        "name": "Anjali Barot",
+        "character": "Jyoti Harshad Mehta",
+        "profilePath": "/djcMRo1huQYy4RcsHk7ANSyrDJi.jpg"
+      },
+      {
+        "name": "Hemant Kher",
+        "character": "Ashwin Mehta",
+        "profilePath": "/h3Ww8WDxxRGymQ6vkn2VWMVksxk.jpg"
+      },
+      {
+        "name": "Chirag Vohra",
+        "character": "Bhushan Bhatt",
+        "profilePath": "/AoOQWaYS45dIWLpGrlxn4CTGcNh.jpg"
+      },
+      {
+        "name": "Jay Upadhyay",
+        "character": "Pranav Sheth",
+        "profilePath": "/4j9d6nrCyYPokXMIbrgPMIHYCo5.jpg"
+      },
+      {
+        "name": "Satish Kaushik",
+        "character": "Manu Mundra (Black Cobra)",
+        "profilePath": "/lnqVTsUKVxJYPWN3KRBhRlGP1Z0.jpg"
+      },
+      {
+        "name": "K.K. Raina",
+        "character": "M.J. Pherwani",
+        "profilePath": "/eh2IJNYaawqClxksenUjeHqxey4.jpg"
+      },
+      {
+        "name": "Ramakant Dayma",
+        "character": "Shantilal Mehta",
+        "profilePath": "/2b8RYfCpkhywDZ6NmIV3aHiLvnM.jpg"
+      },
+      {
+        "name": "Kumkum Das",
+        "character": "Rasilaben Mehta",
+        "profilePath": "/uGJ99KuSQUIdSvh84p9TApxIWKk.jpg"
+      }
+    ],
+    "desc": "Set in 1980's & 90's Bombay, Scam 1992 follows the life of Harshad Mehta - a stockbroker who single-handedly took the stock market to dizzying heights & his catastrophic downfall. Being directed by National Award-winning filmmaker Hansal Mehta, the series is based on journalist Debashis Basu & Sucheta Dalal's book \"The Scam\".",
+    "posterPath": "/fiimZ9Xt5cPTPHNrbS4QautBXpU.jpg",
+    "backdropPath": "/tTYP1npvBU90NthceezScfXGiOl.jpg",
+    "trailerKey": "1faUIRDYSXo"
+  },
+  {
+    "id": "kota-factory",
+    "tmdbId": 89113,
+    "title": "Kota Factory",
+    "year": 2019,
+    "genres": [
+      "Comedy",
+      "Drama"
+    ],
+    "kind": "series",
+    "rating": 8,
+    "votes": 119,
+    "runtime": "3 Seasons",
+    "cert": "TV-14",
+    "language": "Hindi",
+    "director": "Saurabh Khanna, Arunabh Kumar, Raghav Subbu",
+    "writers": "Puneet Batra, Pravin Yadav",
+    "cast": [
+      {
+        "name": "Jitendra Kumar",
+        "character": "Jeetu Bhaiya",
+        "profilePath": "/562Mucw9YaDHUlFBqK5aot3H2lJ.jpg"
+      },
+      {
+        "name": "Mayur More",
+        "character": "Vaibhav Pandey",
+        "profilePath": "/rJDNKSQZ8dlp26D8QW3ExKc8abw.jpg"
+      },
+      {
+        "name": "Ranjan Raj",
+        "character": "Balmukund Meena",
+        "profilePath": "/nqVHCwVLUrARq4DtFKRbzHhvMZq.jpg"
+      },
+      {
+        "name": "Alam Khan",
+        "character": "Uday Gupta",
+        "profilePath": "/qI9VLzGq4DDCjTdBLQI2bBM9la3.jpg"
+      },
+      {
+        "name": "Ahsaas Channa",
+        "character": "Shivangi Ranawat",
+        "profilePath": "/qFOpBSn7qMVaU621ueNdoNKcCz5.jpg"
+      },
+      {
+        "name": "Revathi Pillai",
+        "character": "Vartika Ratawal",
+        "profilePath": "/6jLLEPheLuB1NMNtNCm3uvSwtoh.jpg"
+      }
+    ],
+    "desc": "In a city of coaching centers known to train India’s finest collegiate minds, an earnest but unexceptional student and his friends navigate campus life.",
+    "posterPath": "/fMBookmwL6HjIgIVTjQ6EMr3pCH.jpg",
+    "backdropPath": "/mQEmKXSFlzBlSoYgut0VfjxAzoA.jpg",
+    "trailerKey": "pNZQ6msbOvM"
+  }
+]

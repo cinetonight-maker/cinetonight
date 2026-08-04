@@ -1,0 +1,331 @@
+import type { Movie, MovieKind } from "./types";
+
+/**
+ * Server-side TMDB access. The API key never reaches the browser — search goes
+ * through /api/search, and detail pages fetch during server rendering.
+ *
+ * Set TMDB_API_KEY (or TMDB_READ_TOKEN) in .env.local, and in your host's
+ * environment variables when you deploy.
+ */
+const API = "https://api.themoviedb.org/3";
+const KEY = process.env.TMDB_API_KEY?.trim();
+const TOKEN = process.env.TMDB_READ_TOKEN?.trim();
+
+export const tmdbConfigured = Boolean(KEY || TOKEN);
+
+/** Ids for titles that aren't in the local catalogue: "tmdb-m-1234" / "tmdb-t-1234". */
+export const tmdbId = (kind: MovieKind, id: number | string) => `tmdb-${kind === "series" ? "t" : "m"}-${id}`;
+export function parseTmdbId(slug: string): { kind: MovieKind; id: string } | null {
+  const m = /^tmdb-(m|t)-(\d+)$/.exec(slug);
+  return m ? { kind: m[1] === "t" ? "series" : "movie", id: m[2] } : null;
+}
+
+async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T | null> {
+  if (!tmdbConfigured) return null;
+  const url = new URL(API + path);
+  if (KEY) url.searchParams.set("api_key", KEY);
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
+  }
+  try {
+    const res = await fetch(url, {
+      headers: TOKEN ? { Authorization: `Bearer ${TOKEN}`, accept: "application/json" } : undefined,
+      next: { revalidate: 60 * 60 * 6 }, // cache 6h
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function runtimeOf(kind: MovieKind, d: any): string {
+  if (kind === "series") {
+    const n = d.number_of_seasons ?? 1;
+    return `${n} Season${n === 1 ? "" : "s"}`;
+  }
+  const mins = d.runtime ?? 0;
+  return mins ? `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, "0")}m` : "—";
+}
+function certOf(kind: MovieKind, d: any): string {
+  const list = (kind === "series" ? d.content_ratings?.results : d.release_dates?.results) ?? [];
+  for (const code of ["IN", "US", "GB"]) {
+    const hit = list.find((r: any) => r.iso_3166_1 === code);
+    const cert = kind === "series" ? hit?.rating : hit?.release_dates?.map((x: any) => x.certification).find((c: string) => c);
+    if (cert) return cert;
+  }
+  return "NR";
+}
+
+/** Map a TMDB search hit to a lightweight Movie (enough for a card). */
+function fromSearchHit(hit: any): Movie | null {
+  const kind: MovieKind = hit.media_type === "tv" || hit.first_air_date ? "series" : "movie";
+  const title = hit.title || hit.name;
+  if (!title) return null;
+  const date = String(hit.release_date || hit.first_air_date || "");
+  return {
+    id: tmdbId(kind, hit.id),
+    tmdbId: hit.id,
+    title,
+    year: Number(date.slice(0, 4)) || 0,
+    genres: [],
+    kind,
+    rating: Number((hit.vote_average ?? 0).toFixed(1)),
+    votes: hit.vote_count ?? 0,
+    runtime: "—",
+    cert: "NR",
+    language: (hit.original_language || "").toUpperCase(),
+    director: "—",
+    writers: "—",
+    cast: [],
+    desc: hit.overview || "No synopsis available yet.",
+    posterPath: hit.poster_path || null,
+    backdropPath: hit.backdrop_path || null,
+  };
+}
+
+/** Live search across films + series. */
+export async function searchTmdb(query: string, limit = 24): Promise<Movie[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const data = await get<any>("/search/multi", { query: q, include_adult: "false", page: 1 });
+  if (!data?.results) return [];
+  return data.results
+    .filter((r: any) => r.media_type === "movie" || r.media_type === "tv")
+    .map(fromSearchHit)
+    .filter(Boolean)
+    .sort((a: Movie, b: Movie) => (b.votes ?? 0) - (a.votes ?? 0))
+    .slice(0, limit) as Movie[];
+}
+
+/** Full details for a title that isn't in the local catalogue. */
+export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | null> {
+  const isTv = kind === "series";
+  const d = await get<any>(isTv ? `/tv/${id}` : `/movie/${id}`, {
+    append_to_response: isTv ? "credits,content_ratings,videos" : "credits,release_dates,videos",
+  });
+  if (!d) return null;
+
+  const crew = d.credits?.crew ?? [];
+  const director = isTv
+    ? (d.created_by?.map((c: any) => c.name).join(", ") || "—")
+    : (crew.filter((c: any) => c.job === "Director").map((c: any) => c.name).join(", ") || "—");
+  const writers = [...new Set(crew.filter((c: any) => ["Writer", "Screenplay", "Story"].includes(c.job)).map((c: any) => c.name))] as string[];
+  const date = String(isTv ? d.first_air_date : d.release_date ?? "");
+
+  return {
+    id: tmdbId(kind, id),
+    tmdbId: Number(id),
+    title: (isTv ? d.name : d.title) || "Untitled",
+    year: Number(date.slice(0, 4)) || 0,
+    genres: (d.genres ?? []).map((g: any) => g.name).slice(0, 3),
+    kind,
+    rating: Number((d.vote_average ?? 0).toFixed(1)),
+    votes: d.vote_count ?? 0,
+    runtime: runtimeOf(kind, d),
+    cert: certOf(kind, d),
+    language: d.spoken_languages?.[0]?.english_name || (d.original_language || "").toUpperCase() || "—",
+    director,
+    writers: writers.slice(0, 3).join(", ") || director,
+    cast: (d.credits?.cast ?? []).slice(0, 10).map((c: any) => ({
+      name: c.name, character: c.character || "Cast", profilePath: c.profile_path || null,
+    })),
+    desc: d.overview || "No synopsis available yet.",
+    posterPath: d.poster_path || null,
+    backdropPath: d.backdrop_path || null,
+    trailerKey: pickTrailer(d.videos?.results ?? []),
+  };
+}
+
+/** Best available YouTube trailer key from a TMDB videos list. */
+export function pickTrailer(vids: any[]): string | null {
+  const v =
+    vids.find((x) => x.site === "YouTube" && x.type === "Trailer" && x.official) ||
+    vids.find((x) => x.site === "YouTube" && x.type === "Trailer") ||
+    vids.find((x) => x.site === "YouTube" && x.type === "Teaser") ||
+    vids.find((x) => x.site === "YouTube");
+  return v?.key ?? null;
+}
+
+/** Trailer key for a title we may not have cached. */
+export async function trailerFor(kind: MovieKind, id: string): Promise<string | null> {
+  const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/videos`);
+  return d?.results ? pickTrailer(d.results) : null;
+}
+
+/* ---------------------------------------------------------------------
+   Live catalogue data — pulled straight from TMDB at request time so rows
+   and listing pages reflect real, current, GLOBAL content (a mix of
+   Hollywood, Bollywood and everything else) rather than only the local
+   catalogue. Pass a `region` (ISO 3166-1 country code, e.g. "US"/"IN") to
+   bias a query to one industry — omit it for an unrestricted global mix.
+   Callers should fall back to the local-catalogue rule (lib/data.ts →
+   resolveRow) if a call returns [] (TMDB unreachable/unconfigured).
+   ------------------------------------------------------------------- */
+
+const GENRE_CACHE: Partial<Record<MovieKind, Record<number, string>>> = {};
+
+async function genreMap(kind: MovieKind): Promise<Record<number, string>> {
+  if (GENRE_CACHE[kind]) return GENRE_CACHE[kind]!;
+  const d = await get<any>(`/genre/${kind === "series" ? "tv" : "movie"}/list`);
+  const map: Record<number, string> = {};
+  for (const g of d?.genres ?? []) map[g.id] = g.name;
+  GENRE_CACHE[kind] = map;
+  return map;
+}
+
+/** A few genre names differ between TMDB's movie and tv genre lists. */
+const TV_GENRE_ALIAS: Record<string, string> = {
+  Action: "Action & Adventure", Adventure: "Action & Adventure",
+  "Sci-Fi": "Sci-Fi & Fantasy", Fantasy: "Sci-Fi & Fantasy", War: "War & Politics",
+};
+
+async function genreIdFor(kind: MovieKind, name?: string): Promise<number | undefined> {
+  if (!name || name === "All") return undefined;
+  const map = await genreMap(kind);
+  const entries = Object.entries(map);
+  const wanted = kind === "series" && TV_GENRE_ALIAS[name] ? TV_GENRE_ALIAS[name] : name;
+  const hit = entries.find(([, n]) => n === wanted);
+  return hit ? Number(hit[0]) : undefined;
+}
+
+function fromDiscoverHit(hit: any, kind: MovieKind, genres: Record<number, string>): Movie | null {
+  const title = kind === "series" ? hit.name : hit.title;
+  if (!title || !hit.poster_path) return null; // skip titles with no artwork — looks broken in a row
+  const date = String((kind === "series" ? hit.first_air_date : hit.release_date) || "");
+  return {
+    id: tmdbId(kind, hit.id),
+    tmdbId: hit.id,
+    title,
+    year: Number(date.slice(0, 4)) || 0,
+    genres: (hit.genre_ids ?? []).map((g: number) => genres[g]).filter(Boolean).slice(0, 3),
+    kind,
+    rating: Number((hit.vote_average ?? 0).toFixed(1)),
+    votes: hit.vote_count ?? 0,
+    runtime: "—",
+    cert: "NR",
+    language: (hit.original_language || "").toUpperCase(),
+    director: "—",
+    writers: "—",
+    cast: [],
+    desc: hit.overview || "No synopsis available yet.",
+    posterPath: hit.poster_path || null,
+    backdropPath: hit.backdrop_path || null,
+  };
+}
+
+async function discoverLive(kind: MovieKind, sortBy: string, limit: number, minVotes: number, region?: string): Promise<Movie[]> {
+  const isTv = kind === "series";
+  const today = new Date().toISOString().slice(0, 10);
+  const params: Record<string, string | number> = {
+    sort_by: sortBy,
+    include_adult: "false",
+    "vote_count.gte": minVotes,
+    page: 1,
+  };
+  if (region) params.with_origin_country = region;
+  params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+  const [d, genres] = await Promise.all([
+    get<any>(isTv ? "/discover/tv" : "/discover/movie", params),
+    genreMap(kind),
+  ]);
+  return ((d?.results ?? []) as any[])
+    .map((hit) => fromDiscoverHit(hit, kind, genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
+const kindsFor = (kind: MovieKind | "all"): MovieKind[] => (kind === "all" ? ["movie", "series"] : [kind]);
+
+/** "Latest" row — newest real releases first, straight from TMDB (global mix unless `region` is set). */
+export async function latestReleasesTmdb(kind: MovieKind | "all" = "movie", limit = 6, region?: string): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const lists = await Promise.all(
+    kindsFor(kind).map((k) => discoverLive(k, k === "series" ? "first_air_date.desc" : "primary_release_date.desc", limit, 1, region))
+  );
+  return lists.flat().sort((a, b) => b.year - a.year || (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
+
+/** "Trending" row — most popular right now, straight from TMDB (global mix unless `region` is set). */
+export async function trendingLiveTmdb(kind: MovieKind | "all" = "all", limit = 6, region?: string): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "popularity.desc", limit, region ? 5 : 20, region)));
+  return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
+
+/** "Top Rated" row — highest rated right now, straight from TMDB (global mix unless `region` is set). */
+export async function topRatedTmdb(kind: MovieKind | "all" = "all", limit = 6, region?: string): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "vote_average.desc", limit, region ? 50 : 200, region)));
+  return lists.flat().sort((a, b) => b.rating - a.rating).slice(0, limit);
+}
+
+/** Convenience category rows for the homepage. */
+export const hollywoodTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "US");
+export const bollywoodTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "IN");
+
+/* ---------------------------------------------------------------------
+   Paginated live browse — powers the Movies / TV Shows / Web Series /
+   Trending / Latest listing pages: latest-first (or by whatever sort is
+   picked), a real global mix, with genuine TMDB pagination underneath.
+   ------------------------------------------------------------------- */
+
+export type BrowseSort = "trending" | "rating" | "year" | "az";
+export interface BrowseParams { kind: MovieKind | "all"; sort: BrowseSort; genre?: string; page?: number }
+export interface BrowseResult { results: Movie[]; page: number; totalPages: number }
+
+const SORT_MAP: Record<BrowseSort, { movie: string; tv: string }> = {
+  trending: { movie: "popularity.desc", tv: "popularity.desc" },
+  rating: { movie: "vote_average.desc", tv: "vote_average.desc" },
+  year: { movie: "primary_release_date.desc", tv: "first_air_date.desc" },
+  az: { movie: "original_title.asc", tv: "name.asc" },
+};
+const MIN_VOTES: Record<BrowseSort, number> = { trending: 20, rating: 200, year: 1, az: 0 };
+const MAX_PAGES = 50; // TMDB technically allows more; this is already "enough" pages to page through
+
+async function discoverPage(kind: MovieKind, sort: BrowseSort, genre: string | undefined, page: number): Promise<{ results: Movie[]; totalPages: number }> {
+  const isTv = kind === "series";
+  const today = new Date().toISOString().slice(0, 10);
+  const [gid, genres] = await Promise.all([genreIdFor(kind, genre), genreMap(kind)]);
+  const params: Record<string, string | number> = {
+    sort_by: SORT_MAP[sort][isTv ? "tv" : "movie"],
+    include_adult: "false",
+    page: Math.max(1, page),
+    "vote_count.gte": MIN_VOTES[sort],
+  };
+  if (sort === "year") params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+  if (gid) params.with_genres = gid;
+  const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+  const results = ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, kind, genres)).filter(Boolean) as Movie[];
+  const totalPages = Math.min(Number(d?.total_pages) || 1, MAX_PAGES);
+  return { results, totalPages };
+}
+
+/** Paginated live browse. Returns null (not []) when TMDB isn't reachable/configured, so
+ *  the caller can tell "no results" apart from "fall back to the local catalogue". */
+export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams): Promise<BrowseResult | null> {
+  if (!tmdbConfigured) return null;
+  if (kind !== "all") {
+    const { results, totalPages } = await discoverPage(kind, sort, genre, page);
+    return { results, page, totalPages };
+  }
+  // "all" — merge a movie page and a tv page for the same page number.
+  const [m, t] = await Promise.all([discoverPage("movie", sort, genre, page), discoverPage("series", sort, genre, page)]);
+  const merged = [...m.results, ...t.results];
+  if (sort === "rating") merged.sort((a, b) => b.rating - a.rating);
+  else if (sort === "year") merged.sort((a, b) => b.year - a.year);
+  else if (sort === "az") merged.sort((a, b) => a.title.localeCompare(b.title));
+  else merged.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
+  return { results: merged, page, totalPages: Math.min(m.totalPages, t.totalPages) };
+}
+
+/** Similar/recommended titles, for the detail page rails. */
+export async function relatedTmdb(kind: MovieKind, id: string, limit = 8): Promise<Movie[]> {
+  const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/recommendations`);
+  if (!d?.results) return [];
+  return d.results
+    .map((r: any) => fromSearchHit({ ...r, media_type: kind === "series" ? "tv" : "movie" }))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}

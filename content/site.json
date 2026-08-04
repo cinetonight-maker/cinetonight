@@ -1,0 +1,174 @@
+{
+  "hero": {
+    "slides": [
+      "kalki-2898-ad",
+      "stree-2",
+      "pushpa-2-the-rule",
+      "mirzapur",
+      "12th-fail",
+      "panchayat"
+    ],
+    "intervalMs": 6000
+  },
+  "rows": [
+    {
+      "id": "latest",
+      "title": "Latest Movies",
+      "mode": "live",
+      "live": "latest",
+      "rule": {
+        "kind": "movie",
+        "sort": "year",
+        "limit": 6
+      },
+      "style": "plain"
+    },
+    {
+      "id": "trending",
+      "title": "Trending This Week",
+      "mode": "live",
+      "live": "trending",
+      "rule": {
+        "kind": "all",
+        "sort": "votes",
+        "limit": 6
+      },
+      "style": "ranked"
+    },
+    {
+      "id": "hollywood",
+      "title": "Hollywood",
+      "mode": "live",
+      "live": "hollywood",
+      "rule": {
+        "kind": "all",
+        "sort": "votes",
+        "limit": 6
+      },
+      "style": "plain"
+    },
+    {
+      "id": "bollywood",
+      "title": "Bollywood",
+      "mode": "live",
+      "live": "bollywood",
+      "rule": {
+        "kind": "all",
+        "sort": "votes",
+        "limit": 6
+      },
+      "style": "plain"
+    },
+    {
+      "id": "web",
+      "title": "Latest Web Series",
+      "mode": "live",
+      "live": "latest",
+      "rule": {
+        "kind": "series",
+        "sort": "year",
+        "limit": 6
+      },
+      "style": "badge",
+      "badge": "NEW"
+    },
+    {
+      "id": "top",
+      "title": "Top Rated",
+      "mode": "live",
+      "live": "toprated",
+      "rule": {
+        "kind": "all",
+        "sort": "rating",
+        "limit": 6
+      },
+      "style": "plain"
+    }
+  ],
+  "continueWatching": [
+    {
+      "id": "mirzapur",
+      "progress": 62,
+      "note": "S3 E5 \u00b7 45m left"
+    },
+    {
+      "id": "panchayat",
+      "progress": 80,
+      "note": "S3 E6 \u00b7 10m left"
+    },
+    {
+      "id": "fighter",
+      "progress": 25,
+      "note": "1h 40m left"
+    },
+    {
+      "id": "farzi",
+      "progress": 48,
+      "note": "S1 E3 \u00b7 20m left"
+    },
+    {
+      "id": "kalki-2898-ad",
+      "progress": 55,
+      "note": "1h 15m left"
+    },
+    {
+      "id": "jawan",
+      "progress": 35,
+      "note": "50m left"
+    }
+  ],
+  "blog": [
+    {
+      "slug": "rise-of-the-indian-horror-comedy",
+      "title": "The Rise of the Indian Horror-Comedy",
+      "cat": "Guide",
+      "excerpt": "How Stree, Bhediya and their sequels turned folklore into the most reliable crowd-pleaser at the box office.",
+      "date": "Aug 1, 2024",
+      "read": "8 min",
+      "body": [
+        "The horror-comedy has quietly become one of the most reliable crowd-pleasers in Indian cinema. Blending genuine tension with sharp comic timing is far harder than it looks, and the films that pull it off tend to become instant favourites.",
+        "What makes it work is contrast. A well-earned laugh lands harder right after a jolt, and a scare bites deeper when the audience has just let its guard down. The best entries treat both halves with equal respect rather than leaning on one at the expense of the other.",
+        "The shared universe approach has only accelerated this. Each film widens the folklore while keeping the small-town texture that made the first one land \u2014 a formula that rewards fans without locking newcomers out."
+      ]
+    },
+    {
+      "slug": "where-to-stream-2024s-biggest-hits",
+      "title": "Where to Stream 2024's Biggest Hits",
+      "cat": "Streaming",
+      "excerpt": "A plain-English map of which platform actually has the year's blockbusters \u2014 and what each one costs.",
+      "date": "Jul 28, 2024",
+      "read": "6 min",
+      "body": [
+        "Streaming rights in India shift constantly, and the same film can move between platforms within months of release. This guide cuts through it.",
+        "As a rule of thumb: big Hindi theatrical releases tend to land on Netflix or Prime Video roughly eight weeks after release, while regional blockbusters often go to the platform that co-financed them.",
+        "Rental windows usually open earlier than subscription ones, so if you want something the week it drops digitally, buying or renting is often the only route."
+      ]
+    },
+    {
+      "slug": "why-small-films-are-winning",
+      "title": "Why Small Films Are Winning",
+      "cat": "Spotlight",
+      "excerpt": "12th Fail and Laapataa Ladies proved that word of mouth still beats a marketing budget.",
+      "date": "Jul 22, 2024",
+      "read": "7 min",
+      "body": [
+        "Two of the most talked-about Indian films of the last year had a fraction of the marketing spend of their blockbuster neighbours \u2014 and outperformed expectations by a wide margin.",
+        "What they shared was clarity of intent. Both told small, specific stories with enormous emotional range, and both trusted their audience to keep up.",
+        "The lesson is not that budgets do not matter. It is that a film people genuinely want to recommend will always travel further than one they were merely told about."
+      ]
+    },
+    {
+      "slug": "pan-india-cinema-explained",
+      "title": "Pan-India Cinema, Explained",
+      "cat": "Feature",
+      "excerpt": "From Baahubali to Kalki 2898 AD \u2014 how regional blockbusters became national events.",
+      "date": "Jul 18, 2024",
+      "read": "10 min",
+      "body": [
+        "A decade ago, a Telugu epic opening simultaneously in five languages would have been unusual. Today it is the default strategy for any film with real scale.",
+        "The shift was driven by simultaneous dubbed releases, aggressive digital marketing, and audiences who stopped caring which industry a film came from as long as it delivered spectacle.",
+        "The result is a genuinely national box office, where the biggest openings of the year routinely come from outside Mumbai."
+      ]
+    }
+  ]
+}
