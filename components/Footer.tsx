@@ -1,9 +1,36 @@
 import Link from "next/link";
 import Icon from "./Icon";
+import { supabasePublic } from "@/lib/supabase/public";
 
 const SOCIAL: [string, string][] = [["fb", "#1877f2"], ["tw", "#1da1f2"], ["ig", "#e1306c"], ["tg", "#0088cc"], ["yt", "#ff0000"]];
 
-export default function Footer() {
+// Static fallbacks — used until you add real links in Dashboard → Menus & Footer,
+// and always used if Supabase isn't configured yet.
+const FALLBACK_SUPPORT: [string, string][] = [["Help Center", "#"], ["Contact Us", "#"], ["DMCA", "#"]];
+const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "#"], ["Privacy Policy", "#"], ["Refund Policy", "#"]];
+
+type NavLink = { label: string; url: string; is_external: boolean };
+
+async function getFooterLinks() {
+  const supabase = supabasePublic();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("nav_links")
+    .select("location, label, url, sort_order, is_external")
+    .in("location", ["footer_support", "footer_legal"])
+    .order("sort_order");
+  if (!data) return null;
+  return {
+    support: data.filter((l) => l.location === "footer_support") as NavLink[],
+    legal: data.filter((l) => l.location === "footer_legal") as NavLink[],
+  };
+}
+
+export default async function Footer() {
+  const links = await getFooterLinks();
+  const support = links?.support?.length ? links.support.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_SUPPORT;
+  const legal = links?.legal?.length ? links.legal.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_LEGAL;
+
   return (
     <footer className="footer">
       <div className="footer__in">
@@ -18,11 +45,12 @@ export default function Footer() {
         </div>
         <div>
           <h4>Support</h4>
-          <Link href="/signin">Sign In</Link><a href="#">Help Center</a><a href="#">Contact Us</a><a href="#">DMCA</a>
+          <Link href="/signin">Sign In</Link>
+          {support.map(([label, url]) => <a key={label} href={url}>{label}</a>)}
         </div>
         <div>
           <h4>Legal</h4>
-          <a href="#">Terms of Service</a><a href="#">Privacy Policy</a><a href="#">Refund Policy</a>
+          {legal.map(([label, url]) => <a key={label} href={url}>{label}</a>)}
         </div>
         <div>
           <h4>Connect With Us</h4>

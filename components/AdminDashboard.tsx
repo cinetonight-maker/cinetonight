@@ -1,25 +1,39 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import type { Movie, SiteConfig, RowConfig, Blog } from "@/lib/types";
 import { poster } from "@/lib/images";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
-type Tab = "hero" | "rows" | "blog" | "catalogue";
+type Tab = "hero" | "rows" | "blog" | "catalogue" | "pages" | "menus" | "media" | "settings" | "comments";
 const TABS: [Tab, string, string][] = [
   ["hero", "Hero Slides", "sparkle"],
   ["rows", "Home Rows", "grid"],
   ["blog", "Blog Posts", "article"],
   ["catalogue", "Catalogue", "film"],
+  ["pages", "Pages", "article"],
+  ["menus", "Menus & Footer", "grid"],
+  ["media", "Media Library", "film"],
+  ["settings", "SEO & Settings", "sparkle"],
+  ["comments", "Comments", "article"],
 ];
 
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("hero");
   const [site, setSite] = useState<SiteConfig | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
+
+  const logout = async () => {
+    await supabaseBrowser().auth.signOut();
+    router.push("/admin/login");
+    router.refresh();
+  };
 
   const load = useCallback(async () => {
     const [s, c] = await Promise.all([
@@ -55,10 +69,13 @@ export default function AdminDashboard() {
           <h1>Dashboard</h1>
           <p>Manage what appears on the site. Changes save straight to <code>content/</code>.</p>
         </div>
-        <div className={`ad__status ad__status--${status.kind}`}>
-          {status.kind === "saving" && "Saving…"}
-          {status.kind === "ok" && <><Icon name="check" size={14} /> {status.msg}</>}
-          {status.kind === "err" && <>⚠ {status.msg}</>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className={`ad__status ad__status--${status.kind}`}>
+            {status.kind === "saving" && "Saving…"}
+            {status.kind === "ok" && <><Icon name="check" size={14} /> {status.msg}</>}
+            {status.kind === "err" && <>⚠ {status.msg}</>}
+          </div>
+          <button className="ad__btn" onClick={logout}>Log out</button>
         </div>
       </div>
 
@@ -74,8 +91,20 @@ export default function AdminDashboard() {
       {tab === "rows" && <RowsTab site={site} movies={movies} save={save} />}
       {tab === "blog" && <BlogTab site={site} save={save} />}
       {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
+      {tab === "pages" && <PagesTab />}
+      {tab === "menus" && <MenusTab />}
+      {tab === "media" && <MediaTab />}
+      {tab === "settings" && <SettingsTab />}
+      {tab === "comments" && <CommentsTab />}
     </div>
   );
+}
+
+/* ------------------------- shared: live/Supabase fetch helper ---------- */
+async function api<T = any>(url: string, init?: RequestInit): Promise<{ ok: boolean; data: T }> {
+  const res = await fetch(url, init);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, data };
 }
 
 /* ------------------------------- hero ---------------------------------- */
@@ -393,6 +422,377 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
             </div>
           ))}
         </div>
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------- pages ---------------------------------- */
+type PageRow = { id: string; slug: string; title: string; content: string; status: "draft" | "published"; updated_at: string };
+const EMPTY_PAGE: Omit<PageRow, "id" | "updated_at"> = { slug: "", title: "", content: "", status: "draft" };
+
+function PagesTab() {
+  const [pages, setPages] = useState<PageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null); // page id, or "new"
+  const [draft, setDraft] = useState(EMPTY_PAGE);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ pages?: PageRow[]; error?: string }>("/api/admin/pages");
+    if (ok) { setPages(data.pages ?? []); setErr(null); } else setErr(data.error ?? "Could not load pages.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const startNew = () => { setDraft(EMPTY_PAGE); setEditing("new"); };
+  const startEdit = (p: PageRow) => { setDraft({ slug: p.slug, title: p.title, content: p.content, status: p.status }); setEditing(p.id); };
+
+  const commit = async () => {
+    if (!draft.title.trim()) return;
+    setBusy(true);
+    const res = editing === "new"
+      ? await api("/api/admin/pages", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(draft) })
+      : await api("/api/admin/pages", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: editing, ...draft }) });
+    setBusy(false);
+    if (res.ok) { setEditing(null); load(); } else setErr(res.data.error ?? "Could not save page.");
+  };
+
+  const remove = async (p: PageRow) => {
+    if (!confirm(`Delete “${p.title}”?`)) return;
+    await api(`/api/admin/pages?id=${encodeURIComponent(p.id)}`, { method: "DELETE" });
+    load();
+  };
+
+  if (err && !pages.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Pages <span className="ad__count">{pages.length}</span></h2>
+          <button className="ad__btn" onClick={startNew}><Icon name="plus" size={14} /> New page</button>
+        </div>
+        <p className="ad__hint">Published pages are live immediately at <code>/p/&lt;slug&gt;</code> — e.g. an "About" page becomes <code>/p/about</code>.</p>
+
+        {editing !== null && (
+          <div className="ad__card ad__card--edit">
+            <div className="ad__grid2">
+              <label className="ad__field"><span>Title</span>
+                <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="About Us" /></label>
+              <label className="ad__field"><span>Slug (optional — auto from title)</span>
+                <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="about" /></label>
+            </div>
+            <label className="ad__field"><span>Content</span>
+              <textarea rows={10} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} /></label>
+            <label className="ad__field">
+              <span>Status</span>
+              <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
+                <option value="draft">Draft (hidden)</option>
+                <option value="published">Published (live)</option>
+              </select>
+            </label>
+            <div className="ad__actions">
+              <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commit}><Icon name="check" size={14} /> Save page</button>
+              <button className="ad__btn" onClick={() => setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {loading ? <div className="empty">Loading…</div> : (
+          <div className="ad__list">
+            {pages.map((p) => (
+              <div className="ad__row" key={p.id}>
+                <span className="ad__cat">{p.status}</span>
+                <span className="ad__name">{p.title}</span>
+                <span className="ad__meta">/p/{p.slug}</span>
+                <button className="ad__mini" onClick={() => startEdit(p)}>Edit</button>
+                <button className="ad__mini ad__mini--x" onClick={() => remove(p)}>✕</button>
+              </div>
+            ))}
+            {!pages.length && <div className="ad__empty">No pages yet.</div>}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------- menus ----------------------------------- */
+type NavLink = { id: string; location: string; label: string; url: string; sort_order: number; is_external: boolean };
+const LOCATIONS: [string, string][] = [
+  ["footer_explore", "Footer — Explore"],
+  ["footer_support", "Footer — Support"],
+  ["footer_legal", "Footer — Legal"],
+  ["header", "Header"],
+];
+const EMPTY_LINK = { location: "footer_support", label: "", url: "", sort_order: 0, is_external: false };
+
+function MenusTab() {
+  const [links, setLinks] = useState<NavLink[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [draft, setDraft] = useState(EMPTY_LINK);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ links?: NavLink[]; error?: string }>("/api/admin/nav");
+    if (ok) { setLinks(data.links ?? []); setErr(null); } else setErr(data.error ?? "Could not load links.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const add = async () => {
+    if (!draft.label.trim() || !draft.url.trim()) return;
+    const res = await api("/api/admin/nav", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(draft) });
+    if (res.ok) { setDraft(EMPTY_LINK); load(); } else setErr(res.data.error ?? "Could not add link.");
+  };
+  const remove = async (l: NavLink) => {
+    await api(`/api/admin/nav?id=${encodeURIComponent(l.id)}`, { method: "DELETE" });
+    load();
+  };
+
+  if (err && !links.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <h2>Menus &amp; footer links <span className="ad__count">{links.length}</span></h2>
+        <p className="ad__hint">These populate the Footer columns (and header, once wired) directly on the live site.</p>
+
+        <div className="ad__card ad__card--edit">
+          <div className="ad__grid2">
+            <label className="ad__field"><span>Section</span>
+              <select value={draft.location} onChange={(e) => setDraft({ ...draft, location: e.target.value })}>
+                {LOCATIONS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </label>
+            <label className="ad__field"><span>Order</span>
+              <input type="number" value={draft.sort_order} onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) })} /></label>
+            <label className="ad__field"><span>Label</span>
+              <input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Contact Us" /></label>
+            <label className="ad__field"><span>URL</span>
+              <input value={draft.url} onChange={(e) => setDraft({ ...draft, url: e.target.value })} placeholder="/p/contact or https://…" /></label>
+          </div>
+          <div className="ad__actions">
+            <button className="ad__btn ad__btn--primary" onClick={add}><Icon name="plus" size={14} /> Add link</button>
+          </div>
+        </div>
+
+        {loading ? <div className="empty">Loading…</div> : LOCATIONS.map(([id, label]) => {
+          const group = links.filter((l) => l.location === id).sort((a, b) => a.sort_order - b.sort_order);
+          if (!group.length) return null;
+          return (
+            <div key={id} style={{ marginTop: 16 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8, color: "var(--muted)" }}>{label}</h3>
+              <div className="ad__list">
+                {group.map((l) => (
+                  <div className="ad__row" key={l.id}>
+                    <span className="ad__name">{l.label}</span>
+                    <span className="ad__meta">{l.url}</span>
+                    <button className="ad__mini ad__mini--x" onClick={() => remove(l)}>✕</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------- media ------------------------------------ */
+type MediaRow = { id: string; name: string; url: string; size: number | null; mime_type: string | null; created_at: string };
+
+function MediaTab() {
+  const [items, setItems] = useState<MediaRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ media?: MediaRow[]; error?: string }>("/api/admin/media");
+    if (ok) { setItems(data.media ?? []); setErr(null); } else setErr(data.error ?? "Could not load media.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const upload = async (files: FileList | null) => {
+    if (!files || !files.length) return;
+    setBusy(true); setErr(null);
+    for (const file of Array.from(files)) {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await api("/api/admin/media", { method: "POST", body: form });
+      if (!res.ok) setErr(res.data.error ?? "Upload failed.");
+    }
+    setBusy(false);
+    load();
+  };
+
+  const remove = async (m: MediaRow) => {
+    if (!confirm(`Delete “${m.name}”?`)) return;
+    await api(`/api/admin/media?id=${encodeURIComponent(m.id)}`, { method: "DELETE" });
+    load();
+  };
+
+  const copy = (url: string) => navigator.clipboard?.writeText(url).catch(() => {});
+
+  if (err && !items.length && !loading) return <div className="ad__err">{err} — is the Supabase schema + storage bucket set up? See <code>supabase/schema.sql</code>.</div>;
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Media library <span className="ad__count">{items.length}</span></h2>
+          <label className="ad__btn ad__btn--primary" style={{ cursor: "pointer" }}>
+            <Icon name="plus" size={14} /> {busy ? "Uploading…" : "Upload files"}
+            <input type="file" multiple hidden disabled={busy} onChange={(e) => upload(e.target.files)} />
+          </label>
+        </div>
+        <p className="ad__hint">Uploaded files are public — copy a URL to use it anywhere (a page, a blog post, etc.).</p>
+
+        {loading ? <div className="empty">Loading…</div> : (
+          <div className="ad__picker">
+            {items.map((m) => (
+              <div key={m.id} className="ad__pick" style={{ cursor: "default" }}>
+                {m.mime_type?.startsWith("image/") ? <img alt="" src={m.url} /> : <div className="ad__thumb" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}><Icon name="film" size={20} /></div>}
+                <span title={m.name}>{m.name}</span>
+                <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                  <button className="ad__mini" onClick={() => copy(m.url)}>Copy URL</button>
+                  <button className="ad__mini ad__mini--x" onClick={() => remove(m)}>✕</button>
+                </div>
+              </div>
+            ))}
+            {!items.length && <div className="ad__empty">No uploads yet.</div>}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/* ----------------------------- settings ------------------------------------ */
+type Settings = {
+  site_title: string; site_description: string; meta_keywords: string; contact_email: string;
+  social: Record<string, string>; maintenance_mode: boolean;
+};
+
+function SettingsTab() {
+  const [s, setS] = useState<Settings | null>(null);
+  const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
+
+  const load = useCallback(async () => {
+    const { ok, data } = await api<Settings & { error?: string }>("/api/admin/settings");
+    if (ok) setS(data); else setStatus({ kind: "err", msg: (data as any).error ?? "Could not load settings." });
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    if (!s) return;
+    setStatus({ kind: "saving" });
+    const res = await api("/api/admin/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(s) });
+    setStatus(res.ok ? { kind: "ok", msg: "Saved" } : { kind: "err", msg: (res.data as any).error ?? "Save failed" });
+    if (res.ok) setTimeout(() => setStatus({ kind: "idle" }), 1800);
+  };
+
+  if (status.kind === "err" && !s) return <div className="ad__err">{status.msg} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (!s) return <div className="empty">Loading…</div>;
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>SEO &amp; site settings</h2>
+          <button className="ad__btn ad__btn--primary" onClick={save}><Icon name="check" size={14} /> Save</button>
+        </div>
+        <div className="ad__grid2">
+          <label className="ad__field"><span>Site title</span>
+            <input value={s.site_title} onChange={(e) => setS({ ...s, site_title: e.target.value })} /></label>
+          <label className="ad__field"><span>Contact email</span>
+            <input value={s.contact_email} onChange={(e) => setS({ ...s, contact_email: e.target.value })} /></label>
+        </div>
+        <label className="ad__field"><span>Meta description</span>
+          <textarea rows={2} value={s.site_description} onChange={(e) => setS({ ...s, site_description: e.target.value })} /></label>
+        <label className="ad__field"><span>Meta keywords (comma-separated)</span>
+          <input value={s.meta_keywords} onChange={(e) => setS({ ...s, meta_keywords: e.target.value })} /></label>
+        <div className="ad__grid2">
+          {(["facebook", "twitter", "instagram", "youtube"] as const).map((k) => (
+            <label className="ad__field" key={k}><span style={{ textTransform: "capitalize" }}>{k}</span>
+              <input value={s.social?.[k] ?? ""} onChange={(e) => setS({ ...s, social: { ...s.social, [k]: e.target.value } })} placeholder="https://…" /></label>
+          ))}
+        </div>
+        <label className="ad__field" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <input type="checkbox" checked={s.maintenance_mode} onChange={(e) => setS({ ...s, maintenance_mode: e.target.checked })} style={{ width: "auto" }} />
+          <span>Maintenance mode</span>
+        </label>
+        {status.kind === "err" && <div className="ad__err" style={{ marginTop: 10 }}>{status.msg}</div>}
+      </section>
+    </div>
+  );
+}
+
+/* ----------------------------- comments ------------------------------------ */
+type CommentRow = { id: string; movie_id: string; name: string; body: string; rating: number | null; status: string; created_at: string };
+
+function CommentsTab() {
+  const [items, setItems] = useState<CommentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ comments?: CommentRow[]; error?: string }>("/api/admin/comments");
+    if (ok) { setItems(data.comments ?? []); setErr(null); } else setErr(data.error ?? "Could not load comments.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const setCommentStatus = async (id: string, status: string) => {
+    await api("/api/admin/comments", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, status }) });
+    load();
+  };
+  const remove = async (id: string) => {
+    await api(`/api/admin/comments?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    load();
+  };
+
+  const visible = items.filter((c) => filter === "all" || c.status === filter);
+
+  if (err && !items.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Comments <span className="ad__count">{items.length}</span></h2>
+          <select value={filter} onChange={(e) => setFilter(e.target.value as any)}>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="rejected">Rejected</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+        {loading ? <div className="empty">Loading…</div> : (
+          <div className="ad__list">
+            {visible.map((c) => (
+              <div className="ad__row" key={c.id}>
+                <span className="ad__cat">{c.status}</span>
+                <span className="ad__name">{c.name}{c.rating ? ` · ★${c.rating}` : ""}</span>
+                <span className="ad__meta" style={{ flex: 1 }}>{c.body}</span>
+                {c.status !== "approved" && <button className="ad__mini" onClick={() => setCommentStatus(c.id, "approved")}>Approve</button>}
+                {c.status !== "rejected" && <button className="ad__mini" onClick={() => setCommentStatus(c.id, "rejected")}>Reject</button>}
+                <button className="ad__mini ad__mini--x" onClick={() => remove(c.id)}>✕</button>
+              </div>
+            ))}
+            {!visible.length && <div className="ad__empty">Nothing here.</div>}
+          </div>
+        )}
       </section>
     </div>
   );
