@@ -5,10 +5,14 @@ import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
-import { heroArt, poster } from "@/lib/images";
-import { openPlayer } from "@/lib/player";
+import { posterLg } from "@/lib/images";
 
-/** Auto-rotating hero. Slides are chosen in /admin (content/site.json → hero.slides). */
+/** Auto-rotating hero. Slides are chosen in /admin (content/site.json → hero.slides).
+ *  Minimal by design: each slide is that title's own poster as a full-bleed
+ *  background (no blended/backdrop collage), title + a one-line rating/year/
+ *  genre readout, and dot pagination — no description paragraph, no
+ *  Watch Now / More Info buttons, no boxed card chrome. Tapping the title
+ *  area still opens the movie's detail page. */
 export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; intervalMs?: number }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -18,7 +22,7 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
   const go = useCallback((next: number) => { if (n) setI(((next % n) + n) % n); }, [n]);
 
   // Auto-carousel always runs — reduced-motion users still get the slides
-  // advancing (movie-relevant backdrop swaps each time), just without the
+  // advancing (each slide's own poster swaps in), just without the
   // crossfade/slide-in animation (handled separately in CSS).
   useEffect(() => {
     if (n <= 1 || paused) return;
@@ -28,7 +32,6 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
 
   if (!n) return null;
   const m = slides[i];
-  const [main, ...rest] = m.title.split(":");
 
   return (
     <section
@@ -43,7 +46,7 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
           key={s.id}
           fill
           alt=""
-          src={heroArt(s)}
+          src={posterLg(s)}
           className={`hero__bgimg${idx === i ? " on" : ""}`}
           aria-hidden={idx !== i}
           sizes="100vw"
@@ -52,28 +55,14 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
       ))}
       <div className="hero__scrim" />
 
-      <div className="hero__c" key={m.id}>
-        <div className="hero__ey">
-          {m.kind === "series" ? "Featured · Web Series" : "Featured · Film"}
-          {m.genres[0] ? ` · ${m.genres[0]}` : ""}
-        </div>
-        <div className="hero__t">{main}</div>
-        <div className={`hero__sub${rest.length ? "" : " hero__sub--empty"}`}>{rest.join(":").trim()}</div>
-        <p className="hero__desc">{m.desc}</p>
-        <div className="hero__tags">
+      <Link className="hero__c" key={m.id} href={`/movie/${m.id}`}>
+        <div className="hero__t">{m.title}</div>
+        <div className="hero__meta">
           <span className="hero__rate"><Icon name="star" size={12} /> {m.rating.toFixed(1)}</span>
           {m.year ? <span>{m.year}</span> : null}
-          {m.language ? <span>{m.language}</span> : null}
-          {m.runtime && m.runtime !== "—" ? <span>{m.runtime}</span> : null}
-          {m.genres.length ? <span>{m.genres.join(", ")}</span> : null}
+          {m.genres[0] ? <span>{m.genres[0]}</span> : null}
         </div>
-        <div className="hero__btns">
-          <button className="btn btn--play" onClick={() => openPlayer({ title: m.title, movieId: m.id, trailerKey: m.trailerKey, mode: "trailer" })}>
-            <Icon name="play" size={16} /> Watch Now
-          </button>
-          <Link className="btn btn--ghost" href={`/movie/${m.id}`}><Icon name="info" size={16} /> More Info</Link>
-        </div>
-      </div>
+      </Link>
 
       {n > 1 && (
         <>
@@ -83,17 +72,16 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
           <button className="hero__nav hero__nav--r" aria-label="Next" onClick={() => go(i + 1)}>
             <Icon name="chevr" size={20} />
           </button>
-          <div className="hero__thumbs">
+          <div className="hero__dots" role="tablist" aria-label="Slides">
             {slides.map((s, idx) => (
               <button
                 key={s.id}
-                className={`hero__thumb${idx === i ? " on" : ""}`}
+                className={`hero__dot${idx === i ? " on" : ""}`}
+                role="tab"
                 aria-label={`Show ${s.title}`}
-                aria-current={idx === i}
+                aria-selected={idx === i}
                 onClick={() => go(idx)}
-              >
-                <Image fill alt="" src={poster(s)} sizes="44px" />
-              </button>
+              />
             ))}
           </div>
         </>

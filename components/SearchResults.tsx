@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import MovieCard from "./MovieCard";
@@ -7,7 +8,7 @@ import type { Movie } from "@/lib/types";
 
 type State = { loading: boolean; results: Movie[]; source: string; error: string | null };
 
-export default function SearchResults() {
+export default function SearchResults({ trending = [], genres = [] }: { trending?: Movie[]; genres?: string[] }) {
   const q = (useSearchParams().get("q") ?? "").trim();
   const [s, setS] = useState<State>({ loading: false, results: [], source: "", error: null });
 
@@ -56,6 +57,31 @@ export default function SearchResults() {
             <><br /><span style={{ fontSize: 13 }}>Live search is off — add TMDB_API_KEY to .env.local to search everything.</span></>
           )}
         </div>
+      )}
+
+      {/* Pre-query state: trending picks + genre shortcuts instead of a
+          blank screen, so there's always something to browse. */}
+      {!q && (
+        <>
+          {trending.length > 0 && (
+            <section className="sec">
+              <div className="sec__head"><h2>Trending Now</h2></div>
+              <div className="grid">
+                {trending.map((m) => <MovieCard key={m.id} movie={m} />)}
+              </div>
+            </section>
+          )}
+          {genres.length > 0 && (
+            <section className="sec">
+              <div className="sec__head"><h2>Explore Genres</h2></div>
+              <div className="genregrid">
+                {genres.map((g) => (
+                  <Link key={g} className="gchip" href={`/movies?genre=${encodeURIComponent(g)}`}>{g}</Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </>
   );

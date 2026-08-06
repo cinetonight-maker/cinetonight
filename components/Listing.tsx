@@ -18,6 +18,8 @@ const GENRES = [
 
 interface BrowseResponse { results: Movie[]; page: number; totalPages: number; source: "tmdb" | "local" }
 
+const SORT_LABEL: Record<Sort, string> = { trending: "Trending", rating: "Top Rated", year: "Newest", az: "A–Z" };
+
 export default function Listing({
   kind = "all", badges, defaultSort = "trending",
 }: { kind?: "movie" | "series" | "all"; badges?: boolean; defaultSort?: Sort }) {
@@ -27,6 +29,13 @@ export default function Listing({
   const [page, setPage] = useState(1);
   const [data, setData] = useState<BrowseResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Mobile filter drawer locks page scroll while open.
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [drawerOpen]);
 
   // Any filter change starts back at page 1.
   useEffect(() => { setPage(1); }, [kind, genre, sort]);
@@ -58,20 +67,53 @@ export default function Listing({
   return (
     <>
       <div className="controls">
-        <div className="chip-row">
+        <div className="chip-row chip-row--desktop">
           <button className={`fchip${genre === "All" ? " on" : ""}`} onClick={() => setGenre("All")}>All</button>
           {GENRES.map((g) => (
             <button key={g} className={`fchip${genre === g ? " on" : ""}`} onClick={() => setGenre(g)}>{g}</button>
           ))}
         </div>
+        <button type="button" className="filterbtn" onClick={() => setDrawerOpen(true)}>
+          <Icon name="menu" size={15} /> Filters{genre !== "All" ? <span className="filterbtn__dot" /> : null}
+        </button>
         <div className="cright">
           <span className="count">{loading ? "Loading…" : data ? `Page ${page} of ${totalPages}` : ""}</span>
-          <select className="sel" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
+          <select className="sel sel--desktop" value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort">
             <option value="trending">Trending</option>
             <option value="rating">Top Rated</option>
             <option value="year">Newest</option>
             <option value="az">A–Z</option>
           </select>
+        </div>
+      </div>
+
+      {/* Mobile filter drawer — same genre/sort state as the desktop chip
+          row + select above, just presented as a slide-in panel so it
+          doesn't eat vertical space on small screens. */}
+      <div className={`fdrawer__overlay${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)} />
+      <div className={`fdrawer${drawerOpen ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Filters">
+        <div className="fdrawer__head">
+          <b>Filters</b>
+          <button type="button" className="fdrawer__x" aria-label="Close" onClick={() => setDrawerOpen(false)}><Icon name="x" size={18} /></button>
+        </div>
+        <div className="fdrawer__body">
+          <div className="fdrawer__label">Genre</div>
+          <div className="chip-row">
+            <button className={`fchip${genre === "All" ? " on" : ""}`} onClick={() => setGenre("All")}>All</button>
+            {GENRES.map((g) => (
+              <button key={g} className={`fchip${genre === g ? " on" : ""}`} onClick={() => setGenre(g)}>{g}</button>
+            ))}
+          </div>
+          <div className="fdrawer__label">Sort By</div>
+          <div className="chip-row">
+            {(Object.keys(SORT_LABEL) as Sort[]).map((s) => (
+              <button key={s} className={`fchip${sort === s ? " on" : ""}`} onClick={() => setSort(s)}>{SORT_LABEL[s]}</button>
+            ))}
+          </div>
+        </div>
+        <div className="fdrawer__foot">
+          <button type="button" className="btn btn--ghost" onClick={() => { setGenre("All"); setSort(defaultSort); }}>Reset</button>
+          <button type="button" className="btn btn--play" onClick={() => setDrawerOpen(false)}>Apply</button>
         </div>
       </div>
 

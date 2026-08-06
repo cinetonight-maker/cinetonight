@@ -63,7 +63,7 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
   .bottomnav a.on{color:var(--purple2)}
   body{padding-bottom:64px}
 }
-.page{padding:24px 30px 10px}
+.page{--pgpad-t:24px;--pgpad-x:30px;padding:var(--pgpad-t) var(--pgpad-x) 10px}
 .page__head{margin-bottom:20px}
 .page__head h1{font-size:28px;font-weight:800}
 .page__head p{color:var(--muted);margin-top:4px}
@@ -78,24 +78,20 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .btn--ghost{background:transparent;color:#fff;border:1px solid var(--line)}
 .btn--ghost:hover{border-color:var(--purple)}
 
-/* wide hero — fixed box + centered content so every slide (regardless of
-   title/description length) occupies exactly the same footprint and every
-   backdrop image renders at the same size/crop. */
-.hero{position:relative;border-radius:18px;overflow:hidden;height:440px;margin-bottom:30px;border:1px solid var(--line);background:linear-gradient(120deg,#1a0f2e,#3a1a4a);display:flex;align-items:center}
+/* full-bleed hero — breaks out of .page's own side/top padding via negative
+   margins matching its padding exactly (not a 100vw hack, which would run
+   under the desktop sidebar). Fixed height so every slide occupies exactly
+   the same footprint regardless of title length. */
+.hero{position:relative;overflow:hidden;height:440px;
+  margin:calc(var(--pgpad-t) * -1) calc(var(--pgpad-x) * -1) 26px;
+  background:var(--card2);display:flex;align-items:flex-end}
 .hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.55}
-.hero__scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,10,18,.96),rgba(10,10,18,.55) 50%,transparent)}
-.hero__c{position:relative;z-index:2;max-width:620px;padding:0 56px}
-.hero__ey{color:var(--purple2);font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
-.hero__t{font-size:46px;font-weight:800;line-height:1.15;margin:12px 0 6px;
+.hero__scrim{position:absolute;inset:0;
+  background:linear-gradient(0deg,rgba(10,10,18,.92),rgba(10,10,18,.25) 55%,rgba(10,10,18,.15))}
+.hero__c{position:relative;z-index:2;display:block;padding:0 var(--pgpad-x) 46px;max-width:720px}
+.hero__t{font-size:44px;font-weight:800;line-height:1.15;margin-bottom:8px;color:#fff;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.hero__sub{font-size:20px;color:#d9c9f5;margin-bottom:14px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:480px}
-.hero__sub--empty{visibility:hidden}
-.hero__desc{color:#cfc9d8;max-width:480px;margin-bottom:16px;line-height:1.7;min-height:3.4em;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.hero__tags{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;max-height:66px;overflow:hidden}
-.hero__tags span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);padding:5px 13px;border-radius:7px;font-size:12px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.hero__btns{display:flex;gap:12px;flex-wrap:wrap}
+.hero__meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#d9d5e6;font-size:14px;font-weight:600}
 
 /* section + rail */
 .sec{margin-bottom:34px}
@@ -103,14 +99,14 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .sec__head h2{font-size:20px;font-weight:700}
 .sec__all{color:var(--purple2);font-size:13px;font-weight:600;cursor:pointer}
 .railwrap{position:relative}
-.rail{display:flex;gap:16px;overflow-x:auto;padding:6px 2px 10px;scroll-behavior:smooth}
+.rail{display:flex;gap:16px;overflow-x:auto;padding:6px 2px 10px;scroll-behavior:smooth;scroll-snap-type:x proximity}
 .rnav{position:absolute;top:calc(50% - 22px);transform:translateY(-50%);z-index:6;width:44px;height:44px;border-radius:50%;background:var(--purple);color:#fff;border:2px solid rgba(255,255,255,.15);display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .2s,transform .15s}
 .railwrap:hover .rnav{opacity:1}
 .rnav:hover{transform:translateY(-50%) scale(1.1)}
 .rnav--l{left:4px}.rnav--r{right:4px}
 
 /* movie card + hover popup */
-.mcard{flex:0 0 172px;min-width:0;cursor:pointer;transition:transform .22s;position:relative}
+.mcard{flex:0 0 188px;min-width:0;cursor:pointer;transition:transform .22s;position:relative;scroll-snap-align:start}
 .mcard:hover{transform:scale(1.06);z-index:20}
 .mcard__poster{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:2/3;border:1px solid var(--line);box-shadow:0 6px 16px rgba(0,0,0,.4);background:linear-gradient(155deg,#221d33,#171422)}
 .mcard__poster>img{width:100%;height:100%;object-fit:cover}
@@ -126,7 +122,7 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .mcard__pm{font-size:11.5px;color:#c9c4d8;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .mcard__pm .r{color:#ffcf4d;display:inline-flex;align-items:center;gap:3px}
 .mcard__pd{font-size:11.5px;color:#b8b3c8;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.mcard__name{margin-top:9px;font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard__name{margin-top:10px;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mcard__sub{font-size:12px;color:var(--muted);margin-top:2px}
 /* grid layout reuses the card */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:20px;align-items:start}
@@ -160,6 +156,12 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .trow__r{color:#ffcf4d;font-size:12px;display:inline-flex;align-items:center;gap:3px;margin-top:3px}
 .tags{display:flex;flex-wrap:wrap;gap:8px}
 .tag{background:var(--card2);border:1px solid var(--line);color:var(--muted);padding:6px 12px;border-radius:999px;font-size:12px;cursor:pointer}
+
+/* search page — "Explore Genres" tile grid (pre-query state) */
+.genregrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.gchip{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:16px 14px;
+  font-size:13.5px;font-weight:600;text-align:center;transition:border-color .15s,background .15s}
+.gchip:hover{border-color:var(--purple);background:var(--card)}
 .tag:hover{color:#fff;border-color:var(--purple);background:rgba(139,92,246,.12)}
 .bmini{display:flex;gap:11px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
 .bmini:last-child{border-bottom:none}
@@ -240,7 +242,9 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 @media(max-width:1200px){.pageaside{display:none}.blog-grid{grid-template-columns:1fr 1fr}.dgrid,.infocards,.minfo{grid-template-columns:repeat(2,1fr)}.about,.revwrap{grid-template-columns:1fr}}
 @media(max-width:760px){
   .topnav,.search{display:none}
-  .dhero{grid-template-columns:1fr}.blog-grid{grid-template-columns:1fr}.infocards{grid-template-columns:1fr 1fr}.footer__in{grid-template-columns:1fr 1fr}.hero__t{font-size:38px}.hero{height:360px}.hero__c{padding:0 24px;max-width:100%}.hero__sub,.hero__desc{max-width:100%}
+  .dhero{grid-template-columns:1fr}.blog-grid{grid-template-columns:1fr}.infocards{grid-template-columns:1fr 1fr}.footer__in{grid-template-columns:1fr 1fr}
+  .page{--pgpad-x:18px}
+  .hero{height:420px}.hero__t{font-size:32px}.hero__c{width:100%;max-width:100%;text-align:center}.hero__meta{justify-content:center}
   /* the sidebar is fully replaced by .bottomnav on mobile — no icon rail here */
   .sidebar{display:none}
   /* carousel rows: 3 full cards + a peek of the 4th, so it reads as
@@ -248,7 +252,11 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
   .rail{gap:3%}
   .rail .mcard{flex:0 0 26%}
 }
-@media(max-width:480px){.hero{height:300px}.hero__t{font-size:28px;min-height:1.9em}.hero__desc{font-size:13px}.hero__tags{max-height:34px}}
+@media(max-width:480px){
+  .page{--pgpad-x:14px}
+  .hero{height:480px}.hero__t{font-size:27px;-webkit-line-clamp:3}.hero__meta{font-size:12.5px}
+  .rail .mcard{flex:0 0 30%}
+}
 
 /* watchlist count */
 .wl-badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--purple);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
@@ -262,6 +270,32 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .cright{display:flex;align-items:center;gap:10px}
 .count{color:var(--muted);font-size:13px}
 .sel{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:9px 12px;font-size:13px;cursor:pointer}
+
+/* mobile filter trigger + slide-in drawer (Genre + Sort) — the inline chip
+   row eats a lot of vertical space on narrow screens, so below 760px it's
+   replaced by this single button + panel instead. */
+.filterbtn{display:none;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--line);color:var(--txt);
+  padding:9px 16px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;position:relative}
+.filterbtn:hover{border-color:var(--purple)}
+.filterbtn__dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--purple2)}
+.fdrawer__overlay{position:fixed;inset:0;z-index:80;background:rgba(6,6,12,.6);opacity:0;pointer-events:none;transition:opacity .2s}
+.fdrawer__overlay.open{opacity:1;pointer-events:auto}
+.fdrawer{position:fixed;top:0;right:0;bottom:0;z-index:81;width:min(340px,86vw);background:var(--card);border-left:1px solid var(--line);
+  display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s ease}
+.fdrawer.open{transform:translateX(0)}
+.fdrawer__head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--line)}
+.fdrawer__head b{font-size:17px;font-weight:800}
+.fdrawer__x{width:34px;height:34px;border-radius:8px;background:var(--card2);border:1px solid var(--line);color:var(--txt);display:grid;place-items:center;cursor:pointer}
+.fdrawer__body{flex:1;overflow-y:auto;padding:18px 20px}
+.fdrawer__label{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+.fdrawer__label:first-child{margin-top:0}
+.fdrawer__foot{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--line)}
+.fdrawer__foot .btn{flex:1;justify-content:center}
+@media(max-width:760px){
+  .chip-row--desktop,.sel--desktop{display:none}
+  .filterbtn{display:inline-flex}
+  .controls{gap:10px}
+}
 
 /* pagination */
 .pager{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:30px}
@@ -329,6 +363,10 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .plan__f .ic{color:var(--purple2)}
 .plan__btn{margin-top:18px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--purple);color:#fff;font-weight:700;cursor:pointer}
 .plan__btn.ghost{background:transparent;border:1px solid var(--line);color:#fff}
+/* stacked on narrow screens — the 3-column grid has no room to shrink into
+   (feature text/price forces a min-content wider than 1/3 of a phone
+   screen), so without this the last card runs off the right edge. */
+@media(max-width:760px){.plans{grid-template-columns:1fr;max-width:420px}}
 /* auth */
 .auth{max-width:420px;margin:30px auto;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:30px}
 .auth h1{font-size:26px;font-weight:800;text-align:center}
@@ -398,25 +436,25 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 
 /* ---------- hero slideshow ---------- */
 .hero--slider{position:relative;overflow:hidden}
-.hero__bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;
+.hero__bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%;
   opacity:0;transition:opacity .7s ease;z-index:0}
-.hero__bgimg.on{opacity:.55}
+.hero__bgimg.on{opacity:.6}
 .hero--slider .hero__c{animation:heroIn .5s ease}
 @keyframes heroIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.hero__rate{display:inline-flex;align-items:center;gap:5px;background:var(--purple);border-color:transparent!important;color:#fff;font-weight:700}
-.hero__nav{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;
+.hero__rate{display:inline-flex;align-items:center;gap:5px;background:var(--purple);padding:3px 9px;border-radius:6px;color:#fff;font-weight:700}
+.hero__nav{position:absolute;top:calc(50% - 23px);transform:translateY(-50%);z-index:4;width:44px;height:44px;border-radius:50%;
   background:rgba(10,10,18,.6);border:1px solid rgba(255,255,255,.18);color:#fff;cursor:pointer;display:grid;place-items:center;
   opacity:0;transition:opacity .2s,background .2s}
 .hero--slider:hover .hero__nav{opacity:1}
 .hero__nav:hover{background:var(--purple);border-color:var(--purple)}
 .hero__nav--l{left:16px}.hero__nav--r{right:16px}
-.hero__thumbs{position:absolute;right:26px;bottom:24px;z-index:4;display:flex;gap:10px}
-.hero__thumb{position:relative;width:44px;height:64px;border-radius:8px;overflow:hidden;padding:0;cursor:pointer;
-  border:2px solid transparent;opacity:.5;background:var(--card2);transition:opacity .2s,border-color .2s,transform .2s}
-.hero__thumb img{width:100%;height:100%;object-fit:cover}
-.hero__thumb:hover{opacity:.85;transform:translateY(-2px)}
-.hero__thumb.on{opacity:1;border-color:var(--purple)}
-@media(max-width:900px){.hero__thumbs{display:none}.hero__nav{opacity:1;width:38px;height:38px}}
+/* dot pagination — replaces the old bottom-right thumbnail cluster, which
+   showed several other titles' art at once and read as a messy collage. */
+.hero__dots{position:absolute;left:0;right:0;bottom:16px;z-index:4;display:flex;justify-content:center;gap:8px}
+.hero__dot{width:8px;height:8px;border-radius:4px;padding:0;border:none;background:rgba(255,255,255,.4);cursor:pointer;transition:all .2s}
+.hero__dot:hover{background:rgba(255,255,255,.7)}
+.hero__dot.on{background:#fff;width:22px}
+@media(max-width:900px){.hero__nav{opacity:1;width:38px;height:38px}}
 @media(prefers-reduced-motion:reduce){.hero__bgimg{transition:none}.hero--slider .hero__c{animation:none}}
 
 /* ---------- admin dashboard ---------- */
