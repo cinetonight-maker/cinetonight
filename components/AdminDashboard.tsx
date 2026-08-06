@@ -35,13 +35,20 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
+  // Hero/Rows/Blog/Catalogue write to local files on disk (content/*.json),
+  // which only works in `npm run dev` — on Vercel the filesystem is
+  // read-only per request, so these four intentionally 403 in production.
+  // That must NOT block the rest of the dashboard: Pages/Menus/Media/
+  // Settings/Comments are Supabase-backed and work live regardless.
+  const [fileBackedErr, setFileBackedErr] = useState<string | null>(null);
+
   const load = useCallback(async () => {
     const [s, c] = await Promise.all([
-      fetch("/api/admin/site").then((r) => r.json()),
-      fetch("/api/admin/catalogue").then((r) => r.json()),
+      fetch("/api/admin/site").then((r) => r.json()).catch(() => ({ error: "Could not reach the server." })),
+      fetch("/api/admin/catalogue").then((r) => r.json()).catch(() => ({ movies: [] })),
     ]);
-    if (s?.error) setStatus({ kind: "err", msg: s.error });
-    else setSite(s);
+    if (s?.error) setFileBackedErr(s.error);
+    else { setFileBackedErr(null); setSite(s); }
     setMovies(c?.movies ?? []);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -57,17 +64,14 @@ export default function AdminDashboard() {
     if (res.ok) setTimeout(() => setStatus({ kind: "idle" }), 1800);
   };
 
-  if (status.kind === "err" && !site) {
-    return <div className="ad__err">{status.msg}</div>;
-  }
-  if (!site) return <div className="empty">Loading dashboard…</div>;
+  const FILE_TABS: Tab[] = ["hero", "rows", "blog", "catalogue"];
 
   return (
     <div className="ad">
       <div className="ad__head">
         <div>
           <h1>Dashboard</h1>
-          <p>Manage what appears on the site. Changes save straight to <code>content/</code>.</p>
+          <p>Pages, menus, media, SEO, and comments update your live site instantly. Hero Slides, Home Rows, Blog Posts, and Catalogue are edited in local development only.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div className={`ad__status ad__status--${status.kind}`}>
@@ -87,10 +91,16 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {tab === "hero" && <HeroTab site={site} movies={movies} save={save} />}
-      {tab === "rows" && <RowsTab site={site} movies={movies} save={save} />}
-      {tab === "blog" && <BlogTab site={site} save={save} />}
-      {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
+      {FILE_TABS.includes(tab) && fileBackedErr ? (
+        <div className="ad__err">{fileBackedErr} — this tab only works when running <code>npm run dev</code> locally.</div>
+      ) : (
+        <>
+          {tab === "hero" && site && <HeroTab site={site} movies={movies} save={save} />}
+          {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
+          {tab === "blog" && site && <BlogTab site={site} save={save} />}
+          {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
+        </>
+      )}
       {tab === "pages" && <PagesTab />}
       {tab === "menus" && <MenusTab />}
       {tab === "media" && <MediaTab />}
