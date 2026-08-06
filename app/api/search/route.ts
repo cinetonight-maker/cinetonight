@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { searchTmdb, tmdbConfigured } from "@/lib/tmdb";
-import { MOVIES } from "@/lib/data";
+import { getMovies } from "@/lib/data";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /** GET /api/search?q=... — local catalogue matches first, then live TMDB results. */
 export async function GET(request: Request) {
@@ -10,6 +11,7 @@ export async function GET(request: Request) {
   if (!q) return NextResponse.json({ results: [], source: "empty" });
 
   const needle = q.toLowerCase();
+  const MOVIES = await getMovies();
   const local = MOVIES.filter(
     (m) => m.title.toLowerCase().includes(needle) || m.genres.join(" ").toLowerCase().includes(needle),
   );

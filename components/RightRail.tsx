@@ -1,7 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
-import { BLOGS, GENRES, trendingNow } from "@/lib/data";
+import { getMovies, getBlogs, genresOf, trendingNow } from "@/lib/data";
 import { img, poster } from "@/lib/images";
 
 export function Widget({ title, all, children }: { title: string; all?: React.ReactNode; children: React.ReactNode }) {
@@ -13,13 +14,14 @@ export function Widget({ title, all, children }: { title: string; all?: React.Re
   );
 }
 
-export function TrendingWidget() {
+export async function TrendingWidget() {
+  const movies = await getMovies();
   return (
     <Widget title="Trending Now" all={<Link href="/trending">View All</Link>}>
-      {trendingNow(5).map((m, i) => (
+      {trendingNow(movies, 5).map((m, i) => (
         <Link key={m.id} className="trow" href={`/movie/${m.id}`}>
           <span className="trow__rank">{i + 1}</span>
-          <div className="trow__th">{/* eslint-disable-next-line @next/next/no-img-element */}<img loading="lazy" alt="" src={poster(m, "w342")} /></div>
+          <div className="trow__th"><Image fill alt="" src={poster(m, "w342")} sizes="44px" /></div>
           <div>
             <div className="trow__t">{m.title}</div>
             <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>
@@ -31,11 +33,13 @@ export function TrendingWidget() {
   );
 }
 
-export function GenresWidget() {
+export async function GenresWidget() {
+  const movies = await getMovies();
+  const genres = genresOf(movies);
   return (
     <Widget title="Genres" all={<Link href="/genres">All</Link>}>
       <div className="tags">
-        {GENRES.slice(0, 9).map((g) => (
+        {genres.slice(0, 9).map((g) => (
           <Link key={g} className="tag" href={`/movies?genre=${encodeURIComponent(g)}`}>{g}</Link>
         ))}
       </div>
@@ -43,12 +47,13 @@ export function GenresWidget() {
   );
 }
 
-export function BlogWidget() {
+export async function BlogWidget() {
+  const blogs = await getBlogs();
   return (
     <Widget title="From the Blog" all={<Link href="/blog">All</Link>}>
-      {BLOGS.map((b) => (
+      {blogs.map((b) => (
         <Link key={b.slug} className="bmini" href={`/blog/${b.slug}`}>
-          <div className="bmini__th">{/* eslint-disable-next-line @next/next/no-img-element */}<img loading="lazy" alt="" src={img(`bw-${b.slug}`, 160, 110)} /></div>
+          <div className="bmini__th"><Image fill alt="" src={b.imageUrl || img(`bw-${b.slug}`, 160, 110)} sizes="72px" /></div>
           <div><div className="bmini__t">{b.title}</div><div className="bmini__d">{b.date} · {b.read}</div></div>
         </Link>
       ))}
@@ -74,7 +79,7 @@ export function PosterWidget({ title, movies, href = "/movies" }: { title: strin
     <Widget title={title} all={<Link href={href}>More</Link>}>
       {movies.map((m) => (
         <Link key={m.id} className="trow" href={`/movie/${m.id}`}>
-          <div className="trow__th">{/* eslint-disable-next-line @next/next/no-img-element */}<img loading="lazy" alt="" src={poster(m, "w342")} /></div>
+          <div className="trow__th"><Image fill alt="" src={poster(m, "w342")} sizes="44px" /></div>
           <div>
             <div className="trow__t">{m.title}</div>
             <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>

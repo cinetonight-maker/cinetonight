@@ -36,6 +36,11 @@ export interface Blog {
   date: string; read: string;
   /** Article paragraphs. */
   body?: string[];
+  /** Featured image — a Media Library URL. Falls back to a placeholder when unset. */
+  imageUrl?: string | null;
+  /** Present when the post comes from Supabase (needed for dashboard edit/delete). */
+  id?: string;
+  status?: "draft" | "published";
 }
 export interface Review { name: string; rating: number; when: string; text: string; up: number; down: number; }
 export interface ContinueItem { id: string; progress: number; note: string; }

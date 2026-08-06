@@ -18,7 +18,9 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(
+    params.get("err") === "unauthorized" ? "That account isn't authorized for the dashboard." : null
+  );
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();

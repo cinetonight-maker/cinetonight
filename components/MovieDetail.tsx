@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "./Icon";
 import Stars from "./Stars";
 import PlayButton from "./PlayButton";
@@ -52,8 +53,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
 
       <section className="dhero">
         <div className="dposter">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img alt={`${movie.title} poster`} src={posterLg(movie)} />
+          <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 40vw, 300px" priority />
           <WatchlistButton id={movie.id} variant="save" />
         </div>
         <div>
@@ -107,7 +107,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         <div className="railwrap"><div className="rail castrail">
           {movie.cast.map((c) => (
             <Link className="castc" href={`/person/${personId(c.name)}`} key={c.name}>
-              <div className="castc__ph">{/* eslint-disable-next-line @next/next/no-img-element */}<img loading="lazy" alt="" src={profile(c)} /></div>
+              <div className="castc__ph"><Image fill alt="" src={profile(c)} sizes="64px" /></div>
               <div className="castc__n">{c.name}</div>
               <div className="castc__r">as {c.character}</div>
             </Link>
@@ -127,7 +127,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
             {about.map((p, i) => <p key={i}>{p}</p>)}
             <Link className="about__btn" href="/blog">Read More on the Blog <Icon name="chevr" size={15} /></Link>
           </div>
-          <div className="about__img">{/* eslint-disable-next-line @next/next/no-img-element */}<img alt="" src={backdrop(movie, "w780")} /></div>
+          <div className="about__img"><Image fill alt="" src={backdrop(movie, "w780")} sizes="(max-width: 900px) 100vw, 380px" /></div>
         </div>
       </section>
 
@@ -143,7 +143,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
             {REVIEWS.map((r, i) => (
               <div className="rev" key={i}>
                 <div className="rev__top">
-                  <div className="rev__ava">{/* eslint-disable-next-line @next/next/no-img-element */}<img loading="lazy" alt="" src={img(`rev-${i}`, 80, 80)} /></div>
+                  <div className="rev__ava"><Image fill alt="" src={img(`rev-${i}`, 80, 80)} sizes="36px" /></div>
                   <div><div className="rev__name">{r.name}</div><div className="rev__stars"><Stars rating={r.rating} /></div></div>
                   <span className="rev__when">{r.when}</span>
                 </div>

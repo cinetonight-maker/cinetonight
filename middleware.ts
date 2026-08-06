@@ -56,6 +56,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Being signed in to Supabase Auth is NOT the same as being an admin — the
+  // site also has (currently unwired) public /signin + /signup pages, and
+  // any account created through those would otherwise pass the `!!user`
+  // check above and reach the dashboard. Cross-check against the admin_users
+  // allowlist (see supabase/schema.sql) before granting access.
+  if (user && (isApi || isDashboard)) {
+    const { data: allowed } = await supabase
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!allowed) {
+      // Signed in, but not on the allowlist — sign them out so they don't
+      // get stuck in a "logged in but nothing works" state, then deny.
+      await supabase.auth.signOut();
+      if (isApi) return NextResponse.json({ error: "This account is not authorized for the dashboard." }, { status: 403 });
+      const loginUrl = new URL("/admin/login", request.url);
+      loginUrl.searchParams.set("err", "unauthorized");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   return response;
 }
 

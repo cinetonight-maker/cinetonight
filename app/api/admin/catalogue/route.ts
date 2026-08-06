@@ -1,41 +1,83 @@
 import { NextResponse } from "next/server";
-import { readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import { fetchTitle, parseTmdbId } from "@/lib/tmdb";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import type { Movie } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const FILE = resolve(process.cwd(), "content/movies.json");
-
-function guard() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json(
-      { error: "The dashboard is available in development only (npm run dev)." },
-      { status: 403 },
-    );
-  }
-  return null;
-}
-
-const readAll = async (): Promise<Movie[]> => JSON.parse(await readFile(FILE, "utf8"));
-const writeAll = (list: Movie[]) => writeFile(FILE, JSON.stringify(list, null, 2), "utf8");
-
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
-export async function GET() {
-  const blocked = guard();
-  if (blocked) return blocked;
-  return NextResponse.json({ movies: await readAll() });
+function toRow(m: Partial<Movie> & { id: string }) {
+  const row: Record<string, unknown> = { id: m.id };
+  if (m.tmdbId !== undefined) row.tmdb_id = m.tmdbId;
+  if (m.title !== undefined) row.title = m.title;
+  if (m.year !== undefined) row.year = m.year;
+  if (m.genres !== undefined) row.genres = m.genres;
+  if (m.kind !== undefined) row.kind = m.kind;
+  if (m.rating !== undefined) row.rating = m.rating;
+  if (m.votes !== undefined) row.votes = m.votes;
+  if (m.runtime !== undefined) row.runtime = m.runtime;
+  if (m.cert !== undefined) row.cert = m.cert;
+  if (m.language !== undefined) row.language = m.language;
+  if (m.director !== undefined) row.director = m.director;
+  if (m.writers !== undefined) row.writers = m.writers;
+  if (m.cast !== undefined) row.cast_list = m.cast;
+  if (m.desc !== undefined) row.description = m.desc;
+  if (m.posterPath !== undefined) row.poster_path = m.posterPath;
+  if (m.backdropPath !== undefined) row.backdrop_path = m.backdropPath;
+  if (m.trailerKey !== undefined) row.trailer_key = m.trailerKey;
+  return row;
 }
 
-/** Add a title to the catalogue by TMDB id (body: { tmdbId: "tmdb-m-123" | number, kind }). */
-export async function POST(request: Request) {
-  const blocked = guard();
-  if (blocked) return blocked;
+function fromRow(r: any): Movie {
+  return {
+    id: r.id, tmdbId: r.tmdb_id ?? undefined, title: r.title, year: r.year, genres: r.genres ?? [],
+    kind: r.kind, rating: Number(r.rating) || 0, votes: r.votes ?? undefined, runtime: r.runtime ?? "",
+    cert: r.cert ?? "", language: r.language ?? "", director: r.director ?? "", writers: r.writers ?? "",
+    cast: r.cast_list ?? [], desc: r.description ?? "",
+    posterPath: r.poster_url ?? r.poster_path ?? null, backdropPath: r.backdrop_url ?? r.backdrop_path ?? null,
+    trailerKey: r.trailer_key ?? null,
+  };
+}
+
+export async function GET() {
   try {
-    const { id, kind } = await request.json();
+    const { data, error } = await supabaseAdmin().from("movies").select("*").order("year", { ascending: false });
+    if (error) throw error;
+    return NextResponse.json({ movies: (data ?? []).map(fromRow) });
+  } catch (e) {
+    return NextResponse.json({ error: `Could not load catalogue: ${(e as Error).message}` }, { status: 500 });
+  }
+}
+
+/** Add a title to the catalogue. Either by TMDB id (body: { id: "tmdb-m-123" | number, kind }),
+ *  or manually with no TMDB match (body: { manual: true, title, kind }) — useful for titles TMDB
+ *  doesn't have. Manual entries can still have every field filled in via the edit panel. */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const admin = supabaseAdmin();
+
+    if (body?.manual) {
+      const title = String(body?.title ?? "").trim();
+      if (!title) return NextResponse.json({ error: "Title is required." }, { status: 400 });
+      const realKind = body?.kind === "series" ? "series" : "movie";
+
+      let slug = slugify(title);
+      const { data: clash } = await admin.from("movies").select("id").eq("id", slug).maybeSingle();
+      if (!slug || clash) slug = `${slug || "title"}-${Date.now().toString(36)}`;
+
+      const row = toRow({
+        id: slug, title, kind: realKind, year: new Date().getFullYear(), genres: [], rating: 0,
+        runtime: "", cert: "", language: "", director: "", writers: "", cast: [], desc: "",
+      });
+      const { data, error } = await admin.from("movies").insert(row).select().single();
+      if (error) throw error;
+      return NextResponse.json({ ok: true, movie: fromRow(data) });
+    }
+
+    const { id, kind } = body;
     const parsed = typeof id === "string" ? parseTmdbId(id) : null;
     const realKind = parsed?.kind ?? (kind === "series" ? "series" : "movie");
     const realId = parsed?.id ?? String(id);
@@ -43,32 +85,61 @@ export async function POST(request: Request) {
     const full = await fetchTitle(realKind, realId);
     if (!full) return NextResponse.json({ error: "Could not fetch that title from TMDB." }, { status: 404 });
 
-    const list = await readAll();
-    if (list.some((m) => m.tmdbId === full.tmdbId)) {
-      return NextResponse.json({ error: "That title is already in the catalogue." }, { status: 409 });
-    }
-    // give it a clean slug id (falls back to the tmdb id if taken)
-    let slug = slugify(full.title);
-    if (!slug || list.some((m) => m.id === slug)) slug = `${slug || "title"}-${full.tmdbId}`;
+    const { data: existingByTmdb } = await admin.from("movies").select("id").eq("tmdb_id", full.tmdbId).maybeSingle();
+    if (existingByTmdb) return NextResponse.json({ error: "That title is already in the catalogue." }, { status: 409 });
 
-    const added: Movie = { ...full, id: slug };
-    list.push(added);
-    await writeAll(list);
-    return NextResponse.json({ ok: true, movie: added });
+    let slug = slugify(full.title);
+    const { data: clash } = await admin.from("movies").select("id").eq("id", slug).maybeSingle();
+    if (!slug || clash) slug = `${slug || "title"}-${full.tmdbId}`;
+
+    const row = toRow({ ...full, id: slug });
+    const { data, error } = await admin.from("movies").insert(row).select().single();
+    if (error) throw error;
+    return NextResponse.json({ ok: true, movie: fromRow(data) });
   } catch (e) {
     return NextResponse.json({ error: `Could not add: ${(e as Error).message}` }, { status: 500 });
   }
 }
 
+/** Edit an existing title's fields. Body: { id, ...patch }. Accepts posterUrl/backdropUrl
+ *  (Media Library URLs) to override the TMDB-sourced artwork for this one title. */
+export async function PUT(request: Request) {
+  try {
+    const body = await request.json();
+    const id = String(body?.id ?? "");
+    if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const strFields: [string, string][] = [
+      ["title", "title"], ["runtime", "runtime"], ["cert", "cert"], ["language", "language"],
+      ["director", "director"], ["writers", "writers"], ["desc", "description"], ["kind", "kind"],
+    ];
+    for (const [from, to] of strFields) if (typeof body[from] === "string") patch[to] = body[from];
+    if (body.year !== undefined) patch.year = Number(body.year) || 0;
+    if (body.rating !== undefined) patch.rating = Number(body.rating) || 0;
+    if (body.votes !== undefined) patch.votes = Number(body.votes) || 0;
+    if (Array.isArray(body.genres)) patch.genres = body.genres;
+    if (typeof body.posterUrl === "string") patch.poster_url = body.posterUrl || null;
+    if (typeof body.backdropUrl === "string") patch.backdrop_url = body.backdropUrl || null;
+
+    const { data, error } = await supabaseAdmin().from("movies").update(patch).eq("id", id).select().single();
+    if (error) throw error;
+    return NextResponse.json({ ok: true, movie: fromRow(data) });
+  } catch (e) {
+    return NextResponse.json({ error: `Could not save: ${(e as Error).message}` }, { status: 500 });
+  }
+}
+
 /** Remove a title: DELETE /api/admin/catalogue?id=slug */
 export async function DELETE(request: Request) {
-  const blocked = guard();
-  if (blocked) return blocked;
   const id = new URL(request.url).searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
-  const list = await readAll();
-  const next = list.filter((m) => m.id !== id);
-  if (next.length === list.length) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  await writeAll(next);
-  return NextResponse.json({ ok: true });
+  try {
+    const { error, count } = await supabaseAdmin().from("movies").delete({ count: "exact" }).eq("id", id);
+    if (error) throw error;
+    if (!count) return NextResponse.json({ error: "Not found." }, { status: 404 });
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    return NextResponse.json({ error: `Could not remove: ${(e as Error).message}` }, { status: 500 });
+  }
 }

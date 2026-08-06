@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
 import { heroArt, poster } from "@/lib/images";
@@ -38,8 +39,16 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
       aria-label="Featured titles"
     >
       {slides.map((s, idx) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img key={s.id} alt="" src={heroArt(s)} className={`hero__bgimg${idx === i ? " on" : ""}`} aria-hidden={idx !== i} />
+        <Image
+          key={s.id}
+          fill
+          alt=""
+          src={heroArt(s)}
+          className={`hero__bgimg${idx === i ? " on" : ""}`}
+          aria-hidden={idx !== i}
+          sizes="100vw"
+          priority={idx === 0}
+        />
       ))}
       <div className="hero__scrim" />
 
@@ -83,8 +92,7 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
                 aria-current={idx === i}
                 onClick={() => go(idx)}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img alt="" src={poster(s)} loading="lazy" />
+                <Image fill alt="" src={poster(s)} sizes="44px" />
               </button>
             ))}
           </div>

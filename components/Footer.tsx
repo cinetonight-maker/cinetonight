@@ -1,8 +1,15 @@
 import Link from "next/link";
 import Icon from "./Icon";
 import { supabasePublic } from "@/lib/supabase/public";
+import { getSiteSettings } from "@/lib/data";
 
-const SOCIAL: [string, string][] = [["fb", "#1877f2"], ["tw", "#1da1f2"], ["ig", "#e1306c"], ["tg", "#0088cc"], ["yt", "#ff0000"]];
+// Maps each icon to the matching key in Settings → social. Every icon here
+// used to link to "#" regardless of what was saved in the dashboard — now
+// only platforms the admin actually filled in are shown at all.
+const SOCIAL: [string, string, string][] = [
+  ["facebook", "fb", "#1877f2"], ["twitter", "tw", "#1da1f2"],
+  ["instagram", "ig", "#e1306c"], ["youtube", "yt", "#ff0000"],
+];
 
 // Static fallbacks — used until you add real links in Dashboard → Menus & Footer,
 // and always used if Supabase isn't configured yet.
@@ -27,9 +34,10 @@ async function getFooterLinks() {
 }
 
 export default async function Footer() {
-  const links = await getFooterLinks();
+  const [links, settings] = await Promise.all([getFooterLinks(), getSiteSettings()]);
   const support = links?.support?.length ? links.support.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_SUPPORT;
   const legal = links?.legal?.length ? links.legal.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_LEGAL;
+  const social = SOCIAL.map(([key, icon, bg]) => [icon, bg, settings.social[key]] as const).filter(([, , url]) => !!url);
 
   return (
     <footer className="footer">
@@ -52,12 +60,18 @@ export default async function Footer() {
           <h4>Legal</h4>
           {legal.map(([label, url]) => <a key={label} href={url}>{label}</a>)}
         </div>
-        <div>
-          <h4>Connect With Us</h4>
-          <div className="social">
-            {SOCIAL.map(([n, bg]) => <a key={n} href="#" style={{ background: bg }} aria-label={n}><Icon name={n} size={16} /></a>)}
+        {social.length > 0 && (
+          <div>
+            <h4>Connect With Us</h4>
+            <div className="social">
+              {social.map(([n, bg, url]) => (
+                <a key={n} href={url} target="_blank" rel="noopener noreferrer" style={{ background: bg }} aria-label={n}>
+                  <Icon name={n} size={16} />
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="footer__copy">
         © 2024 MOVIEX. All rights reserved. · Demo project.

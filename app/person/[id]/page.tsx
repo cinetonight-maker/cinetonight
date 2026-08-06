@@ -1,32 +1,38 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
-import { PEOPLE, getPerson, personId, creditsOf } from "@/lib/data";
+import { getMovies, peopleOf, getPerson, personId, creditsOf } from "@/lib/data";
 import { profile } from "@/lib/images";
 
 interface Params { params: { id: string } }
 
-export function generateStaticParams() {
-  return PEOPLE.map((p) => ({ id: personId(p.name) }));
+export async function generateStaticParams() {
+  const movies = await getMovies();
+  return peopleOf(movies).map((p) => ({ id: personId(p.name) }));
 }
+export const dynamicParams = true;
+export const dynamic = "force-dynamic";
 
-export function generateMetadata({ params }: Params): Metadata {
-  const p = getPerson(params.id);
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const movies = await getMovies();
+  const p = getPerson(movies, params.id);
   return p ? { title: p.name, description: `Films and series featuring ${p.name}.` } : { title: "Not found" };
 }
 
-export default function PersonPage({ params }: Params) {
-  const p = getPerson(params.id);
+export default async function PersonPage({ params }: Params) {
+  const movies = await getMovies();
+  const p = getPerson(movies, params.id);
   if (!p) notFound();
-  const credits = creditsOf(p.name);
+  const credits = creditsOf(movies, p.name);
   const years = credits.map((c) => c.year);
   const avg = credits.length ? (credits.reduce((s, c) => s + c.rating, 0) / credits.length).toFixed(1) : "—";
 
   return (
     <div className="page">
       <div className="person">
-        <div className="person__ph">{/* eslint-disable-next-line @next/next/no-img-element */}<img alt="" src={profile(p)} /></div>
+        <div className="person__ph"><Image fill alt="" src={profile(p)} sizes="220px" priority /></div>
         <div>
           <div className="person__n">{p.name}</div>
           <div className="person__role">Actor</div>

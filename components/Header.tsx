@@ -23,7 +23,7 @@ export default function Header() {
   return (
     <header className="header">
       <button className="burger" aria-label="Toggle menu"
-        onClick={() => document.body.classList.toggle("sb-collapsed")}><Icon name="menu" size={20} /></button>
+        onClick={() => document.body.classList.toggle("sb-expanded")}><Icon name="menu" size={20} /></button>
       <Link className="brand" href="/">
         <div className="brand__name">MOVIE<b>X</b></div>
         <div className="brand__tag">Watch More, Stream Better.</div>

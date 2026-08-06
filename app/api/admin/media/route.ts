@@ -6,6 +6,17 @@ export const dynamic = "force-dynamic";
 
 const BUCKET = "media";
 
+// The global `File` *class* isn't available on every Node version this might
+// run on (it only landed as a default global in Node 20) — `instanceof File`
+// references that global at runtime and throws "File is not defined" before
+// the upload even starts. `File` as a TYPE (below) is erased at compile time
+// and never touches the runtime global, so it's safe to use for the type
+// predicate — only the runtime check needs to avoid `instanceof`.
+function isUploadedFile(v: FormDataEntryValue | null): v is File {
+  return !!v && typeof v === "object" && "arrayBuffer" in v && typeof (v as any).arrayBuffer === "function"
+    && typeof (v as any).name === "string" && typeof (v as any).size === "number";
+}
+
 export async function GET() {
   try {
     const { data, error } = await supabaseAdmin().from("media").select("*").order("created_at", { ascending: false });
@@ -21,7 +32,7 @@ export async function POST(request: Request) {
   try {
     const form = await request.formData();
     const file = form.get("file");
-    if (!(file instanceof File)) return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
+    if (!isUploadedFile(file)) return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     if (file.size > 15 * 1024 * 1024) return NextResponse.json({ error: "File too large (max 15MB)." }, { status: 400 });
 
     const admin = supabaseAdmin();

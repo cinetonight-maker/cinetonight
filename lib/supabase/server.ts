@@ -31,5 +31,8 @@ export function supabaseServer() {
     // Node < 22 has no global WebSocket, and supabase-js's realtime client
     // throws at construction time without one — see lib/supabase/admin.ts.
     realtime: { transport: WebSocket as any },
+    // See lib/supabase/admin.ts — stop Next.js's fetch cache from ever
+    // serving a stale Supabase response.
+    global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: "no-store" }) },
   });
 }

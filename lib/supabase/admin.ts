@@ -29,6 +29,13 @@ export function supabaseAdmin() {
     // time without one — even though we never use realtime. Give it the
     // `ws` package explicitly so client creation never fails.
     realtime: { transport: WebSocket as any },
+    // Next.js patches the global `fetch` and, by default, CACHES GET
+    // requests made during rendering — including the ones supabase-js
+    // issues under the hood. Without this, a dashboard save can write to
+    // Supabase successfully while every reader keeps serving an old cached
+    // response (sometimes even across a dev-server restart, since the
+    // cache is disk-backed). Force every Supabase request to bypass it.
+    global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: "no-store" }) },
   });
   return cached;
 }

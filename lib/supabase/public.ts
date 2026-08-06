@@ -21,6 +21,9 @@ export function supabasePublic() {
     auth: { persistSession: false },
     // See lib/supabase/admin.ts — same Node-without-WebSocket fix.
     realtime: { transport: WebSocket as any },
+    // See lib/supabase/admin.ts — stop Next.js's fetch cache from ever
+    // serving a stale Supabase response to site visitors.
+    global: { fetch: (input: RequestInfo | URL, init?: RequestInit) => fetch(input, { ...init, cache: "no-store" }) },
   });
   return cached;
 }

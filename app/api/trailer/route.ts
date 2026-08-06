@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   if (!id) return NextResponse.json({ key: null });
 
   // cached on the catalogue entry after `npm run sync`
-  const local = getMovie(id);
+  const local = await getMovie(id);
   if (local?.trailerKey) return NextResponse.json({ key: local.trailerKey });
 
   // otherwise ask TMDB directly

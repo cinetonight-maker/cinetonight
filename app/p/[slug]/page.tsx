@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { marked } from "marked";
 import { supabasePublic } from "@/lib/supabase/public";
 
 export const dynamic = "force-dynamic";
+
+marked.setOptions({ breaks: true });
 
 async function getPage(slug: string) {
   const supabase = supabasePublic();
@@ -29,7 +32,11 @@ export default async function CustomPage({ params }: { params: { slug: string } 
     <div className="page">
       <div className="ad__panel" style={{ maxWidth: 820, margin: "0 auto" }}>
         <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 18 }}>{page.title}</h1>
-        <div style={{ lineHeight: 1.7, color: "var(--muted)", whiteSpace: "pre-wrap" }}>{page.content}</div>
+        {/* Page content is written in the dashboard by an authenticated admin
+           only (never public input), so rendering the parsed markdown as
+           HTML here is the same trust boundary as everything else in this
+           admin-authored content model (blog posts, movie descriptions). */}
+        <div className="pagecontent" dangerouslySetInnerHTML={{ __html: marked.parse(page.content || "") as string }} />
       </div>
     </div>
   );

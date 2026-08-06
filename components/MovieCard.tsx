@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
 import { poster } from "@/lib/images";
@@ -18,8 +19,13 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
     <Link className="mcard" href={`/movie/${movie.id}`} aria-label={movie.title}>
       {rank ? <span className="mcard__rank">{rank}</span> : null}
       <div className="mcard__poster">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img loading="lazy" alt="" src={poster(movie)} onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }} />
+        <Image
+          fill
+          alt=""
+          src={poster(movie)}
+          sizes="(max-width: 760px) 26vw, 172px"
+          onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }}
+        />
         <span className="mcard__rate"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>
         {badge ? <span className="mcard__badge">{badge}</span> : null}
         <div className="mcard__pop">

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
-import type { Movie, SiteConfig, RowConfig, Blog } from "@/lib/types";
+import type { Movie, SiteConfig, RowConfig } from "@/lib/types";
 import { poster } from "@/lib/images";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -20,14 +20,26 @@ const TABS: [Tab, string, string][] = [
   ["comments", "Comments", "article"],
 ];
 
-const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+/** shared fetch helper — used by every tab below */
+async function api<T = any>(url: string, init?: RequestInit): Promise<{ ok: boolean; data: T }> {
+  const res = await fetch(url, init);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, data };
+}
+
+type HomeConfig = Omit<SiteConfig, "blog">;
+const EMPTY_HOME: HomeConfig = { hero: { slides: [], intervalMs: 6000 }, rows: [], continueWatching: [] };
+/** A patch function is handed the freshest server state and returns just the
+ *  fields it wants to change — see `save` below for why. */
+type HomePatch = (base: HomeConfig) => Partial<HomeConfig>;
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("hero");
-  const [site, setSite] = useState<SiteConfig | null>(null);
+  const [site, setSite] = useState<HomeConfig | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
+  const [loadErr, setLoadErr] = useState<string | null>(null);
 
   const logout = async () => {
     await supabaseBrowser().auth.signOut();
@@ -35,27 +47,35 @@ export default function AdminDashboard() {
     router.refresh();
   };
 
-  // Hero/Rows/Blog/Catalogue write to local files on disk (content/*.json),
-  // which only works in `npm run dev` — on Vercel the filesystem is
-  // read-only per request, so these four intentionally 403 in production.
-  // That must NOT block the rest of the dashboard: Pages/Menus/Media/
-  // Settings/Comments are Supabase-backed and work live regardless.
-  const [fileBackedErr, setFileBackedErr] = useState<string | null>(null);
-
+  // Everything in this dashboard is Supabase-backed now, so every tab works
+  // both in `npm run dev` and on the live site — nothing here needs a
+  // rebuild/redeploy to take effect.
   const load = useCallback(async () => {
     const [s, c] = await Promise.all([
       fetch("/api/admin/site").then((r) => r.json()).catch(() => ({ error: "Could not reach the server." })),
       fetch("/api/admin/catalogue").then((r) => r.json()).catch(() => ({ movies: [] })),
     ]);
-    if (s?.error) setFileBackedErr(s.error);
-    else { setFileBackedErr(null); setSite(s); }
+    if (s?.error) setLoadErr(s.error);
+    else { setLoadErr(null); setSite(s); }
     setMovies(c?.movies ?? []);
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const save = async (next: SiteConfig) => {
-    setSite(next);
+  // Hero/Rows/Continue-Watching all live in one Supabase row, and this tab's
+  // copy of it (`site`) can go stale simply by sitting open for a while (e.g.
+  // across a migration script run in a terminal). If we saved by blindly
+  // spreading that stale copy, one small edit — reorder a slide, tweak a row
+  // — would silently overwrite every *other* field back to its old value.
+  // So instead: every save re-fetches the current server state first, and
+  // the caller only supplies a patch function that computes its change
+  // against that fresh copy. Whatever this tab hasn't touched always comes
+  // from what's actually in the database right now, never from memory.
+  const save = async (patch: HomePatch) => {
     setStatus({ kind: "saving" });
+    const fresh = await fetch("/api/admin/site").then((r) => r.json()).catch(() => null);
+    const base: HomeConfig = fresh && !fresh.error ? fresh : (site ?? EMPTY_HOME);
+    const next: HomeConfig = { ...base, ...patch(base) };
+    setSite(next);
     const res = await fetch("/api/admin/site", {
       method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(next),
     });
@@ -64,14 +84,12 @@ export default function AdminDashboard() {
     if (res.ok) setTimeout(() => setStatus({ kind: "idle" }), 1800);
   };
 
-  const FILE_TABS: Tab[] = ["hero", "rows", "blog", "catalogue"];
-
   return (
     <div className="ad">
       <div className="ad__head">
         <div>
           <h1>Dashboard</h1>
-          <p>Pages, menus, media, SEO, and comments update your live site instantly. Hero Slides, Home Rows, Blog Posts, and Catalogue are edited in local development only.</p>
+          <p>Everything here is live — changes save straight to your site, no rebuild or redeploy needed.</p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div className={`ad__status ad__status--${status.kind}`}>
@@ -91,16 +109,13 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {FILE_TABS.includes(tab) && fileBackedErr ? (
-        <div className="ad__err">{fileBackedErr} — this tab only works when running <code>npm run dev</code> locally.</div>
-      ) : (
-        <>
-          {tab === "hero" && site && <HeroTab site={site} movies={movies} save={save} />}
-          {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
-          {tab === "blog" && site && <BlogTab site={site} save={save} />}
-          {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
-        </>
+      {loadErr && (tab === "hero" || tab === "rows") && (
+        <div className="ad__err">{loadErr}</div>
       )}
+      {tab === "hero" && site && <HeroTab site={site} movies={movies} save={save} />}
+      {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
+      {tab === "blog" && <BlogTab />}
+      {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
       {tab === "pages" && <PagesTab />}
       {tab === "menus" && <MenusTab />}
       {tab === "media" && <MediaTab />}
@@ -110,25 +125,24 @@ export default function AdminDashboard() {
   );
 }
 
-/* ------------------------- shared: live/Supabase fetch helper ---------- */
-async function api<T = any>(url: string, init?: RequestInit): Promise<{ ok: boolean; data: T }> {
-  const res = await fetch(url, init);
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, data };
-}
-
 /* ------------------------------- hero ---------------------------------- */
-function HeroTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; save: (s: SiteConfig) => void }) {
+function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; save: (patch: HomePatch) => void }) {
   const slides = site.hero?.slides ?? [];
   const toggle = (id: string) => {
-    const next = slides.includes(id) ? slides.filter((s) => s !== id) : [...slides, id];
-    save({ ...site, hero: { ...site.hero, slides: next } });
+    save((base) => {
+      const cur = base.hero?.slides ?? [];
+      const next = cur.includes(id) ? cur.filter((s) => s !== id) : [...cur, id];
+      return { hero: { ...base.hero, slides: next } };
+    });
   };
   const move = (id: string, dir: -1 | 1) => {
-    const i = slides.indexOf(id); const j = i + dir;
-    if (i < 0 || j < 0 || j >= slides.length) return;
-    const next = slides.slice(); [next[i], next[j]] = [next[j], next[i]];
-    save({ ...site, hero: { ...site.hero, slides: next } });
+    save((base) => {
+      const cur = base.hero?.slides ?? [];
+      const i = cur.indexOf(id); const j = i + dir;
+      if (i < 0 || j < 0 || j >= cur.length) return {};
+      const next = cur.slice(); [next[i], next[j]] = [next[j], next[i]];
+      return { hero: { ...base.hero, slides: next } };
+    });
   };
 
   return (
@@ -156,7 +170,10 @@ function HeroTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
           <span>Rotation speed (seconds)</span>
           <input type="number" min={2} max={30}
             value={Math.round((site.hero?.intervalMs ?? 6000) / 1000)}
-            onChange={(e) => save({ ...site, hero: { ...site.hero, intervalMs: Math.max(2, Number(e.target.value)) * 1000 } })} />
+            onChange={(e) => {
+              const ms = Math.max(2, Number(e.target.value)) * 1000;
+              save((base) => ({ hero: { ...base.hero, intervalMs: ms } }));
+            }} />
         </label>
       </section>
 
@@ -177,22 +194,47 @@ function HeroTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
 }
 
 /* ------------------------------- rows ---------------------------------- */
-function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; save: (s: SiteConfig) => void }) {
+function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; save: (patch: HomePatch) => void }) {
   const rows = site.rows ?? [];
-  const update = (i: number, patch: Partial<RowConfig>) => {
-    const next = rows.slice(); next[i] = { ...next[i], ...patch };
-    save({ ...site, rows: next });
+  // Rows/continue-watching entries are addressed by id here (not array index),
+  // so a patch still lands on the right item even if the freshly-fetched
+  // server order/length differs slightly from what this tab last rendered.
+  const update = (id: string, patch: Partial<RowConfig>) => {
+    save((base) => {
+      const cur = base.rows ?? [];
+      const idx = cur.findIndex((r) => r.id === id);
+      if (idx < 0) return {};
+      const next = cur.slice(); next[idx] = { ...next[idx], ...patch };
+      return { rows: next };
+    });
   };
-  const moveRow = (i: number, dir: -1 | 1) => {
-    const j = i + dir; if (j < 0 || j >= rows.length) return;
-    const next = rows.slice(); [next[i], next[j]] = [next[j], next[i]];
-    save({ ...site, rows: next });
+  const moveRow = (id: string, dir: -1 | 1) => {
+    save((base) => {
+      const cur = base.rows ?? [];
+      const i = cur.findIndex((r) => r.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= cur.length) return {};
+      const next = cur.slice(); [next[i], next[j]] = [next[j], next[i]];
+      return { rows: next };
+    });
   };
-  const addRow = () => save({
-    ...site,
-    rows: [...rows, { id: `row-${Date.now()}`, title: "New Row", mode: "auto", rule: { kind: "all", sort: "year", limit: 6 }, style: "plain" }],
-  });
-  const removeRow = (i: number) => save({ ...site, rows: rows.filter((_, x) => x !== i) });
+  const addRow = () => save((base) => ({
+    rows: [...(base.rows ?? []), { id: `row-${Date.now()}`, title: "New Row", mode: "auto", rule: { kind: "all", sort: "year", limit: 6 }, style: "plain" }],
+  }));
+  const removeRow = (id: string) => save((base) => ({ rows: (base.rows ?? []).filter((r) => r.id !== id) }));
+
+  const continueItems = site.continueWatching ?? [];
+  const updateContinue = (id: string, patch: Partial<(typeof continueItems)[number]>) => {
+    save((base) => {
+      const cur = base.continueWatching ?? [];
+      const idx = cur.findIndex((c) => c.id === id);
+      if (idx < 0) return {};
+      const next = cur.slice(); next[idx] = { ...next[idx], ...patch };
+      return { continueWatching: next };
+    });
+  };
+  const removeContinue = (id: string) => save((base) => ({ continueWatching: (base.continueWatching ?? []).filter((c) => c.id !== id) }));
+  const addContinue = (id: string) => save((base) => ({ continueWatching: [...(base.continueWatching ?? []), { id, progress: 20, note: "" }] }));
 
   return (
     <div className="ad__body ad__body--one">
@@ -210,16 +252,16 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
         {rows.map((row, i) => (
           <div className="ad__card" key={row.id}>
             <div className="ad__cardhead">
-              <input className="ad__title" value={row.title} onChange={(e) => update(i, { title: e.target.value })} />
-              <button className="ad__mini" onClick={() => moveRow(i, -1)} disabled={i === 0}>↑</button>
-              <button className="ad__mini" onClick={() => moveRow(i, 1)} disabled={i === rows.length - 1}>↓</button>
-              <button className="ad__mini ad__mini--x" onClick={() => removeRow(i)}>✕</button>
+              <input className="ad__title" value={row.title} onChange={(e) => update(row.id, { title: e.target.value })} />
+              <button className="ad__mini" onClick={() => moveRow(row.id, -1)} disabled={i === 0}>↑</button>
+              <button className="ad__mini" onClick={() => moveRow(row.id, 1)} disabled={i === rows.length - 1}>↓</button>
+              <button className="ad__mini ad__mini--x" onClick={() => removeRow(row.id)}>✕</button>
             </div>
 
             <div className="ad__controls">
               <label className="ad__field">
                 <span>Mode</span>
-                <select value={row.mode} onChange={(e) => update(i, { mode: e.target.value as RowConfig["mode"] })}>
+                <select value={row.mode} onChange={(e) => update(row.id, { mode: e.target.value as RowConfig["mode"] })}>
                   <option value="auto">Auto (by rule)</option>
                   <option value="live">Live (from TMDB)</option>
                   <option value="manual">Manual (hand-picked)</option>
@@ -229,7 +271,7 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
               {row.mode === "live" && (
                 <label className="ad__field">
                   <span>Source</span>
-                  <select value={row.live ?? "trending"} onChange={(e) => update(i, { live: e.target.value as RowConfig["live"] })}>
+                  <select value={row.live ?? "trending"} onChange={(e) => update(row.id, { live: e.target.value as RowConfig["live"] })}>
                     <option value="trending">Trending now</option>
                     <option value="latest">Latest releases</option>
                   </select>
@@ -240,14 +282,14 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
                 <>
                   <label className="ad__field">
                     <span>Type</span>
-                    <select value={row.rule?.kind ?? "all"} onChange={(e) => update(i, { rule: { ...row.rule, kind: e.target.value as "all" | "movie" | "series" } })}>
+                    <select value={row.rule?.kind ?? "all"} onChange={(e) => update(row.id, { rule: { ...row.rule, kind: e.target.value as "all" | "movie" | "series" } })}>
                       <option value="all">All</option><option value="movie">Movies</option><option value="series">Web Series</option>
                     </select>
                   </label>
                   {row.mode === "auto" && (
                     <label className="ad__field">
                       <span>Sort by</span>
-                      <select value={row.rule?.sort ?? "year"} onChange={(e) => update(i, { rule: { ...row.rule, sort: e.target.value as "year" | "rating" | "votes" | "az" } })}>
+                      <select value={row.rule?.sort ?? "year"} onChange={(e) => update(row.id, { rule: { ...row.rule, sort: e.target.value as "year" | "rating" | "votes" | "az" } })}>
                         <option value="year">Newest first</option><option value="rating">Highest rated</option>
                         <option value="votes">Most popular</option><option value="az">A–Z</option>
                       </select>
@@ -256,14 +298,14 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
                   <label className="ad__field">
                     <span>Show</span>
                     <input type="number" min={1} max={20} value={row.rule?.limit ?? 6}
-                      onChange={(e) => update(i, { rule: { ...row.rule, limit: Number(e.target.value) } })} />
+                      onChange={(e) => update(row.id, { rule: { ...row.rule, limit: Number(e.target.value) } })} />
                   </label>
                 </>
               ) : null}
 
               <label className="ad__field">
                 <span>Style</span>
-                <select value={row.style ?? "plain"} onChange={(e) => update(i, { style: e.target.value as RowConfig["style"] })}>
+                <select value={row.style ?? "plain"} onChange={(e) => update(row.id, { style: e.target.value as RowConfig["style"] })}>
                   <option value="plain">Plain</option><option value="ranked">Numbered</option><option value="badge">NEW badge</option>
                 </select>
               </label>
@@ -275,7 +317,7 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
                   const on = (row.items ?? []).includes(m.id);
                   return (
                     <button key={m.id} className={`ad__pick${on ? " on" : ""}`}
-                      onClick={() => update(i, { items: on ? (row.items ?? []).filter((x) => x !== m.id) : [...(row.items ?? []), m.id] })}>
+                      onClick={() => update(row.id, { items: on ? (row.items ?? []).filter((x) => x !== m.id) : [...(row.items ?? []), m.id] })}>
                       <img alt="" src={poster(m)} />
                       <span>{m.title}</span>
                       {on && <em><Icon name="check" size={13} /></em>}
@@ -287,32 +329,180 @@ function RowsTab({ site, movies, save }: { site: SiteConfig; movies: Movie[]; sa
           </div>
         ))}
       </section>
+
+      <section className="ad__panel">
+        <h2>Continue Watching <span className="ad__count">{continueItems.length}</span></h2>
+        <p className="ad__hint">The "pick up where you left off" row at the top of the home page. Progress and note are just display text — there's no real playback tracking.</p>
+        <div className="ad__list">
+          {continueItems.map((c, i) => {
+            const m = movies.find((x) => x.id === c.id);
+            return (
+              <div className="ad__row" key={c.id + i}>
+                {m && <img className="ad__thumb" alt="" src={poster(m)} />}
+                <span className="ad__name">{m?.title ?? c.id}</span>
+                <input type="number" min={0} max={100} value={c.progress}
+                  onChange={(e) => updateContinue(c.id, { progress: Math.max(0, Math.min(100, Number(e.target.value))) })}
+                  aria-label="Progress %" title="Progress %" />
+                <input type="text" value={c.note} placeholder="S1 E2 · 20m left"
+                  onChange={(e) => updateContinue(c.id, { note: e.target.value })} aria-label="Note" />
+                <button className="ad__mini ad__mini--x" onClick={() => removeContinue(c.id)}>✕</button>
+              </div>
+            );
+          })}
+          {!continueItems.length && <div className="ad__empty">Nothing yet — pick a title below.</div>}
+        </div>
+        <div className="ad__picker ad__picker--sm">
+          {movies.filter((m) => !continueItems.some((c) => c.id === m.id)).map((m) => (
+            <button key={m.id} className="ad__pick" onClick={() => addContinue(m.id)}>
+              <img alt="" src={poster(m)} />
+              <span>{m.title}</span>
+              <em><Icon name="plus" size={13} /></em>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* --------------------------- shared: media picker ------------------------ */
+/** Upload a file to the Media Library. Returns the public URL on success, or
+ *  { error } on failure — callers must surface the error, not swallow it. */
+async function uploadMedia(file: File): Promise<{ url: string } | { error: string }> {
+  const form = new FormData();
+  form.append("file", file);
+  const { ok, data } = await api<{ media?: { url: string }; error?: string }>("/api/admin/media", { method: "POST", body: form });
+  if (ok && data.media?.url) return { url: data.media.url };
+  return { error: data.error ?? "Upload failed." };
+}
+
+type LibraryItem = { id: string; url: string; name: string; mime_type: string | null };
+
+/** Small "current image + upload new + pick existing" control, reused by
+ *  Blog and Catalogue tabs. Uploading a fresh file was the only option
+ *  before — this also lets you reuse anything already in the Media
+ *  Library instead of uploading the same image twice. */
+function ImagePicker({ url, onChange, label }: { url: string | null | undefined; onChange: (url: string) => void; label: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [browsing, setBrowsing] = useState(false);
+  const [library, setLibrary] = useState<LibraryItem[] | null>(null);
+  const [libraryErr, setLibraryErr] = useState<string | null>(null);
+
+  const pick = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setBusy(true); setErr(null);
+    const result = await uploadMedia(file);
+    setBusy(false);
+    if ("url" in result) onChange(result.url); else setErr(result.error);
+  };
+
+  const toggleLibrary = async () => {
+    if (browsing) { setBrowsing(false); return; }
+    setBrowsing(true);
+    if (library) return; // already fetched once this session — no need to refetch every open
+    setLibraryErr(null);
+    const { ok, data } = await api<{ media?: LibraryItem[]; error?: string }>("/api/admin/media");
+    if (ok) setLibrary((data.media ?? []).filter((m) => !m.mime_type || m.mime_type.startsWith("image/")));
+    else setLibraryErr(data.error ?? "Could not load the Media Library.");
+  };
+
+  return (
+    <div>
+      <div className="ad__imgpick">
+        {url ? <img alt="" src={url} /> : <div className="ad__thumb" style={{ width: 88, height: 56 }} />}
+        <label className="ad__upload" style={{ cursor: "pointer" }}>
+          <Icon name="plus" size={14} /> {busy ? "Uploading…" : label}
+          <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => pick(e.target.files)} />
+        </label>
+        <button type="button" className="ad__upload" onClick={toggleLibrary}>
+          <Icon name="film" size={14} /> {browsing ? "Close library" : "Choose from library"}
+        </button>
+        {url && <button type="button" className="ad__mini ad__mini--x" onClick={() => onChange("")}>Remove</button>}
+      </div>
+      {err && <div className="ad__err" style={{ marginTop: 6 }}>{err}</div>}
+
+      {browsing && (
+        <div className="ad__panel" style={{ marginTop: 10, padding: 12 }}>
+          {libraryErr && <div className="ad__err">{libraryErr}</div>}
+          {!library && !libraryErr && <div className="empty">Loading…</div>}
+          {library && !library.length && <div className="ad__empty">Nothing uploaded yet — use “{label}” to add your first image.</div>}
+          {library && library.length > 0 && (
+            <div className="ad__picker ad__picker--sm">
+              {library.map((m) => (
+                <button key={m.id} type="button" className={`ad__pick${url === m.url ? " on" : ""}`}
+                  onClick={() => { onChange(m.url); setBrowsing(false); }}>
+                  <img alt="" src={m.url} />
+                  <span title={m.name}>{m.name}</span>
+                  {url === m.url && <em><Icon name="check" size={13} /></em>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 /* ------------------------------- blog ---------------------------------- */
-const EMPTY_POST: Blog = { slug: "", title: "", cat: "Guide", excerpt: "", date: "", read: "5 min", body: [""] };
+type BlogRow = {
+  id: string; slug: string; title: string; cat: string; excerpt: string; body: string[];
+  image_url: string | null; date_label: string; read_label: string; status: "draft" | "published";
+};
+const EMPTY_POST: Omit<BlogRow, "id"> = {
+  slug: "", title: "", cat: "Guide", excerpt: "", body: [], image_url: null,
+  date_label: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+  read_label: "5 min", status: "published",
+};
 
-function BlogTab({ site, save }: { site: SiteConfig; save: (s: SiteConfig) => void }) {
-  const posts = site.blog ?? [];
-  const [editing, setEditing] = useState<number | null>(null);
-  const [draft, setDraft] = useState<Blog>(EMPTY_POST);
+function BlogTab() {
+  const [posts, setPosts] = useState<BlogRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null); // post id, or "new"
+  const [draft, setDraft] = useState(EMPTY_POST);
+  const [busy, setBusy] = useState(false);
 
-  const startNew = () => {
-    setDraft({ ...EMPTY_POST, date: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) });
-    setEditing(-1);
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ posts?: BlogRow[]; error?: string }>("/api/admin/blog");
+    if (ok) { setPosts(data.posts ?? []); setErr(null); } else setErr(data.error ?? "Could not load posts.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const startNew = () => { setDraft(EMPTY_POST); setEditing("new"); };
+  const startEdit = (p: BlogRow) => {
+    setDraft({
+      slug: p.slug, title: p.title, cat: p.cat, excerpt: p.excerpt, body: p.body ?? [],
+      image_url: p.image_url, date_label: p.date_label, read_label: p.read_label, status: p.status,
+    });
+    setEditing(p.id);
   };
-  const startEdit = (i: number) => { setDraft({ ...posts[i], body: posts[i].body ?? [posts[i].excerpt] }); setEditing(i); };
-  const remove = (i: number) => save({ ...site, blog: posts.filter((_, x) => x !== i) });
 
-  const commit = () => {
-    const post: Blog = { ...draft, slug: draft.slug || slugify(draft.title) };
-    if (!post.title.trim()) return;
-    const next = editing === -1 ? [post, ...posts] : posts.map((p, i) => (i === editing ? post : p));
-    save({ ...site, blog: next });
-    setEditing(null);
+  const commit = async () => {
+    if (!draft.title.trim()) return;
+    setBusy(true);
+    const payload = {
+      title: draft.title, slug: draft.slug, cat: draft.cat, excerpt: draft.excerpt, body: draft.body,
+      imageUrl: draft.image_url, date: draft.date_label, read: draft.read_label, status: draft.status,
+    };
+    const res = editing === "new"
+      ? await api("/api/admin/blog", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
+      : await api("/api/admin/blog", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: editing, ...payload }) });
+    setBusy(false);
+    if (res.ok) { setEditing(null); load(); } else setErr(res.data.error ?? "Could not save post.");
   };
+
+  const remove = async (p: BlogRow) => {
+    if (!confirm(`Delete “${p.title}”?`)) return;
+    await api(`/api/admin/blog?id=${encodeURIComponent(p.id)}`, { method: "DELETE" });
+    load();
+  };
+
+  if (err && !posts.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -324,50 +514,78 @@ function BlogTab({ site, save }: { site: SiteConfig; save: (s: SiteConfig) => vo
 
         {editing !== null && (
           <div className="ad__card ad__card--edit">
-            <div className="ad__grid2">
+            <label className="ad__field"><span>Featured image</span></label>
+            <ImagePicker url={draft.image_url} label="Upload image" onChange={(url) => setDraft({ ...draft, image_url: url || null })} />
+            <div className="ad__grid2" style={{ marginTop: 14 }}>
               <label className="ad__field"><span>Title</span>
                 <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Post title" /></label>
               <label className="ad__field"><span>Category</span>
                 <input value={draft.cat} onChange={(e) => setDraft({ ...draft, cat: e.target.value })} placeholder="Guide" /></label>
               <label className="ad__field"><span>Date</span>
-                <input value={draft.date} onChange={(e) => setDraft({ ...draft, date: e.target.value })} placeholder="Aug 1, 2024" /></label>
+                <input value={draft.date_label} onChange={(e) => setDraft({ ...draft, date_label: e.target.value })} placeholder="Aug 1, 2024" /></label>
               <label className="ad__field"><span>Read time</span>
-                <input value={draft.read} onChange={(e) => setDraft({ ...draft, read: e.target.value })} placeholder="8 min" /></label>
+                <input value={draft.read_label} onChange={(e) => setDraft({ ...draft, read_label: e.target.value })} placeholder="8 min" /></label>
             </div>
             <label className="ad__field"><span>Excerpt</span>
               <textarea rows={2} value={draft.excerpt} onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })} /></label>
             <label className="ad__field"><span>Body — one paragraph per blank-line-separated block</span>
               <textarea rows={9} value={(draft.body ?? []).join("\n\n")}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean) })} /></label>
+            <label className="ad__field">
+              <span>Status</span>
+              <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
+                <option value="draft">Draft (hidden)</option>
+                <option value="published">Published (live)</option>
+              </select>
+            </label>
             <div className="ad__actions">
-              <button className="ad__btn ad__btn--primary" onClick={commit}><Icon name="check" size={14} /> Save post</button>
+              <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commit}><Icon name="check" size={14} /> Save post</button>
               <button className="ad__btn" onClick={() => setEditing(null)}>Cancel</button>
             </div>
           </div>
         )}
 
-        <div className="ad__list">
-          {posts.map((p, i) => (
-            <div className="ad__row" key={p.slug + i}>
-              <span className="ad__cat">{p.cat}</span>
-              <span className="ad__name">{p.title}</span>
-              <span className="ad__meta">{p.date} · {p.read}</span>
-              <button className="ad__mini" onClick={() => startEdit(i)}>Edit</button>
-              <button className="ad__mini ad__mini--x" onClick={() => remove(i)}>✕</button>
-            </div>
-          ))}
-        </div>
+        {loading ? <div className="empty">Loading…</div> : (
+          <div className="ad__list">
+            {posts.map((p) => (
+              <div className="ad__row" key={p.id}>
+                {p.image_url && <img className="ad__thumb" alt="" src={p.image_url} style={{ width: 46, height: 32 }} />}
+                <span className="ad__cat">{p.status === "draft" ? "draft" : p.cat}</span>
+                <span className="ad__name">{p.title}</span>
+                <span className="ad__meta">{p.date_label} · {p.read_label}</span>
+                <button className="ad__mini" onClick={() => startEdit(p)}>Edit</button>
+                <button className="ad__mini ad__mini--x" onClick={() => remove(p)}>✕</button>
+              </div>
+            ))}
+            {!posts.length && <div className="ad__empty">No posts yet.</div>}
+          </div>
+        )}
       </section>
     </div>
   );
 }
 
 /* ----------------------------- catalogue -------------------------------- */
+type MovieDraft = {
+  title: string; year: number; rating: number; kind: "movie" | "series"; genres: string;
+  runtime: string; cert: string; language: string; director: string; writers: string; desc: string;
+  posterUrl: string; backdropUrl: string;
+};
+const draftFromMovie = (m: Movie): MovieDraft => ({
+  title: m.title, year: m.year, rating: m.rating, kind: m.kind, genres: m.genres.join(", "),
+  runtime: m.runtime, cert: m.cert, language: m.language, director: m.director, writers: m.writers,
+  desc: m.desc, posterUrl: m.posterPath ?? "", backdropUrl: m.backdropPath ?? "",
+});
+
 function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Movie[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState<MovieDraft | null>(null);
+  const [refreshingAll, setRefreshingAll] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<string | null>(null);
 
   const search = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -385,9 +603,24 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
       body: JSON.stringify({ id: m.id, kind: m.kind }),
     });
     const d = await res.json();
-    setMsg(res.ok ? `Added “${d.movie.title}”. Restart dev server to see it.` : d.error);
+    setMsg(res.ok ? `Added “${d.movie.title}”.` : d.error);
     setBusy(false);
     if (res.ok) reload();
+  };
+
+  const addManual = async () => {
+    const title = prompt("Title for the new entry:");
+    if (!title || !title.trim()) return;
+    const kind = confirm("OK = Movie, Cancel = Web Series") ? "movie" : "series";
+    setBusy(true); setMsg(null);
+    const res = await fetch("/api/admin/catalogue", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ manual: true, title: title.trim(), kind }),
+    });
+    const d = await res.json();
+    setBusy(false);
+    if (res.ok) { setMsg(`Added “${d.movie.title}”. Fill in the rest below.`); reload(); startEdit(d.movie); }
+    else setMsg(d.error);
   };
 
   const remove = async (m: Movie) => {
@@ -397,11 +630,60 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
     setBusy(false); reload();
   };
 
+  const startEdit = (m: Movie) => { setDraft(draftFromMovie(m)); setEditing(m.id); };
+
+  const commitEdit = async () => {
+    if (!draft || !editing) return;
+    setBusy(true);
+    const res = await fetch("/api/admin/catalogue", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        id: editing, title: draft.title, year: draft.year, rating: draft.rating, kind: draft.kind,
+        genres: draft.genres.split(",").map((g) => g.trim()).filter(Boolean),
+        runtime: draft.runtime, cert: draft.cert, language: draft.language, director: draft.director,
+        writers: draft.writers, desc: draft.desc, posterUrl: draft.posterUrl, backdropUrl: draft.backdropUrl,
+      }),
+    });
+    const d = await res.json();
+    setBusy(false);
+    if (res.ok) { setEditing(null); setDraft(null); reload(); } else setMsg(d.error ?? "Could not save.");
+  };
+
+  const refreshOne = async (id: string) => {
+    setBusy(true); setMsg(null);
+    const res = await fetch("/api/admin/catalogue/refresh", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }),
+    });
+    const d = await res.json();
+    setMsg(res.ok ? "Refreshed from TMDB." : d.error);
+    setBusy(false);
+    if (res.ok) reload();
+  };
+
+  const refreshAll = async () => {
+    const withTmdb = movies.filter((m) => m.tmdbId);
+    if (!withTmdb.length || !confirm(`Refresh all ${withTmdb.length} TMDB-sourced titles? This can take a minute.`)) return;
+    setRefreshingAll(true);
+    let done = 0;
+    for (const m of withTmdb) {
+      setRefreshProgress(`${done + 1}/${withTmdb.length} — ${m.title}`);
+      await fetch("/api/admin/catalogue/refresh", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: m.id }),
+      }).catch(() => null);
+      done++;
+    }
+    setRefreshProgress(null);
+    setRefreshingAll(false);
+    reload();
+  };
+
   return (
     <div className="ad__body ad__body--one">
       <section className="ad__panel">
-        <h2>Add a title</h2>
-        <p className="ad__hint">Search TMDB and add it to your catalogue — full details and artwork come with it.</p>
+        <div className="ad__panelhead"><h2>Add a title</h2>
+          <button className="ad__btn" disabled={busy} onClick={addManual}><Icon name="plus" size={14} /> Add manually</button>
+        </div>
+        <p className="ad__hint">Search TMDB and add it to your catalogue — full details and artwork come with it. Not on TMDB? Use “Add manually” and fill in every field yourself.</p>
         <form className="ad__search" onSubmit={search}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search TMDB for a film or show…" />
           <button className="ad__btn ad__btn--primary" disabled={busy}><Icon name="search" size={14} /> Search</button>
@@ -420,14 +702,63 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
         )}
       </section>
 
+      {editing && draft && (
+        <section className="ad__panel">
+          <div className="ad__panelhead"><h2>Editing: {draft.title}</h2></div>
+          <label className="ad__field"><span>Poster</span></label>
+          <ImagePicker url={draft.posterUrl} label="Upload poster" onChange={(url) => setDraft({ ...draft, posterUrl: url })} />
+          <label className="ad__field" style={{ marginTop: 12 }}><span>Backdrop</span></label>
+          <ImagePicker url={draft.backdropUrl} label="Upload backdrop" onChange={(url) => setDraft({ ...draft, backdropUrl: url })} />
+
+          <div className="ad__grid2" style={{ marginTop: 14 }}>
+            <label className="ad__field"><span>Title</span>
+              <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
+            <label className="ad__field"><span>Year</span>
+              <input type="number" value={draft.year} onChange={(e) => setDraft({ ...draft, year: Number(e.target.value) })} /></label>
+            <label className="ad__field"><span>Rating (0–10)</span>
+              <input type="number" step="0.1" min={0} max={10} value={draft.rating} onChange={(e) => setDraft({ ...draft, rating: Number(e.target.value) })} /></label>
+            <label className="ad__field"><span>Type</span>
+              <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value as "movie" | "series" })}>
+                <option value="movie">Movie</option><option value="series">Web Series</option>
+              </select></label>
+            <label className="ad__field"><span>Genres (comma-separated)</span>
+              <input value={draft.genres} onChange={(e) => setDraft({ ...draft, genres: e.target.value })} /></label>
+            <label className="ad__field"><span>Runtime</span>
+              <input value={draft.runtime} onChange={(e) => setDraft({ ...draft, runtime: e.target.value })} placeholder="2h 10m" /></label>
+            <label className="ad__field"><span>Certificate</span>
+              <input value={draft.cert} onChange={(e) => setDraft({ ...draft, cert: e.target.value })} placeholder="UA" /></label>
+            <label className="ad__field"><span>Language</span>
+              <input value={draft.language} onChange={(e) => setDraft({ ...draft, language: e.target.value })} /></label>
+            <label className="ad__field"><span>Director</span>
+              <input value={draft.director} onChange={(e) => setDraft({ ...draft, director: e.target.value })} /></label>
+            <label className="ad__field"><span>Writers</span>
+              <input value={draft.writers} onChange={(e) => setDraft({ ...draft, writers: e.target.value })} /></label>
+          </div>
+          <label className="ad__field"><span>Description</span>
+            <textarea rows={4} value={draft.desc} onChange={(e) => setDraft({ ...draft, desc: e.target.value })} /></label>
+          <div className="ad__actions">
+            <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commitEdit}><Icon name="check" size={14} /> Save changes</button>
+            <button className="ad__btn" onClick={() => { setEditing(null); setDraft(null); }}>Cancel</button>
+          </div>
+        </section>
+      )}
+
       <section className="ad__panel">
-        <h2>In your catalogue <span className="ad__count">{movies.length}</span></h2>
+        <div className="ad__panelhead">
+          <h2>In your catalogue <span className="ad__count">{movies.length}</span></h2>
+          <button className="ad__btn" disabled={refreshingAll} onClick={refreshAll}>
+            <Icon name="sparkle" size={14} /> {refreshingAll ? (refreshProgress ?? "Refreshing…") : "Refresh all from TMDB"}
+          </button>
+        </div>
+        <p className="ad__hint">Editing changes are yours to keep — “Refresh from TMDB” re-pulls title/year/rating/cast/etc. from TMDB but never touches a custom poster or backdrop you've uploaded.</p>
         <div className="ad__list">
           {movies.map((m) => (
             <div className="ad__row" key={m.id}>
               <img className="ad__thumb" alt="" src={poster(m)} />
               <span className="ad__name">{m.title}</span>
               <span className="ad__meta">{m.year} · {m.kind === "series" ? "Series" : "Film"} · ★ {m.rating.toFixed(1)}</span>
+              {m.tmdbId ? <button className="ad__mini" disabled={busy} onClick={() => refreshOne(m.id)} title="Refresh from TMDB">↻</button> : null}
+              <button className="ad__mini" onClick={() => startEdit(m)}>Edit</button>
               <button className="ad__mini ad__mini--x" onClick={() => remove(m)}>✕</button>
             </div>
           ))}
@@ -495,8 +826,8 @@ function PagesTab() {
               <label className="ad__field"><span>Slug (optional — auto from title)</span>
                 <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="about" /></label>
             </div>
-            <label className="ad__field"><span>Content</span>
-              <textarea rows={10} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} /></label>
+            <label className="ad__field"><span>Content — Markdown supported: **bold**, *italic*, # headings, [links](url), - lists</span>
+              <textarea rows={14} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} /></label>
             <label className="ad__field">
               <span>Status</span>
               <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
@@ -620,28 +951,35 @@ type MediaRow = { id: string; name: string; url: string; size: number | null; mi
 function MediaTab() {
   const [items, setItems] = useState<MediaRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState<string | null>(null);
+  // Separate from loadErr on purpose: load() runs again right after every
+  // upload (to refresh the list), and if it shared one error slot, a real
+  // upload failure would get wiped out a moment later by that reload
+  // succeeding — so the error would flash and vanish before anyone saw it.
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     const { ok, data } = await api<{ media?: MediaRow[]; error?: string }>("/api/admin/media");
-    if (ok) { setItems(data.media ?? []); setErr(null); } else setErr(data.error ?? "Could not load media.");
+    if (ok) { setItems(data.media ?? []); setLoadErr(null); } else setLoadErr(data.error ?? "Could not load media.");
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const upload = async (files: FileList | null) => {
     if (!files || !files.length) return;
-    setBusy(true); setErr(null);
+    setBusy(true); setUploadErr(null);
+    const failures: string[] = [];
     for (const file of Array.from(files)) {
       const form = new FormData();
       form.append("file", file);
       const res = await api("/api/admin/media", { method: "POST", body: form });
-      if (!res.ok) setErr(res.data.error ?? "Upload failed.");
+      if (!res.ok) failures.push(`${file.name}: ${res.data.error ?? "Upload failed."}`);
     }
+    await load();
     setBusy(false);
-    load();
+    if (failures.length) setUploadErr(failures.join("  ·  "));
   };
 
   const remove = async (m: MediaRow) => {
@@ -652,7 +990,7 @@ function MediaTab() {
 
   const copy = (url: string) => navigator.clipboard?.writeText(url).catch(() => {});
 
-  if (err && !items.length && !loading) return <div className="ad__err">{err} — is the Supabase schema + storage bucket set up? See <code>supabase/schema.sql</code>.</div>;
+  if (loadErr && !items.length && !loading) return <div className="ad__err">{loadErr} — is the Supabase schema + storage bucket set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -665,6 +1003,7 @@ function MediaTab() {
           </label>
         </div>
         <p className="ad__hint">Uploaded files are public — copy a URL to use it anywhere (a page, a blog post, etc.).</p>
+        {uploadErr && <div className="ad__err" style={{ marginTop: 10 }}>{uploadErr}</div>}
 
         {loading ? <div className="empty">Loading…</div> : (
           <div className="ad__picker">

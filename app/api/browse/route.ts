@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { browsePage, tmdbConfigured, type BrowseSort } from "@/lib/tmdb";
-import { MOVIES } from "@/lib/data";
+import { getMovies } from "@/lib/data";
 import type { Movie, MovieKind } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -11,8 +11,8 @@ const SORTS: BrowseSort[] = ["trending", "rating", "year", "az"];
 
 /** Paginated fallback over the local catalogue — used when TMDB is
  *  unreachable/unconfigured, so listing pages never just show nothing. */
-function localFallback(kind: MovieKind | "all", sort: BrowseSort, genre: string | undefined, page: number) {
-  let out = MOVIES.slice();
+function localFallback(movies: Movie[], kind: MovieKind | "all", sort: BrowseSort, genre: string | undefined, page: number) {
+  let out = movies.slice();
   if (kind !== "all") out = out.filter((m) => m.kind === kind);
   if (genre && genre !== "All") out = out.filter((m) => m.genres.includes(genre));
   if (sort === "rating") out.sort((a, b) => b.rating - a.rating);
@@ -41,5 +41,6 @@ export async function GET(request: Request) {
   const live = await browsePage({ kind, sort, genre, page });
   if (live && live.results.length) return NextResponse.json({ ...live, source: "tmdb" });
 
-  return NextResponse.json({ ...localFallback(kind, sort, genre, page), tmdbConfigured });
+  const movies = await getMovies();
+  return NextResponse.json({ ...localFallback(movies, kind, sort, genre, page), tmdbConfigured });
 }

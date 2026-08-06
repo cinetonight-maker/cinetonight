@@ -1,12 +1,12 @@
 "use client";
 
 import MovieCard from "./MovieCard";
-import { getMovie } from "@/lib/data";
 import { useWatchlist } from "@/lib/watchlist";
+import type { Movie } from "@/lib/types";
 
-export default function MyList() {
+export default function MyList({ movies }: { movies: Movie[] }) {
   const { ids } = useWatchlist();
-  const items = ids.map(getMovie).filter(Boolean) as NonNullable<ReturnType<typeof getMovie>>[];
+  const items = ids.map((id) => movies.find((m) => m.id === id)).filter(Boolean) as Movie[];
   if (!items.length) {
     return <div className="empty">Your list is empty — open a title and tap “Add to Watchlist”.</div>;
   }
