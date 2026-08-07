@@ -36,7 +36,7 @@ export default async function PersonPage({ params }: Params) {
   return (
     <div className="page">
       <div className="person">
-        <div className="person__ph"><Image fill alt="" src={profile(p)} sizes="220px" priority /></div>
+        <div className="person__ph"><Image fill alt={p.name} src={profile(p)} sizes="220px" priority /></div>
         <div>
           <div className="person__n">{p.name}</div>
           <div className="person__role">Actor</div>

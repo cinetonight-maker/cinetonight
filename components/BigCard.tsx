@@ -16,7 +16,7 @@ export default function BigCard({ movie, eyebrow }: { movie: Movie; eyebrow?: st
       <div className="bigcard__img">
         <Image
           fill
-          alt=""
+          alt={`${movie.title}${movie.year ? ` (${movie.year})` : ""}`}
           src={backdrop(movie)}
           sizes="(max-width: 760px) 82vw, 420px"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }}

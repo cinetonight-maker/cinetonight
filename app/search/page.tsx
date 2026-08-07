@@ -4,7 +4,13 @@ import SearchResults from "@/components/SearchResults";
 import { TrendingWidget, NewsWidget } from "@/components/RightRail";
 import { getMovies, genresOf, trendingNow } from "@/lib/data";
 
-export const metadata: Metadata = { title: "Search" };
+// Internal search-results pages are near-infinite query-string variations
+// of thin/duplicate content — Google's own guidance is to keep these out of
+// the index (they add no unique value to search results and can dilute
+// crawl budget away from actual content pages). robots: noindex here does
+// NOT stop the /search page itself from working; it just tells Google not
+// to list it.
+export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

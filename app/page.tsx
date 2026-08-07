@@ -5,6 +5,7 @@ import MovieCard from "@/components/MovieCard";
 import BigCard from "@/components/BigCard";
 import ContinueWatching from "@/components/ContinueWatching";
 import BlogSection from "@/components/BlogSection";
+import NewSinceLastVisit from "@/components/NewSinceLastVisit";
 import { PosterWidget, GenresWidget, NewsWidget } from "@/components/RightRail";
 import { getMovies, getSiteConfig, resolveRow, byIds, trendingNow, topRated } from "@/lib/data";
 import {
@@ -40,8 +41,15 @@ export default async function HomePage() {
     tmdbConfigured ? trendingLiveTmdb("all", 4) : Promise.resolve([]),
     tmdbConfigured ? topRatedTmdb("all", 4) : Promise.resolve([]),
   ]);
+  // Top-of-catalogue slice (already newest-first — see getMovies()'s
+  // order-by-year query) used purely as a "what's new" fingerprint for
+  // NewSinceLastVisit below; nothing else on the page depends on this.
+  const latestIds = movies.slice(0, 12).map((m) => m.id);
+  const latestTitles = Object.fromEntries(movies.slice(0, 12).map((m) => [m.id, m.title]));
+
   return (
     <div className="page">
+      <NewSinceLastVisit ids={latestIds} titles={latestTitles} />
       <Hero slides={byIds(site.hero.slides, movies)} intervalMs={site.hero.intervalMs ?? 6000} />
       <div className="pagerow">
         <div className="pagemain">

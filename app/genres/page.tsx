@@ -4,7 +4,10 @@ import Image from "next/image";
 import { getMovies, genresOf } from "@/lib/data";
 import { img } from "@/lib/images";
 
-export const metadata: Metadata = { title: "Genres" };
+export const metadata: Metadata = {
+  title: "Genres",
+  description: "Browse movies and shows by genre — action, comedy, drama, horror and every mood in between.",
+};
 export const dynamic = "force-dynamic";
 
 export default async function GenresPage() {

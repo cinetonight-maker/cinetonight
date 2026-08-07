@@ -5,7 +5,10 @@ import Icon from "@/components/Icon";
 import { getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 
-export const metadata: Metadata = { title: "Blog" };
+export const metadata: Metadata = {
+  title: "Blog",
+  description: "Guides, spotlights and streaming news — what to watch next and why.",
+};
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {

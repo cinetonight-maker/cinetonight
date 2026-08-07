@@ -137,6 +137,23 @@ drop policy if exists "self read admin_users" on admin_users;
 create policy "self read admin_users" on admin_users
   for select using (auth.uid() = user_id);
 
+-- ========================================================= subscribers ====
+-- Newsletter signups from the "Never miss a premiere" sidebar widget
+-- (components/NewsletterForm.tsx → POST /api/subscribers). The form was
+-- previously a dead <button> with no handler at all — every email typed
+-- into it just vanished. Insert-only from the site's perspective: the
+-- public API route always writes through the service-role key, so no
+-- public insert/select policy is needed here, same as admin_users.
+create table if not exists subscribers (
+  id          uuid primary key default gen_random_uuid(),
+  email       text not null unique,
+  status      text not null default 'active' check (status in ('active', 'unsubscribed')),
+  created_at  timestamptz not null default now()
+);
+alter table subscribers enable row level security;
+-- No policies: table is fully private, reachable only via the service-role
+-- key (the /api/subscribers route handler, or the SQL editor/dashboard).
+
 -- ======================================================= site_settings ====
 -- Single-row table: global SEO / contact / social settings.
 create table if not exists site_settings (

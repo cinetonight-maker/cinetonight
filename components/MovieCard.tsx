@@ -21,7 +21,7 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
       <div className="mcard__poster">
         <Image
           fill
-          alt=""
+          alt={`${movie.title}${movie.year ? ` (${movie.year})` : ""} poster`}
           src={poster(movie)}
           sizes="(max-width: 760px) 26vw, 172px"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }}

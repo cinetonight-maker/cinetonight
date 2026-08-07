@@ -1,13 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
-import Stars from "./Stars";
 import PlayButton from "./PlayButton";
 import WatchlistButton from "./WatchlistButton";
 import BlogSection from "./BlogSection";
+import CommentsSection from "./CommentsSection";
 import type { Movie } from "@/lib/types";
-import { REVIEWS, personId } from "@/lib/data";
-import { img, posterLg, profile, backdrop } from "@/lib/images";
+import { personId } from "@/lib/data";
+import { posterLg, profile, backdrop } from "@/lib/images";
 
 const PLATFORMS: [string, string, string][] = [
   ["Disney+ Hotstar", "Subscription", "#1f80e0"], ["JioCinema", "Subscription", "#c026d3"],
@@ -108,7 +108,7 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         <div className="railwrap"><div className="rail castrail">
           {movie.cast.map((c) => (
             <Link className="castc" href={`/person/${personId(c.name)}`} key={c.name}>
-              <div className="castc__ph"><Image fill alt="" src={profile(c)} sizes="64px" /></div>
+              <div className="castc__ph"><Image fill alt={c.name} src={profile(c)} sizes="64px" /></div>
               <div className="castc__n">{c.name}</div>
               <div className="castc__r">as {c.character}</div>
             </Link>
@@ -128,37 +128,11 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
             {about.map((p, i) => <p key={i}>{p}</p>)}
             <Link className="about__btn" href="/blog">Read More on the Blog <Icon name="chevr" size={15} /></Link>
           </div>
-          <div className="about__img"><Image fill alt="" src={backdrop(movie, "w780")} sizes="(max-width: 900px) 100vw, 380px" /></div>
+          <div className="about__img"><Image fill alt={`${movie.title} backdrop`} src={backdrop(movie, "w780")} sizes="(max-width: 900px) 100vw, 380px" /></div>
         </div>
       </section>
 
-      <section className="sec">
-        <div className="sec__head"><h2>User Reviews <span style={{ color: "var(--muted)", fontWeight: 500 }}>({REVIEWS.length})</span></h2></div>
-        <div className="revwrap">
-          <div className="revscore">
-            <div className="revscore__n">{movie.rating.toFixed(1)}</div>
-            <div className="revscore__stars"><Stars rating={Math.round(movie.rating / 2)} /></div>
-            <div className="revscore__sub">Community rating</div>
-          </div>
-          <div className="revlist">
-            {REVIEWS.map((r, i) => (
-              <div className="rev" key={i}>
-                <div className="rev__top">
-                  <div className="rev__ava"><Image fill alt="" src={img(`rev-${i}`, 80, 80)} sizes="36px" /></div>
-                  <div><div className="rev__name">{r.name}</div><div className="rev__stars"><Stars rating={r.rating} /></div></div>
-                  <span className="rev__when">{r.when}</span>
-                </div>
-                <p className="rev__text">{r.text}</p>
-                <div className="rev__acts">
-                  <span><Icon name="thumbup" size={15} /> {r.up}</span>
-                  <span><Icon name="thumbdn" size={15} /> {r.down}</span>
-                  <span><Icon name="reply" size={15} /> Reply</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <CommentsSection movie={movie} />
 
       {/* The sidebar already has a compact BlogWidget, but the sidebar is
           hidden below 1200px (see .pageaside), which left mobile visitors

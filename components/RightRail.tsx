@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
+import NewsletterForm from "./NewsletterForm";
 import type { Movie } from "@/lib/types";
 import { getMovies, getBlogs, genresOf, trendingNow } from "@/lib/data";
 import { img, poster } from "@/lib/images";
@@ -21,7 +22,7 @@ export async function TrendingWidget() {
       {trendingNow(movies, 5).map((m, i) => (
         <Link key={m.id} className="trow" href={`/movie/${m.id}`}>
           <span className="trow__rank">{i + 1}</span>
-          <div className="trow__th"><Image fill alt="" src={poster(m, "w342")} sizes="44px" /></div>
+          <div className="trow__th"><Image fill alt={`${m.title} poster`} src={poster(m, "w342")} sizes="44px" /></div>
           <div>
             <div className="trow__t">{m.title}</div>
             <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>
@@ -53,7 +54,7 @@ export async function BlogWidget() {
     <Widget title="From the Blog" all={<Link href="/blog">All</Link>}>
       {blogs.map((b) => (
         <Link key={b.slug} className="bmini" href={`/blog/${b.slug}`}>
-          <div className="bmini__th"><Image fill alt="" src={b.imageUrl || img(`bw-${b.slug}`, 160, 110)} sizes="72px" /></div>
+          <div className="bmini__th"><Image fill alt={b.title} src={b.imageUrl || img(`bw-${b.slug}`, 160, 110)} sizes="72px" /></div>
           <div><div className="bmini__t">{b.title}</div><div className="bmini__d">{b.date} · {b.read}</div></div>
         </Link>
       ))}
@@ -66,8 +67,7 @@ export function NewsWidget() {
     <div className="news">
       <h3>Never miss a premiere</h3>
       <p>Get weekly picks and blog posts in your inbox.</p>
-      <input placeholder="you@email.com" aria-label="Email" />
-      <button type="button">Subscribe</button>
+      <NewsletterForm />
     </div>
   );
 }
@@ -79,7 +79,7 @@ export function PosterWidget({ title, movies, href = "/movies" }: { title: strin
     <Widget title={title} all={<Link href={href}>More</Link>}>
       {movies.map((m) => (
         <Link key={m.id} className="trow" href={`/movie/${m.id}`}>
-          <div className="trow__th"><Image fill alt="" src={poster(m, "w342")} sizes="44px" /></div>
+          <div className="trow__th"><Image fill alt={`${m.title} poster`} src={poster(m, "w342")} sizes="44px" /></div>
           <div>
             <div className="trow__t">{m.title}</div>
             <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>

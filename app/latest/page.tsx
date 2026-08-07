@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import ListingPage from "@/components/ListingPage";
-export const metadata: Metadata = { title: "Latest Releases" };
+export const metadata: Metadata = {
+  title: "Latest Releases",
+  description: "Fresh off the reel — the newest movie and web series releases, updated as they drop.",
+};
 export default function Page() {
   return <ListingPage title="Latest Releases" sub="Fresh off the reel." kind="all" badges defaultSort="year" />;
 }

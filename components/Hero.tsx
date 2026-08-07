@@ -59,7 +59,7 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
       <Image
         key={`img-${m.id}`}
         fill
-        alt=""
+        alt={`${m.title}${m.year ? ` (${m.year})` : ""} poster`}
         src={posterLg(m)}
         className="hero__bgimg"
         sizes="100vw"

@@ -12,7 +12,7 @@ export default async function BlogSection({ count = 3 }: { count?: number }) {
       <div className="blog-grid">
         {blogs.slice(0, count).map((b) => (
           <Link className="blogc" href={`/blog/${b.slug}`} key={b.slug}>
-            <div className="blogc__img"><Image fill alt="" src={b.imageUrl || img(`b-${b.slug}`, 600, 340)} sizes="(max-width: 760px) 100vw, 380px" /></div>
+            <div className="blogc__img"><Image fill alt={b.title} src={b.imageUrl || img(`b-${b.slug}`, 600, 340)} sizes="(max-width: 760px) 100vw, 380px" /></div>
             <div className="blogc__b">
               <span className="blogc__cat">{b.cat}</span>
               <div className="blogc__t">{b.title}</div>

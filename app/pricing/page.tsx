@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Icon from "@/components/Icon";
 
-export const metadata: Metadata = { title: "Go Premium" };
+export const metadata: Metadata = {
+  title: "Go Premium",
+  description: "Compare MOVIEX plans — HD to 4K streaming, ad-free viewing, and offline downloads. Cancel anytime.",
+};
 
 const PLANS = [
   { name: "Basic", price: "₹149", feats: ["HD (720p)", "1 device", "Ad-supported"], hot: false, ghost: true },
