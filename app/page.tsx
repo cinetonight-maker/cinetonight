@@ -2,6 +2,7 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
+import BigCard from "@/components/BigCard";
 import ContinueWatching from "@/components/ContinueWatching";
 import BlogSection from "@/components/BlogSection";
 import { PosterWidget, GenresWidget, NewsWidget } from "@/components/RightRail";
@@ -45,6 +46,13 @@ export default async function HomePage() {
       <div className="pagerow">
         <div className="pagemain">
           <ContinueWatching items={site.continueWatching} movies={movies} />
+
+          {topRated(movies, 6).length > 0 && (
+            <Row title="Editor's Picks" all={ViewAll}>
+              {topRated(movies, 6).map((m) => <BigCard key={m.id} movie={m} eyebrow="Top Rated" />)}
+            </Row>
+          )}
+
           {rows.map(({ row, items }) => {
             if (!items.length) return null;
             return (

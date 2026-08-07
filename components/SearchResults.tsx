@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import MovieCard from "./MovieCard";
+import BigCard from "./BigCard";
 import type { Movie } from "@/lib/types";
 
 type State = { loading: boolean; results: Movie[]; source: string; error: string | null };
 
-export default function SearchResults({ trending = [], genres = [] }: { trending?: Movie[]; genres?: string[] }) {
+export default function SearchResults({
+  trendingMovie = null, trendingSeries = null, genres = [],
+}: { trendingMovie?: Movie | null; trendingSeries?: Movie | null; genres?: string[] }) {
   const q = (useSearchParams().get("q") ?? "").trim();
   const [s, setS] = useState<State>({ loading: false, results: [], source: "", error: null });
 
@@ -60,14 +63,17 @@ export default function SearchResults({ trending = [], genres = [] }: { trending
       )}
 
       {/* Pre-query state: trending picks + genre shortcuts instead of a
-          blank screen, so there's always something to browse. */}
+          blank screen, so there's always something to browse. Just the top
+          trending movie + top trending show as spotlight cards, not a
+          whole grid. */}
       {!q && (
         <>
-          {trending.length > 0 && (
+          {(trendingMovie || trendingSeries) && (
             <section className="sec">
               <div className="sec__head"><h2>Trending Now</h2></div>
-              <div className="grid">
-                {trending.map((m) => <MovieCard key={m.id} movie={m} />)}
+              <div className="spotlight2">
+                {trendingMovie && <BigCard movie={trendingMovie} eyebrow="#1 Trending Movie" />}
+                {trendingSeries && <BigCard movie={trendingSeries} eyebrow="#1 Trending Show" />}
               </div>
             </section>
           )}

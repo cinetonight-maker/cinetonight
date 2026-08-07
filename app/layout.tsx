@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
@@ -19,6 +20,10 @@ export async function generateMetadata(): Promise<Metadata> {
     description: s.siteDescription,
     keywords: s.metaKeywords || undefined,
     openGraph: { title: s.siteTitle, description: s.siteDescription, type: "website" },
+    // Lets browsers/RSS readers auto-discover the blog feed, and gives free
+    // RSS-to-social tools (Dlvr.it, IFTTT, Zapier) a standard URL to watch
+    // for new posts without any manual setup on your end each time.
+    alternates: { types: { "application/rss+xml": "/rss.xml" } },
   };
 }
 export const viewport: Viewport = { themeColor: "#0a0a12" };
@@ -43,6 +48,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <BottomNav />
           <PlayerModal />
         </MaintenanceGate>
+        {/* Free, zero-config traffic analytics. This only actually starts
+            recording once the site is deployed on Vercel AND "Analytics" is
+            turned on for the project in the Vercel dashboard (Project →
+            Analytics → Enable) — that one-click toggle can't be done from
+            code, but the tracking snippet is now wired up and ready the
+            moment you flip it. */}
+        <Analytics />
       </body>
     </html>
   );

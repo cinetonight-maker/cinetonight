@@ -1,17 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getMovies, getBlogs, genresOf } from "@/lib/data";
+import { baseUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
-
-/** Set this once you have a real domain (Vercel project settings → env
- *  vars, or here in .env.local for local testing) — falls back to the
- *  Vercel-provided deployment URL, then localhost, so this never crashes
- *  if it's unset, it just won't have the right domain until you set it. */
-function baseUrl(): string {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
 
 /** Every movie/series, every blog post, every genre, and the static pages —
  *  regenerated on each request from whatever's actually in Supabase right

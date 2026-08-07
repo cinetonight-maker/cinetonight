@@ -12,7 +12,22 @@ import { posterLg } from "@/lib/images";
  *  background (no blended/backdrop collage), title + a one-line rating/year/
  *  genre readout, and dot pagination — no description paragraph, no
  *  Watch Now / More Info buttons, no boxed card chrome. Tapping the title
- *  area still opens the movie's detail page. */
+ *  area still opens the movie's detail page.
+ *
+ *  Only ONE background image is ever in the DOM at a time — keyed by movie
+ *  id, so React unmounts the old one and mounts a fresh one on every slide
+ *  change instead of stacking every slide's image and toggling opacity.
+ *
+ *  IMPORTANT: the <Image> and the <Link> below must NOT share the same key
+ *  value. They did at one point (both keyed by `m.id`), and because React
+ *  matches reconciliation identity by key WITHIN A SET OF SIBLINGS regardless
+ *  of element type, giving two different sibling elements the same key
+ *  confused the diff — the old <img> from the previous slide was never
+ *  actually unmounted, it just kept accumulating a new absolutely-positioned
+ *  poster on top with every slide change (confirmed with a MutationObserver:
+ *  "ADDED" on every change, "REMOVED" never). That's what showed as the
+ *  previous movie's poster still visible underneath the current one. Each
+ *  keyed element here now has its own distinct key. */
 export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; intervalMs?: number }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -41,21 +56,18 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
       aria-roledescription="carousel"
       aria-label="Featured titles"
     >
-      {slides.map((s, idx) => (
-        <Image
-          key={s.id}
-          fill
-          alt=""
-          src={posterLg(s)}
-          className={`hero__bgimg${idx === i ? " on" : ""}`}
-          aria-hidden={idx !== i}
-          sizes="100vw"
-          priority={idx === 0}
-        />
-      ))}
+      <Image
+        key={`img-${m.id}`}
+        fill
+        alt=""
+        src={posterLg(m)}
+        className="hero__bgimg"
+        sizes="100vw"
+        priority
+      />
       <div className="hero__scrim" />
 
-      <Link className="hero__c" key={m.id} href={`/movie/${m.id}`}>
+      <Link className="hero__c" key={`link-${m.id}`} href={`/movie/${m.id}`}>
         <div className="hero__t">{m.title}</div>
         <div className="hero__meta">
           <span className="hero__rate"><Icon name="star" size={12} /> {m.rating.toFixed(1)}</span>

@@ -4,6 +4,7 @@ import Icon from "./Icon";
 import Stars from "./Stars";
 import PlayButton from "./PlayButton";
 import WatchlistButton from "./WatchlistButton";
+import BlogSection from "./BlogSection";
 import type { Movie } from "@/lib/types";
 import { REVIEWS, personId } from "@/lib/data";
 import { img, posterLg, profile, backdrop } from "@/lib/images";
@@ -158,6 +159,11 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
           </div>
         </div>
       </section>
+
+      {/* The sidebar already has a compact BlogWidget, but the sidebar is
+          hidden below 1200px (see .pageaside), which left mobile visitors
+          with no blog content at all on this page. */}
+      <BlogSection count={3} />
     </>
   );
 }
