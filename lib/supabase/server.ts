@@ -9,9 +9,12 @@ import { WebSocket } from "ws";
  * the publishable key, not the secret key). Use this to check "is someone
  * logged in?" — use `supabaseAdmin()` for the actual privileged reads/writes
  * once that check has passed.
+ *
+ * Next.js 15+ made `cookies()` async — this function (and every caller)
+ * has to be async now too.
  */
-export function supabaseServer() {
-  const cookieStore = cookies();
+export async function supabaseServer() {
+  const cookieStore = await cookies();
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return null;

@@ -11,7 +11,7 @@ import { createServerClient } from "@supabase/ssr";
  * the standard @supabase/ssr middleware pattern — without this, sessions
  * silently expire and admins get logged out mid-session.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request: { headers: request.headers } });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

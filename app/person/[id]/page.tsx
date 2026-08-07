@@ -6,7 +6,9 @@ import MovieCard from "@/components/MovieCard";
 import { getMovies, peopleOf, getPerson, personId, creditsOf } from "@/lib/data";
 import { profile } from "@/lib/images";
 
-interface Params { params: { id: string } }
+// Next.js 15+ resolves dynamic route params asynchronously (a Promise
+// instead of a plain object) — has to be awaited before use.
+interface Params { params: Promise<{ id: string }> }
 
 export async function generateStaticParams() {
   const movies = await getMovies();
@@ -16,14 +18,16 @@ export const dynamicParams = true;
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params;
   const movies = await getMovies();
-  const p = getPerson(movies, params.id);
+  const p = getPerson(movies, id);
   return p ? { title: p.name, description: `Films and series featuring ${p.name}.` } : { title: "Not found" };
 }
 
 export default async function PersonPage({ params }: Params) {
+  const { id } = await params;
   const movies = await getMovies();
-  const p = getPerson(movies, params.id);
+  const p = getPerson(movies, id);
   if (!p) notFound();
   const credits = creditsOf(movies, p.name);
   const years = credits.map((c) => c.year);

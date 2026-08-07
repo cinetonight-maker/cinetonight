@@ -15,7 +15,9 @@ function isoDate(display: string): string | undefined {
   return Number.isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
-interface Params { params: { slug: string } }
+// Next.js 15+ resolves dynamic route params asynchronously (a Promise
+// instead of a plain object) — has to be awaited before use.
+interface Params { params: Promise<{ slug: string }> }
 
 export async function generateStaticParams() {
   const blogs = await getBlogs();
@@ -25,7 +27,8 @@ export const dynamicParams = true;
 export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const b = await getBlog(params.slug);
+  const { slug } = await params;
+  const b = await getBlog(slug);
   if (!b) return { title: "Not found" };
   const url = `${baseUrl()}/blog/${b.slug}`;
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
@@ -41,7 +44,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function ArticlePage({ params }: Params) {
-  const b = await getBlog(params.slug);
+  const { slug } = await params;
+  const b = await getBlog(slug);
   if (!b) notFound();
 
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);

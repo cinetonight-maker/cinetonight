@@ -19,13 +19,17 @@ async function getPage(slug: string) {
   return data;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const page = await getPage(params.slug);
+// Next.js 15+ resolves dynamic route params asynchronously (a Promise
+// instead of a plain object) — has to be awaited before use.
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getPage(slug);
   return { title: page?.title ?? "Page" };
 }
 
-export default async function CustomPage({ params }: { params: { slug: string } }) {
-  const page = await getPage(params.slug);
+export default async function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const page = await getPage(slug);
   if (!page) return notFound();
 
   return (

@@ -8,7 +8,9 @@ import { baseUrl, toIsoDuration } from "@/lib/site";
 import { posterLg } from "@/lib/images";
 import type { Movie } from "@/lib/types";
 
-interface Params { params: { id: string } }
+// Next.js 15+ resolves dynamic route params asynchronously (a Promise
+// instead of a plain object) — has to be awaited before use.
+interface Params { params: Promise<{ id: string }> }
 
 /** Curated catalogue titles are prebuilt; anything else renders on demand. */
 export async function generateStaticParams() {
@@ -27,8 +29,9 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const { id } = await params;
   const movies = await getMovies();
-  const m = await resolve(params.id, movies);
+  const m = await resolve(id, movies);
   if (!m) return { title: "Not found" };
   // "Cast, Trailer & Where to Watch" targets the exact long-tail phrasing
   // people actually type into Google for a specific title, instead of just
@@ -52,8 +55,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function MoviePage({ params }: Params) {
+  const { id } = await params;
   const movies = await getMovies();
-  const m = await resolve(params.id, movies);
+  const m = await resolve(id, movies);
   if (!m) notFound();
 
   // Related: genuine TMDB recommendations for fetched titles. "Featured" is a
