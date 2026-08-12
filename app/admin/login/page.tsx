@@ -3,6 +3,7 @@
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/site";
 
 export default function AdminLoginPage() {
   return (
@@ -33,7 +34,7 @@ function LoginForm() {
       setErr(error.message === "Invalid login credentials" ? "Wrong email or password." : error.message);
       return;
     }
-    router.push(params.get("next") || "/admin");
+    router.push(safeNextPath(params.get("next"), "/admin"));
     router.refresh();
   };
 

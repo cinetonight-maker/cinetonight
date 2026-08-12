@@ -8,6 +8,7 @@ import BottomNav from "@/components/BottomNav";
 import Footer from "@/components/Footer";
 import PlayerModal from "@/components/PlayerModal";
 import MaintenanceGate from "@/components/MaintenanceGate";
+import { AuthProvider } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/data";
 import { baseUrl } from "@/lib/site";
 import "./globals.css";
@@ -74,16 +75,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
       <body>
-        <MaintenanceGate active={settings.maintenanceMode}>
-          <Header />
-          <div className="app">
-            <Sidebar />
-            <div className="content">{children}</div>
-          </div>
-          <Footer />
-          <BottomNav />
-          <PlayerModal />
-        </MaintenanceGate>
+        <AuthProvider>
+          <MaintenanceGate active={settings.maintenanceMode}>
+            <Header />
+            <div className="app">
+              <Sidebar />
+              <div className="content">{children}</div>
+            </div>
+            <Footer />
+            <BottomNav />
+            <PlayerModal />
+          </MaintenanceGate>
+        </AuthProvider>
         {/* Free, zero-config traffic analytics. This only actually starts
             recording once the site is deployed on Vercel AND "Analytics" is
             turned on for the project in the Vercel dashboard (Project →

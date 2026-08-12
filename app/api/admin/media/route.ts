@@ -6,6 +6,16 @@ export const dynamic = "force-dynamic";
 
 const BUCKET = "media";
 
+// This library only ever needs to hold images (blog featured images,
+// catalogue poster overrides) — it's served publicly straight from
+// Supabase Storage with no further processing, so anything script-capable
+// (.svg, .html, .xml with embedded scripts, etc.) uploaded here would be
+// hosted and served from our own domain-adjacent storage URL. Allowlist
+// by both the browser-reported MIME type and the file extension, since
+// either one alone can be spoofed.
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]);
+const ALLOWED_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]);
+
 // The global `File` *class* isn't available on every Node version this might
 // run on (it only landed as a default global in Node 20) — `instanceof File`
 // references that global at runtime and throws "File is not defined" before
@@ -34,6 +44,14 @@ export async function POST(request: Request) {
     const file = form.get("file");
     if (!isUploadedFile(file)) return NextResponse.json({ error: "No file uploaded." }, { status: 400 });
     if (file.size > 15 * 1024 * 1024) return NextResponse.json({ error: "File too large (max 15MB)." }, { status: 400 });
+
+    const ext = (file.name.match(/\.[a-zA-Z0-9]+$/)?.[0] || "").toLowerCase();
+    if (!ALLOWED_MIME_TYPES.has(file.type) || !ALLOWED_EXTENSIONS.has(ext)) {
+      return NextResponse.json(
+        { error: "Only image uploads are allowed (jpg, png, webp, gif, avif)." },
+        { status: 400 }
+      );
+    }
 
     const admin = supabaseAdmin();
     const cleanName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");

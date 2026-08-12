@@ -29,9 +29,8 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
         <span className="mcard__rate"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>
         {badge ? <span className="mcard__badge">{badge}</span> : null}
         <div className="mcard__pop">
-          <div className="mcard__acts">
+          <div className="mcard__acts mcard__acts--single">
             <span className="mcard__ab mcard__ab--play" aria-hidden="true"><Icon name="play" size={15} /></span>
-            <span className="mcard__ab mcard__ab--info" aria-hidden="true"><Icon name="info" size={15} /></span>
           </div>
           <div className="mcard__pt">{movie.title}</div>
           <div className="mcard__pm">

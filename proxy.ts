@@ -2,14 +2,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 /**
- * Gates the admin dashboard and its data API behind a real Supabase login.
- * - /admin/**            → redirect to /admin/login if not signed in
- * - /api/admin/**        → 401 JSON if not signed in
- * - /admin/login itself is always reachable (otherwise no one could log in)
+ * Two jobs, on two different scopes:
  *
- * Also refreshes the Supabase session cookie on every matched request, per
- * the standard @supabase/ssr middleware pattern — without this, sessions
- * silently expire and admins get logged out mid-session.
+ * 1. Refresh the Supabase session cookie on every real page/API request
+ *    (see `config.matcher` below — everything except static assets). This
+ *    now matters for every signed-in visitor, not just admins: public
+ *    /signin + /signup (see app/signin, app/signup) create ordinary
+ *    Supabase Auth sessions too. Skipping this outside /admin used to mean
+ *    a regular visitor's session could silently expire without ever being
+ *    refreshed, since nothing else in the app touches the session cookie.
+ *
+ * 2. Gate the admin dashboard and its data API behind a real Supabase login
+ *    AND the admin_users allowlist:
+ *    - /admin/**            → redirect to /admin/login if not signed in
+ *    - /api/admin/**        → 401 JSON if not signed in
+ *    - /admin/login itself is always reachable (otherwise no one could log in)
  */
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({ request: { headers: request.headers } });
@@ -36,11 +43,29 @@ export async function proxy(request: NextRequest) {
       },
       set(name: string, value: string, options: any) {
         request.cookies.set({ name, value, ...options });
-        response.cookies.set({ name, value, ...options });
+        // @supabase/ssr's default cookie options leave httpOnly unset
+        // (false), which lets any JS on the page — including an XSS
+        // payload from an unrelated page, since this cookie is site-wide —
+        // read the live session token via document.cookie. Force it on.
+        // `secure` is likewise forced only in production so local `next
+        // dev` over plain http still works.
+        response.cookies.set({
+          name,
+          value,
+          ...options,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" ? true : options?.secure,
+        });
       },
       remove(name: string, options: any) {
         request.cookies.set({ name, value: "", ...options });
-        response.cookies.set({ name, value: "", ...options });
+        response.cookies.set({
+          name,
+          value: "",
+          ...options,
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production" ? true : options?.secure,
+        });
       },
     },
   });
@@ -57,10 +82,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // Being signed in to Supabase Auth is NOT the same as being an admin — the
-  // site also has (currently unwired) public /signin + /signup pages, and
-  // any account created through those would otherwise pass the `!!user`
-  // check above and reach the dashboard. Cross-check against the admin_users
-  // allowlist (see supabase/schema.sql) before granting access.
+  // site also has public /signin + /signup pages, and any account created
+  // through those would otherwise pass the `!!user` check above and reach
+  // the dashboard. Cross-check against the admin_users allowlist (see
+  // supabase/schema.sql) before granting access.
   if (user && (isApi || isDashboard)) {
     const { data: allowed } = await supabase
       .from("admin_users")
@@ -83,5 +108,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  // Everything except static assets / generated image & manifest routes —
+  // the standard @supabase/ssr "run on every request" matcher, so session
+  // refresh (job 1 above) actually covers the whole site, not just /admin.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon|opengraph-image|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

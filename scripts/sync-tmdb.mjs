@@ -142,6 +142,7 @@ async function lookup(entry) {
     name: c.name,
     character: c.character || "Cast",
     profilePath: c.profile_path || null,
+    tmdbId: c.id,
   }));
 
   return {

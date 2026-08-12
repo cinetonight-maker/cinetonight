@@ -5,6 +5,12 @@ export interface CastCredit {
   character: string;
   /** TMDB profile path, e.g. "/abc123.jpg" — null when TMDB has no photo. */
   profilePath?: string | null;
+  /** TMDB person id — present for cast fetched live from TMDB (fetchTitle)
+   *  and titles re-synced after this field was added. Lets cast links
+   *  route to /person/tmdb-p-<id> (resolved live via lib/tmdb.fetchPerson)
+   *  instead of the name-slug route, which only ever covers people who
+   *  appear in the local catalogue. */
+  tmdbId?: number;
 }
 
 export interface Movie {
@@ -69,8 +75,12 @@ export interface RowConfig {
   badge?: string;
   /** Only used when mode === "live" — which TMDB feed to pull.
    *  "latest"/"trending"/"toprated" are an unrestricted global mix;
-   *  "hollywood"/"bollywood" bias to that industry's origin country. */
-  live?: "latest" | "trending" | "toprated" | "hollywood" | "bollywood";
+   *  "hollywood"/"bollywood"/"korean"/"chinese" bias to that industry's
+   *  origin country; "anime" is Japanese-origin Animation specifically;
+   *  "telugu" filters by original language rather than country, so it's a
+   *  distinct list from "bollywood" (which already includes every Indian
+   *  language via origin country). */
+  live?: "latest" | "trending" | "toprated" | "hollywood" | "bollywood" | "korean" | "anime" | "chinese" | "telugu";
 }
 
 export interface SiteConfig {

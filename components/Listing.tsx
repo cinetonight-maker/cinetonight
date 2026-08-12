@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import MovieCard from "./MovieCard";
 import type { Movie } from "@/lib/types";
@@ -21,15 +20,25 @@ interface BrowseResponse { results: Movie[]; page: number; totalPages: number; s
 const SORT_LABEL: Record<Sort, string> = { trending: "Trending", rating: "Top Rated", year: "Newest", az: "A–Z" };
 
 export default function Listing({
-  kind = "all", badges, defaultSort = "trending",
-}: { kind?: "movie" | "series" | "all"; badges?: boolean; defaultSort?: Sort }) {
-  const params = useSearchParams();
-  const [genre, setGenre] = useState(params.get("genre") ?? "All");
+  kind = "all", badges, defaultSort = "trending", initialGenre = "All", initialData,
+}: {
+  kind?: "movie" | "series" | "all"; badges?: boolean; defaultSort?: Sort;
+  /** First page of results, already fetched server-side by ListingPage.tsx
+   *  for (kind, defaultSort, initialGenre, page 1) — this is what makes the
+   *  real HTML (not just a loading skeleton) available to a crawler. */
+  initialGenre?: string;
+  initialData: BrowseResponse;
+}) {
+  const [genre, setGenre] = useState(initialGenre);
   const [sort, setSort] = useState<Sort>(defaultSort);
   const [page, setPage] = useState(1);
-  const [data, setData] = useState<BrowseResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<BrowseResponse>(initialData);
+  const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // The very first run of the fetch effect below would otherwise re-request
+  // the exact same (kind, genre, sort, page 1) the server already rendered
+  // into `initialData` — skip it once, then fetch normally from then on.
+  const skipNextFetch = useRef(true);
 
   // Mobile filter drawer locks page scroll while open.
   useEffect(() => {
@@ -41,6 +50,7 @@ export default function Listing({
   useEffect(() => { setPage(1); }, [kind, genre, sort]);
 
   useEffect(() => {
+    if (skipNextFetch.current) { skipNextFetch.current = false; return; }
     let alive = true;
     setLoading(true);
     const q = new URLSearchParams({ kind, sort, page: String(page) });
@@ -53,8 +63,8 @@ export default function Listing({
     return () => { alive = false; };
   }, [kind, genre, sort, page]);
 
-  const results = data?.results ?? [];
-  const totalPages = Math.max(1, data?.totalPages ?? 1);
+  const results = data.results;
+  const totalPages = Math.max(1, data.totalPages);
 
   // Compact page-number list: first, last, and a window around the current page.
   const pageNums = (() => {
@@ -117,9 +127,7 @@ export default function Listing({
         </div>
       </div>
 
-      {data === null ? (
-        <div className="grid">{Array.from({ length: 10 }).map((_, i) => <div key={i} className="skel" />)}</div>
-      ) : results.length ? (
+      {results.length ? (
         <>
           <div className="grid">
             {results.map((m) => <MovieCard key={m.id} movie={m} badge={badges ? "NEW" : undefined} />)}
@@ -141,6 +149,8 @@ export default function Listing({
             </nav>
           )}
         </>
+      ) : loading ? (
+        <div className="grid">{Array.from({ length: 10 }).map((_, i) => <div key={i} className="skel" />)}</div>
       ) : (
         <div className="empty">No titles match your filters.</div>
       )}

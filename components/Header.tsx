@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Icon from "./Icon";
 import { useWatchlist } from "@/lib/watchlist";
+import { useAuth } from "@/lib/auth";
 import { NAV } from "./Sidebar";
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { count } = useWatchlist();
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
@@ -51,7 +53,7 @@ export default function Header() {
       </button>
       <Link className="brand" href="/">
         <div className="brand__name">MOVIE<b>X</b></div>
-        <div className="brand__tag">Watch More, Stream Better.</div>
+        <div className="brand__tag">Movies, K-Drama, Anime &amp; More.</div>
       </Link>
       <nav className="topnav">
         {NAV.filter((n) => n.top && n.href !== "/").map((n) => (
@@ -69,7 +71,15 @@ export default function Header() {
         <Icon name="bell" size={18} />
         {count > 0 ? <span className="wl-badge">{count}</span> : null}
       </Link>
-      <Link className="hicon" href="/signin" aria-label="Account"><Icon name="user" size={18} /></Link>
+      <Link className="hicon" href={user ? "/account" : "/signin"} aria-label={user ? "My Account" : "Sign In"}>
+        {user ? (
+          <span className="hicon__initial" aria-hidden="true">
+            {(user.user_metadata?.full_name || user.email || "?").trim().charAt(0).toUpperCase()}
+          </span>
+        ) : (
+          <Icon name="user" size={18} />
+        )}
+      </Link>
     </header>
 
     {/* Mobile nav drawer — rendered as a SIBLING of <header>, not inside it.

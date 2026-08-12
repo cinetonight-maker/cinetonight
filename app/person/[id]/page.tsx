@@ -5,6 +5,8 @@ import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
 import { getMovies, peopleOf, getPerson, personId, creditsOf } from "@/lib/data";
 import { profile } from "@/lib/images";
+import { parsePersonTmdbId, fetchPerson } from "@/lib/tmdb";
+import type { CastCredit, Movie } from "@/lib/types";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
@@ -17,19 +19,40 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 export const dynamic = "force-dynamic";
 
+/** Local catalogue first (cast links from local titles use this), then TMDB
+ *  for ids like "tmdb-p-1234" — cast members who only appear on titles
+ *  fetched live from TMDB (see app/movie/[id]/page.tsx's resolve()) aren't
+ *  in the local catalogue's people list, so without this branch clicking
+ *  them 404'd. */
+async function resolvePerson(id: string, movies: Movie[]): Promise<{ person: CastCredit; credits: Movie[] } | null> {
+  const local = getPerson(movies, id);
+  if (local) return { person: local, credits: creditsOf(movies, local.name) };
+
+  const tmdbPersonId = parsePersonTmdbId(id);
+  if (!tmdbPersonId) return null;
+  const remote = await fetchPerson(tmdbPersonId);
+  if (!remote) return null;
+  return {
+    person: { name: remote.name, character: remote.character, profilePath: remote.profilePath },
+    credits: remote.credits,
+  };
+}
+
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const movies = await getMovies();
-  const p = getPerson(movies, id);
-  return p ? { title: p.name, description: `Films and series featuring ${p.name}.` } : { title: "Not found" };
+  const resolved = await resolvePerson(id, movies);
+  return resolved
+    ? { title: resolved.person.name, description: `Films and series featuring ${resolved.person.name}.` }
+    : { title: "Not found" };
 }
 
 export default async function PersonPage({ params }: Params) {
   const { id } = await params;
   const movies = await getMovies();
-  const p = getPerson(movies, id);
-  if (!p) notFound();
-  const credits = creditsOf(movies, p.name);
+  const resolved = await resolvePerson(id, movies);
+  if (!resolved) notFound();
+  const { person: p, credits } = resolved;
   const years = credits.map((c) => c.year);
   const avg = credits.length ? (credits.reduce((s, c) => s + c.rating, 0) / credits.length).toFixed(1) : "—";
 

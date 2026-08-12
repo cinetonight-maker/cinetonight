@@ -274,6 +274,13 @@ function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
                   <select value={row.live ?? "trending"} onChange={(e) => update(row.id, { live: e.target.value as RowConfig["live"] })}>
                     <option value="trending">Trending now</option>
                     <option value="latest">Latest releases</option>
+                    <option value="toprated">Top rated</option>
+                    <option value="hollywood">Hollywood</option>
+                    <option value="bollywood">Bollywood</option>
+                    <option value="korean">K-Drama / Korean</option>
+                    <option value="anime">Anime</option>
+                    <option value="chinese">C-Drama / Chinese</option>
+                    <option value="telugu">Telugu (Tollywood)</option>
                   </select>
                 </label>
               )}

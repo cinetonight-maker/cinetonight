@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 import { supabasePublic } from "@/lib/supabase/public";
+import { baseUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,34 @@ async function getPage(slug: string) {
   return data;
 }
 
+/** Strip markdown syntax down to a plain-text meta description — these
+ *  pages (legal pages, etc.) previously had no description at all, which
+ *  means Google falls back to guessing a snippet from the rendered page,
+ *  and there's no canonical, either. */
+function excerptFrom(markdown: string, maxLen = 160): string | undefined {
+  const text = markdown
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[#>*_~-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return undefined;
+  return text.length > maxLen ? `${text.slice(0, maxLen - 1).trimEnd()}…` : text;
+}
+
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const page = await getPage(slug);
-  return { title: page?.title ?? "Page" };
+  if (!page) return { title: "Page" };
+  return {
+    title: page.title,
+    description: excerptFrom(page.content || ""),
+    alternates: { canonical: `${baseUrl()}/p/${slug}` },
+  };
 }
 
 export default async function CustomPage({ params }: { params: Promise<{ slug: string }> }) {

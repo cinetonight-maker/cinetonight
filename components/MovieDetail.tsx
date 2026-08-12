@@ -2,17 +2,20 @@ import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
 import PlayButton from "./PlayButton";
-import WatchlistButton from "./WatchlistButton";
+import TicketStub from "./TicketStub";
 import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
 import type { Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
+import { personTmdbId } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
+import PlatformStrip from "./PlatformStrip";
 
-const PLATFORMS: [string, string, string][] = [
-  ["Disney+ Hotstar", "Subscription", "#1f80e0"], ["JioCinema", "Subscription", "#c026d3"],
-  ["Prime Video", "Rent / Buy", "#00a8e1"], ["YouTube", "Rent / Buy", "#ff0000"], ["Google Play", "Rent / Buy", "#34a853"],
-];
+// Where-to-Watch used to list five platforms side by side — five identical,
+// low-contrast options split a visitor's attention and none of them stood
+// out enough to click. This is affiliate space, so it works better as one
+// single, unmissable, best-of-breed strip than a wall of equal choices.
+const FEATURED_PLATFORM: [string, string, string] = ["Netflix", "Stream instantly in HD — no ads, no waiting", "#e50914"];
 
 function Det({ rows }: { rows: [string, string][] }) {
   return <>{rows.map(([k, v]) => (
@@ -24,15 +27,6 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
   const stars = movie.cast.slice(0, 3).map((c) => c.name).join(", ") || "—";
   const isSeries = movie.kind === "series";
 
-  const detCols: [string, string][][] = [
-    [["Director", movie.director], ["Writers", movie.writers], ["Stars", stars]],
-    [["Language", movie.language], ["Country", "India"], ["Type", isSeries ? "Web Series" : "Feature Film"]],
-    [["Runtime", movie.runtime], ["Certification", movie.cert], ["Genres", movie.genres.join(", ") || "—"]],
-  ];
-  const infoCards: [string, string, string][] = [
-    ["cam", "Quality", "1080p / 4K"], ["vol", "Audio", movie.language],
-    ["cc", "Subtitles", `${movie.language}, English`], ["cal", "Release Year", String(movie.year)],
-  ];
   const minfo: [string, string][][] = [
     [["Release Year", String(movie.year)], ["Runtime", movie.runtime], ["Language", movie.language], ["Certification", movie.cert]],
     [["Genres", movie.genres.join(", ") || "—"], ["Country", "India"], ["Director", movie.director], ["Writers", movie.writers]],
@@ -55,7 +49,6 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
       <section className="dhero">
         <div className="dposter">
           <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 40vw, 300px" priority />
-          <WatchlistButton id={movie.id} variant="save" />
         </div>
         <div>
           <h1 className="dtitle">{movie.title}</h1>
@@ -72,34 +65,18 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
           </div>
           <p className="dsyn">{movie.desc}</p>
           <div className="dbtns">
+            {/* This site doesn't host playback — Watch Now opens the real
+                trailer instead of a fake "no trailer available" sample clip,
+                so the button's behavior always matches what it promises. */}
             <PlayButton movie={movie} mode="trailer" />
-            <WatchlistButton id={movie.id} />
-            <PlayButton movie={movie} label="Trailer" icon="playc" className="btn btn--ghost" mode="trailer" />
+            <TicketStub movie={movie} />
           </div>
-          <div className="dgrid">{detCols.map((rows, i) => <div key={i}><Det rows={rows} /></div>)}</div>
         </div>
       </section>
 
-      <div className="infocards">
-        {infoCards.map(([i, k, v]) => (
-          <div className="infocard" key={k}>
-            <span className="infocard__ic"><Icon name={i} size={20} /></span>
-            <div><div className="infocard__k">{k}</div><div className="infocard__v">{v}</div></div>
-          </div>
-        ))}
-      </div>
-
       <section className="sec">
         <div className="sec__head"><h2>Where to Watch</h2></div>
-        <div className="railwrap"><div className="rail">
-          {PLATFORMS.map(([n, k, c]) => (
-            <div className="plat" key={n}>
-              <div className="plat__logo" style={{ background: `color-mix(in srgb,${c} 20%,#15151f)`, color: c, border: `1px solid color-mix(in srgb,${c} 45%,transparent)` }}>{n[0]}</div>
-              <div className="plat__name">{n}</div><div className="plat__kind">{k}</div>
-              <PlayButton movie={movie} className="plat__btn" mode="trailer" />
-            </div>
-          ))}
-        </div></div>
+        <PlatformStrip movie={movie} name={FEATURED_PLATFORM[0]} desc={FEATURED_PLATFORM[1]} color={FEATURED_PLATFORM[2]} />
         <div className="plat-note">Availability may vary by region and platform.</div>
       </section>
 
@@ -107,7 +84,11 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         <div className="sec__head"><h2>Cast</h2></div>
         <div className="railwrap"><div className="rail castrail">
           {movie.cast.map((c) => (
-            <Link className="castc" href={`/person/${personId(c.name)}`} key={c.name}>
+            // Prefer the TMDB-id route when we have one (works for cast on
+            // both local-catalogue and live-fetched titles); fall back to
+            // the name-slug route, which only resolves for people who
+            // appear in the local catalogue (see app/person/[id]/page.tsx).
+            <Link className="castc" href={`/person/${c.tmdbId ? personTmdbId(c.tmdbId) : personId(c.name)}`} key={c.name}>
               <div className="castc__ph"><Image fill alt={c.name} src={profile(c)} sizes="64px" /></div>
               <div className="castc__n">{c.name}</div>
               <div className="castc__r">as {c.character}</div>

@@ -71,7 +71,7 @@ export default async function ArticlePage({ params }: Params) {
         <span className="article__cat">{b.cat}</span>
         <h1 className="article__t">{b.title}</h1>
         <div className="article__meta">By Editorial Desk · {b.date} · {b.read} read</div>
-        <div className="article__img"><Image fill alt="" src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
+        <div className="article__img"><Image fill alt={b.title} src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
         <div className="article__body">
           {(b.body ?? [b.excerpt]).map((p, i) => <p key={i}>{p}</p>)}
         </div>

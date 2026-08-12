@@ -40,7 +40,7 @@ button{font-family:inherit}
    fully disappears, it just narrows (desktop only — see mobile block below,
    where the sidebar is replaced entirely by .bottomnav). */
 .app{display:flex}
-.sidebar{width:72px;flex-shrink:0;position:sticky;top:var(--hh);align-self:flex-start;height:calc(100vh - var(--hh));overflow-x:hidden;overflow-y:auto;border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;transition:width .22s ease}
+.sidebar{width:72px;flex-shrink:0;position:sticky;top:var(--hh);align-self:flex-start;max-height:calc(100vh - var(--hh));overflow:hidden;border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;transition:width .22s ease}
 body.sb-expanded .sidebar{width:200px;padding:18px 12px}
 .nav-item{display:flex;align-items:center;gap:13px;padding:11px 13px;border-radius:10px;color:var(--muted);font-weight:500;margin-bottom:3px;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap}
 .nav-item:hover{background:var(--card);color:var(--purple2)}
@@ -68,9 +68,27 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .wb a{color:var(--purple2);font-weight:600;text-decoration:underline}
 .wb__x{background:none;border:none;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;flex-shrink:0}
 .wb__x:hover{color:var(--txt)}
+/* Mood Roulette CTA banner (components/MoodRoulette.tsx) — sits full-width
+   under the hero, above the row grid. */
+.roulette-cta{display:flex;align-items:center;gap:14px;width:100%;text-align:left;
+  background:linear-gradient(90deg,rgba(139,92,246,.16),rgba(168,85,247,.06));
+  border:1px solid rgba(139,92,246,.35);border-radius:14px;padding:14px 18px;margin-bottom:22px;
+  color:var(--txt);cursor:pointer;transition:border-color .15s,background .15s}
+.roulette-cta:hover{border-color:var(--purple);background:linear-gradient(90deg,rgba(139,92,246,.24),rgba(168,85,247,.1))}
+.roulette-cta__ic{font-size:26px;line-height:1;flex-shrink:0}
+.roulette-cta b{font-size:14.5px}
+.roulette-cta__sub{display:block;color:var(--muted);font-size:12.5px;margin-top:2px;font-weight:400}
+.roulette-cta__go{margin-left:auto;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;color:var(--purple2);font-weight:700;font-size:13px;white-space:nowrap}
 .page__head{margin-bottom:20px}
 .page__head h1{font-size:28px;font-weight:800}
 .page__head p{color:var(--muted);margin-top:4px}
+.pagesearch{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:12px 18px;margin-top:14px;max-width:560px}
+.pagesearch svg{color:var(--muted2);flex-shrink:0}
+.pagesearch input{flex:1;background:none;border:none;outline:none;color:var(--txt);font-size:14.5px}
+.pagesearch input::placeholder{color:var(--muted2)}
+.pagesearch__clear{background:none;border:none;color:var(--muted2);cursor:pointer;display:grid;place-items:center;padding:2px}
+.pagesearch__clear:hover{color:var(--txt)}
+.pagesearch__go{background:var(--purple);border:none;color:#fff;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;cursor:pointer;flex-shrink:0}
 .pagerow{display:flex;gap:26px;align-items:flex-start}
 .pagemain{flex:1;min-width:0}
 .pageaside{width:256px;flex-shrink:0;position:sticky;top:calc(var(--hh) + 16px);align-self:flex-start}
@@ -100,7 +118,7 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .hero__scrim{position:absolute;inset:0;
   background:linear-gradient(0deg,rgba(10,10,18,.92),rgba(10,10,18,.25) 55%,rgba(10,10,18,.15))}
 .hero__c{position:relative;z-index:2;display:block;padding:0 var(--pgpad-x) 46px;max-width:720px}
-.hero__t{font-size:44px;font-weight:800;line-height:1.15;margin-bottom:8px;color:#fff;
+.hero__t{font-size:44px;font-weight:800;line-height:1.15;margin:0 0 8px;color:#fff;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .hero__meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:#d9d5e6;font-size:14px;font-weight:600}
 
@@ -130,8 +148,10 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .mcard__pop{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:14px;background:linear-gradient(to top,rgba(6,6,12,.97),rgba(6,6,12,.72) 45%,rgba(6,6,12,.05));opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s}
 .mcard:hover .mcard__pop{opacity:1;transform:none}
 .mcard__acts{display:flex;gap:8px}
+.mcard__acts--single{justify-content:center}
 .mcard__ab{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;cursor:pointer;border:none}
 .mcard__ab--play{background:#fff;color:#111}.mcard__ab--info{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35)}
+.mcard__acts--single .mcard__ab--play{width:40px;height:40px}
 .mcard__pt{font-weight:700;font-size:14px}
 .mcard__pm{font-size:11.5px;color:#c9c4d8;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .mcard__pm .r{color:#ffcf4d;display:inline-flex;align-items:center;gap:3px}
@@ -207,12 +227,14 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .aside-t{font-size:14px;font-weight:700;margin:2px 0 12px}
 
 /* genres tiles */
-.gtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.gtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:34px}
 .gtile{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--line);display:flex;align-items:flex-end;cursor:pointer;transition:transform .18s}
 .gtile:hover{transform:translateY(-4px);border-color:var(--purple)}
-.gtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}
-.gtile::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,18,.9),transparent)}
-.gtile span{position:relative;z-index:2;padding:16px;font-family:var(--font-poppins);font-weight:700;font-size:18px}
+.gtile:hover img{transform:scale(1.06)}
+.gtile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.6;transition:transform .3s ease}
+.gtile::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(10,10,18,.92),rgba(10,10,18,.15) 60%,transparent)}
+.gtile span{position:relative;z-index:2;padding:16px;font-family:var(--font-poppins);font-weight:700;font-size:18px;display:flex;flex-direction:column;gap:3px}
+.gtile span em{font-family:var(--font-inter,inherit);font-weight:500;font-size:12px;color:var(--muted);font-style:normal}
 
 /* ===== movie detail ===== */
 .crumb{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin-bottom:20px}
@@ -243,6 +265,17 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .plat__name{font-weight:600;font-size:13.5px}.plat__kind{color:var(--muted);font-size:12px;margin:3px 0 12px}
 .plat__btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:none;border-radius:8px;background:var(--purple);color:#fff;font-weight:600;font-size:12.5px;cursor:pointer}
 .plat-note{color:var(--muted2);font-size:12px;margin-top:10px}
+/* Single "Where to Watch" strip — replaced a 5-card platform grid where
+   every option had equal, low weight and nothing stood out. This is
+   affiliate space, so the whole row is one big, unmissable click target. */
+.platstrip{display:flex;align-items:center;gap:16px;width:100%;text-align:left;background:linear-gradient(120deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:16px;padding:18px 22px;cursor:pointer;transition:border-color .18s,transform .18s}
+.platstrip:hover{border-color:var(--purple);transform:translateY(-2px)}
+.platstrip__logo{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex-shrink:0;font-family:var(--font-poppins);font-weight:800;font-size:22px}
+.platstrip__body{flex:1;min-width:0}
+.platstrip__name{display:block;font-weight:700;font-size:16px}
+.platstrip__desc{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.platstrip__cta{flex-shrink:0;display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:10px;background:var(--purple);color:#fff;font-weight:700;font-size:14px;white-space:nowrap}
+@media(max-width:520px){.platstrip{flex-wrap:wrap}.platstrip__cta{width:100%;justify-content:center}}
 /* .castc lives in the "circular cast avatars" block further down — a
    duplicate rectangular version used to sit here and silently lose the
    cascade to it, which is what was truncating cast names to a few
@@ -306,6 +339,7 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 /* watchlist count */
 .wl-badge{position:absolute;top:-3px;right:-3px;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--purple);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
 .hicon{position:relative}
+.hicon__initial{width:100%;height:100%;border-radius:50%;background:var(--purple);color:#fff;font-weight:700;font-size:14px;display:grid;place-items:center}
 /* controls (filters + sort) */
 .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
 .chip-row{display:flex;flex-wrap:wrap;gap:8px}
@@ -384,6 +418,54 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .pmodal__bar b{font-size:14px}
 .pmodal__x{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:#fff;cursor:pointer;display:grid;place-items:center}
 .pmodal video{width:100%;aspect-ratio:16/9;display:block;background:#000}
+
+/* mood roulette modal */
+.rmodal{position:fixed;inset:0;z-index:200;background:rgba(4,4,10,.85);display:none;place-items:center;padding:20px}
+.rmodal.open{display:grid}
+.rmodal__box{width:min(560px,100%);max-height:88vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:16px}
+.rmodal__bar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2);z-index:1}
+.rmodal__bar b{font-size:15px}
+.rmodal__x{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:#fff;cursor:pointer;display:grid;place-items:center;flex-shrink:0}
+.rmodal__body{padding:20px}
+.rmodal__lead{color:var(--muted);font-size:14px;margin-bottom:16px}
+.rmodal__moods{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.rmodal__mood{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 12px;color:var(--txt);font-weight:600;font-size:13.5px;cursor:pointer;text-align:left;transition:border-color .15s,background .15s,transform .1s}
+.rmodal__mood:hover{border-color:var(--purple);background:var(--card2)}
+.rmodal__mood:active{transform:scale(.97)}
+.rmodal__moodEmoji{font-size:20px;line-height:1;flex-shrink:0}
+.rmodal__result{display:flex;gap:16px;padding:20px}
+.rmodal__result.spinning .rmodal__rposter{animation:rspin .5s linear infinite}
+@keyframes rspin{0%{opacity:1}50%{opacity:.55}100%{opacity:1}}
+.rmodal__rposter{position:relative;width:130px;flex-shrink:0;aspect-ratio:2/3;border-radius:10px;overflow:hidden;background:var(--card2)}
+.rmodal__rinfo{flex:1;min-width:0;display:flex;flex-direction:column}
+.rmodal__spinning{color:var(--purple2);font-weight:700;font-size:14px;margin-top:auto;margin-bottom:auto}
+.rmodal__rmood{color:var(--purple2);font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px}
+.rmodal__rtitle{font-size:19px;font-weight:800;line-height:1.2}
+.rmodal__rmeta{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px;margin-top:6px}
+.rmodal__rmeta .r{margin-left:auto;display:flex;align-items:center;gap:4px;color:var(--txt)}
+.rmodal__rdesc{color:var(--muted);font-size:13px;line-height:1.5;margin-top:10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.rmodal__ractions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
+.rmodal__btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:9px;font-weight:600;font-size:13px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--txt)}
+.rmodal__btn:hover{border-color:var(--purple)}
+.rmodal__btn--primary{background:var(--purple);border-color:var(--purple);color:#fff}
+.rmodal__btn--primary:hover{filter:brightness(1.08)}
+.rmodal__back{align-self:flex-start;margin-top:12px;background:none;border:none;color:var(--muted);font-size:12.5px;cursor:pointer;padding:0}
+.rmodal__back:hover{color:var(--txt)}
+@media(max-width:560px){
+  .rmodal__moods{grid-template-columns:1fr}
+  .rmodal__result{flex-direction:column}
+  .rmodal__rposter{width:100px}
+}
+
+/* ticket-stub modal (components/TicketStub.tsx) — reuses .rmodal/.rmodal__bar/.rmodal__x */
+.tstub__box{width:min(640px,100%)}
+.tstub__body{padding:20px}
+.tstub__canvasWrap{position:relative;border-radius:12px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
+.tstub__canvas{display:block;width:100%;height:auto}
+.tstub__loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:13px;background:rgba(10,10,18,.55)}
+.tstub__note{color:var(--muted);font-size:12px;margin-top:10px}
+.tstub__actions{display:flex;gap:10px;margin-top:16px}
+.tstub__hint{color:var(--muted2);font-size:12px;margin-top:10px;text-align:center}
 /* article */
 .article{max-width:820px;margin:0 auto}
 .article__cat{color:var(--purple2);font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
@@ -472,7 +554,7 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
    names down to 4-5 characters) and allowed to wrap onto a 2nd line instead
    of truncating. */
 .castc{flex:0 0 96px;min-width:0;text-align:center}
-.castc__ph{width:76px;height:76px;border-radius:50%;overflow:hidden;border:2px solid var(--line);margin:0 auto;
+.castc__ph{position:relative;width:76px;height:76px;border-radius:50%;overflow:hidden;border:2px solid var(--line);margin:0 auto;
   background:linear-gradient(155deg,#221d33,#171422);transition:border-color .18s,transform .18s}
 .castc:hover .castc__ph{border-color:var(--purple);transform:translateY(-3px)}
 .castc__ph img{width:100%;height:100%;object-fit:cover}
@@ -511,6 +593,16 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .hero__bgimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 15%;
   opacity:1;animation:heroImgIn .6s ease;z-index:0}
 @keyframes heroImgIn{from{opacity:0}to{opacity:1}}
+/* The <picture> wrapper around .hero__bgimg (see Hero.tsx) must not
+   generate its own box — it used to be the <img> itself sitting directly
+   in this flex container, and `display:contents` keeps it acting that way
+   so the existing `position:absolute` sizing above is unaffected. */
+.hero__pic{display:contents}
+/* Anchored from the top on desktop too — a centered crop was cutting off
+   the top of the backdrop art (the part of a wide still that usually
+   carries the actual scene/faces) once the section's tall-but-narrower
+   flex layout clipped the sides off a 16:9 image. */
+@media(min-width:901px){.hero__bgimg{object-position:50% 0%}}
 .hero--slider .hero__c{animation:heroIn .5s ease}
 @keyframes heroIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .hero__rate{display:inline-flex;align-items:center;gap:5px;background:var(--purple);padding:3px 9px;border-radius:6px;color:#fff;font-weight:700}
@@ -642,3 +734,28 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
   .bigcard:hover .bigcard__img img{transform:none}
 }
 .maintenance__c p{color:var(--muted);font-size:14.5px;line-height:1.6}
+
+/* ---------- trailer/watch player: forced landscape on mobile ---------- */
+/* A 16:9 video pinned to full-width-in-portrait is a thin strip with dead
+   space above/below — not usable for actually watching something. Instead
+   of the Fullscreen + Screen Orientation Lock APIs (inconsistent across
+   mobile browsers — iOS Safari in particular won't lock an arbitrary
+   element to landscape), this rotates the whole modal box 90° and swaps
+   its box dimensions to the viewport's, so it fills the entire screen
+   edge-to-edge in landscape no matter how the phone is physically held —
+   works everywhere, no permissions, no native APIs. Placed last in the
+   file so it reliably wins over the earlier unconditional .pmodal__yt /
+   .pmodal__wait aspect-ratio rules at this same specificity. */
+@media(max-width:760px){
+  .pmodal{padding:0}
+  .pmodal__box{
+    position:fixed;top:50%;left:50%;width:100vh;height:100vw;max-width:none;
+    transform:translate(-50%,-50%) rotate(90deg);transform-origin:center;
+    border-radius:0;border:none;display:flex;flex-direction:column;
+  }
+  @supports (width:100dvh){.pmodal__box{width:100dvh;height:100dvw}}
+  .pmodal__bar{flex-shrink:0}
+  .pmodal__x{width:40px;height:40px}
+  .pmodal video,.pmodal__yt,.pmodal__wait{flex:1;width:100%;height:100%;aspect-ratio:auto;min-height:0}
+  .pmodal__note{flex-shrink:0}
+}

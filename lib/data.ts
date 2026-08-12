@@ -131,10 +131,27 @@ export const getSiteConfig = cache(async (): Promise<Omit<SiteConfig, "blog">> =
 
 /* -------------------------------- blog ------------------------------------ */
 
+// Every caller of the LIST function (sitemap.ts, app/blog/page.tsx,
+// RightRail's BlogWidget, BlogSection.tsx, rss.xml) only ever renders
+// title/excerpt/date/read-time/image — none of them touch `.body` (verified:
+// nothing outside app/blog/[slug]/page.tsx, which uses the separate
+// single-row getBlog(slug) below, references it). `body` is the full
+// article content as a jsonb array of paragraphs, easily the largest field
+// on the row, so leaving it out of the list query is a real, safe
+// reduction — unlike lib/data.ts's getMovies() below, whose "list" columns
+// (cast, description) turned out to be genuinely rendered on every card
+// (see components/MovieCard.tsx's synopsis line) and can't be trimmed the
+// same way without breaking that.
+const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label, read_label, status, created_at";
+
 export const getBlogs = cache(async (): Promise<Blog[]> => {
   const sb = supabasePublic();
   if (sb) {
-    const { data, error } = await sb.from("blog_posts").select("*").eq("status", "published").order("created_at", { ascending: false });
+    const { data, error } = await sb
+      .from("blog_posts")
+      .select(BLOG_LIST_COLUMNS)
+      .eq("status", "published")
+      .order("created_at", { ascending: false });
     // Same reasoning as getMovies(): an empty table before migration
     // shouldn't render a blank blog section.
     if (!error && data && data.length > 0) return data.map(blogFromRow);
@@ -161,7 +178,7 @@ export type SiteSettings = {
 };
 const FALLBACK_SETTINGS: SiteSettings = {
   siteTitle: "MOVIEX — Watch More, Stream Better",
-  siteDescription: "Stream the latest movies and web series in HD. Trending titles, top rated picks, and your personal watchlist.",
+  siteDescription: "Stream the latest movies, web series, K-Drama, anime and C-Drama in HD. Trending titles, top rated picks, and your personal watchlist.",
   metaKeywords: "",
   contactEmail: "",
   social: {},

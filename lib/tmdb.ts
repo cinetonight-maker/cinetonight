@@ -20,6 +20,13 @@ export function parseTmdbId(slug: string): { kind: MovieKind; id: string } | nul
   return m ? { kind: m[1] === "t" ? "series" : "movie", id: m[2] } : null;
 }
 
+/** Same idea, for a person who isn't in the local catalogue's cast list. */
+export const personTmdbId = (id: number | string) => `tmdb-p-${id}`;
+export function parsePersonTmdbId(slug: string): string | null {
+  const m = /^tmdb-p-(\d+)$/.exec(slug);
+  return m ? m[1] : null;
+}
+
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T | null> {
   if (!tmdbConfigured) return null;
   const url = new URL(API + path);
@@ -129,12 +136,36 @@ export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | n
     director,
     writers: writers.slice(0, 3).join(", ") || director,
     cast: (d.credits?.cast ?? []).slice(0, 10).map((c: any) => ({
-      name: c.name, character: c.character || "Cast", profilePath: c.profile_path || null,
+      name: c.name, character: c.character || "Cast", profilePath: c.profile_path || null, tmdbId: c.id,
     })),
     desc: d.overview || "No synopsis available yet.",
     posterPath: d.poster_path || null,
     backdropPath: d.backdrop_path || null,
     trailerKey: pickTrailer(d.videos?.results ?? []),
+  };
+}
+
+/** A cast member resolved live from TMDB, for /person/tmdb-p-<id> — people
+ *  who only appear in on-demand-fetched titles (fetchTitle above) aren't in
+ *  the local catalogue's peopleOf() list, so app/person/[id]/page.tsx falls
+ *  back to this when the local lookup misses. */
+export async function fetchPerson(id: string): Promise<{ name: string; character: string; profilePath: string | null; credits: Movie[] } | null> {
+  const d = await get<any>(`/person/${id}`, { append_to_response: "combined_credits" });
+  if (!d?.name) return null;
+
+  const castCredits = (d.combined_credits?.cast ?? []) as any[];
+  const credits = castCredits
+    .filter((c: any) => c.media_type === "movie" || c.media_type === "tv")
+    .sort((a: any, b: any) => (b.popularity ?? 0) - (a.popularity ?? 0))
+    .slice(0, 20)
+    .map((c: any) => fromSearchHit({ ...c, media_type: c.media_type }))
+    .filter(Boolean) as Movie[];
+
+  return {
+    name: d.name,
+    character: castCredits[0]?.character || "Cast",
+    profilePath: d.profile_path || null,
+    credits,
   };
 }
 
@@ -215,6 +246,33 @@ function fromDiscoverHit(hit: any, kind: MovieKind, genres: Record<number, strin
   };
 }
 
+/** Real TMDB "Trending" data — the actual /trending endpoint (a genuine
+ *  day-over-day trending score TMDB computes), not an approximation via
+ *  /discover?sort_by=popularity.desc. Those two are NOT the same ranking:
+ *  discover's `popularity` field is a slower-moving, all-time-ish score, so
+ *  a discover-sorted "trending" row drifted from what TMDB.com itself shows
+ *  under "Trending" — this is the direct fix for that mismatch. Only
+ *  unrestricted (no region) queries can use this — TMDB's /trending
+ *  endpoint has no region/origin-country filter, so regionally-biased rows
+ *  (Hollywood/Bollywood/Korean/Chinese "popular right now" style rows)
+ *  still fall back to the discover approximation below. */
+async function trendingPage(kind: MovieKind, timeWindow: "day" | "week", page: number): Promise<{ results: any[]; totalPages: number }> {
+  const d = await get<any>(`/trending/${kind === "series" ? "tv" : "movie"}/${timeWindow}`, { page });
+  return { results: d?.results ?? [], totalPages: Math.min(Number(d?.total_pages) || 1, MAX_PAGES) };
+}
+async function trendingAllPage(timeWindow: "day" | "week", page: number): Promise<{ results: any[]; totalPages: number }> {
+  const d = await get<any>(`/trending/all/${timeWindow}`, { page });
+  return { results: d?.results ?? [], totalPages: Math.min(Number(d?.total_pages) || 1, MAX_PAGES) };
+}
+function mapTrendingHits(hits: any[], movieGenres: Record<number, string>, tvGenres: Record<number, string>): Movie[] {
+  return hits
+    .map((h) => {
+      const kind: MovieKind = h.media_type === "tv" ? "series" : "movie";
+      return fromDiscoverHit(h, kind, kind === "series" ? tvGenres : movieGenres);
+    })
+    .filter(Boolean) as Movie[];
+}
+
 async function discoverLive(kind: MovieKind, sortBy: string, limit: number, minVotes: number, region?: string): Promise<Movie[]> {
   const isTv = kind === "series";
   const today = new Date().toISOString().slice(0, 10);
@@ -247,10 +305,22 @@ export async function latestReleasesTmdb(kind: MovieKind | "all" = "movie", limi
   return lists.flat().sort((a, b) => b.year - a.year || (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
 }
 
-/** "Trending" row — most popular right now, straight from TMDB (global mix unless `region` is set). */
+/** "Trending" row — matches TMDB.com's own Trending list exactly when no
+ *  region bias is requested (see trendingPage/trendingAllPage above). A
+ *  region-biased call (Hollywood/Bollywood/etc.) has no TMDB-native
+ *  equivalent, so it still approximates via discover + popularity sort. */
 export async function trendingLiveTmdb(kind: MovieKind | "all" = "all", limit = 6, region?: string): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
-  const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "popularity.desc", limit, region ? 5 : 20, region)));
+  if (!region) {
+    const [mg, tg] = await Promise.all([genreMap("movie"), genreMap("series")]);
+    if (kind === "all") {
+      const { results } = await trendingAllPage("day", 1);
+      return mapTrendingHits(results, mg, tg).slice(0, limit);
+    }
+    const { results } = await trendingPage(kind, "day", 1);
+    return mapTrendingHits(results, mg, tg).slice(0, limit);
+  }
+  const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "popularity.desc", limit, 5, region)));
   return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
 }
 
@@ -264,6 +334,72 @@ export async function topRatedTmdb(kind: MovieKind | "all" = "all", limit = 6, r
 /** Convenience category rows for the homepage. */
 export const hollywoodTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "US");
 export const bollywoodTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "IN");
+/** South Korean movies/dramas — "K-Drama" is this site's own umbrella term
+ *  for TV originating in Korea, not a distinct TMDB category, so it's just
+ *  origin_country=KR biased popularity, same technique as Hollywood/Bollywood. */
+export const koreanTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "KR");
+/** Chinese-language film & TV — mainland China, Hong Kong and Taiwan
+ *  together ("C-Drama" covers all three in common usage), via TMDB's
+ *  pipe-separated OR syntax for `with_origin_country`. */
+export const chineseTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trendingLiveTmdb(kind, limit, "CN|HK|TW");
+
+/** Telugu cinema (Tollywood) — a distinct section from the broader
+ *  "Bollywood" row above: that one is origin_country=IN, which already
+ *  covers every Indian language including Telugu, so a separate Telugu row
+ *  needs to filter by original language instead, not country, to actually
+ *  be a different list. */
+export const teluguTmdb = (kind: MovieKind | "all" = "all", limit = 6) => languageTmdb("te", kind, limit);
+
+async function languageTmdb(lang: string, kind: MovieKind | "all", limit: number): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const lists = await Promise.all(
+    kindsFor(kind).map(async (k) => {
+      const isTv = k === "series";
+      const genres = await genreMap(k);
+      const params: Record<string, string | number> = {
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        with_original_language: lang,
+        "vote_count.gte": 5,
+        page: 1,
+      };
+      params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+      const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+      return ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, genres)).filter(Boolean) as Movie[];
+    })
+  );
+  return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
+
+/** Anime — unlike the other regional rows, "anime" isn't just "from Japan":
+ *  it's specifically Japanese-origin Animation (genre id 16). Discover
+ *  supports combining a genre id with origin_country directly, so this
+ *  covers both movies (Ghibli-style features) and TV (ongoing series) in
+ *  one call each, merged and re-sorted by popularity. */
+export async function animeTmdb(kind: MovieKind | "all" = "all", limit = 6): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const lists = await Promise.all(
+    kindsFor(kind).map(async (k) => {
+      const isTv = k === "series";
+      const genres = await genreMap(k);
+      const animationId = Object.entries(genres).find(([, name]) => name === "Animation")?.[0];
+      const params: Record<string, string | number> = {
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        with_origin_country: "JP",
+        "vote_count.gte": 5,
+        page: 1,
+      };
+      if (animationId) params.with_genres = animationId;
+      params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+      const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+      return ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, genres)).filter(Boolean) as Movie[];
+    })
+  );
+  return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
 
 /* ---------------------------------------------------------------------
    Paginated live browse — powers the Movies / TV Shows / Web Series /
@@ -285,6 +421,16 @@ const MIN_VOTES: Record<BrowseSort, number> = { trending: 20, rating: 200, year:
 const MAX_PAGES = 50; // TMDB technically allows more; this is already "enough" pages to page through
 
 async function discoverPage(kind: MovieKind, sort: BrowseSort, genre: string | undefined, page: number): Promise<{ results: Movie[]; totalPages: number }> {
+  // Same fix as trendingLiveTmdb above: the real /trending endpoint, not a
+  // popularity-sorted /discover approximation — this is what the "Trending"
+  // listing page ultimately renders, so it's the other place the "doesn't
+  // match TMDB.com" complaint traces back to. Only when there's no genre
+  // filter active — /trending has no genre parameter, so a genre-filtered
+  // trending view still falls through to the discover approximation below.
+  if (sort === "trending" && !genre) {
+    const [{ results, totalPages }, genres] = await Promise.all([trendingPage(kind, "day", Math.max(1, page)), genreMap(kind)]);
+    return { results: mapTrendingHits(results, genres, genres), totalPages };
+  }
   const isTv = kind === "series";
   const today = new Date().toISOString().slice(0, 10);
   const [gid, genres] = await Promise.all([genreIdFor(kind, genre), genreMap(kind)]);
@@ -317,7 +463,13 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
   else if (sort === "year") merged.sort((a, b) => b.year - a.year);
   else if (sort === "az") merged.sort((a, b) => a.title.localeCompare(b.title));
   else merged.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
-  return { results: merged, page, totalPages: Math.min(m.totalPages, t.totalPages) };
+  // Cap at the same page size every other path uses (single-kind branches
+  // above return one TMDB page — typically 20 — and lib/browse.ts's local
+  // fallback uses PAGE_SIZE = 20). Without this, merging a movie page + a
+  // tv page here silently doubled "all" pages to up to 40 results, so
+  // pagination behaved differently depending on which filter was active.
+  const BROWSE_PAGE_SIZE = 20;
+  return { results: merged.slice(0, BROWSE_PAGE_SIZE), page, totalPages: Math.min(m.totalPages, t.totalPages) };
 }
 
 /** Similar/recommended titles, for the detail page rails. */

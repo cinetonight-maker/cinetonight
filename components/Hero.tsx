@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { getImageProps } from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
-import { posterLg } from "@/lib/images";
+import { posterLg, backdrop } from "@/lib/images";
 
 /** Auto-rotating hero. Slides are chosen in /admin (content/site.json → hero.slides).
  *  Minimal by design: each slide is that title's own poster as a full-bleed
@@ -32,9 +32,32 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const n = slides.length;
 
   const go = useCallback((next: number) => { if (n) setI(((next % n) + n) % n); }, [n]);
+
+  // Touch swipe — phones/tablets have no hover to reveal the prev/next
+  // buttons in the first place, so swipe is the primary way to change
+  // slides there. Horizontal-only: a mostly-vertical drag is the visitor
+  // scrolling the page, not trying to swipe the hero, so it's ignored.
+  const SWIPE_THRESHOLD = 40;
+  const onTouchStart = (e: ReactTouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current = { x: t.clientX, y: t.clientY };
+    setPaused(true);
+  };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    setPaused(false);
+    if (!start) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+    go(dx < 0 ? i + 1 : i - 1);
+  };
 
   // Auto-carousel always runs — reduced-motion users still get the slides
   // advancing (each slide's own poster swaps in), just without the
@@ -48,27 +71,47 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
   if (!n) return null;
   const m = slides[i];
 
+  // Art direction, not just a resize: the portrait poster that works fine
+  // on a phone-width hero reads as an oddly cropped, over-zoomed mess once
+  // the section is wide enough to be a laptop-style full-bleed banner — it
+  // needs the movie's own wide backdrop there instead, a genuinely
+  // different image. A single <Image> can only pick one `src`, so this
+  // builds a real <picture> via next/image's getImageProps() (the
+  // documented pattern for this exact case): the browser picks and
+  // downloads ONLY the source that matches, never both. 901px matches the
+  // breakpoint the rest of this section's own responsive CSS already uses
+  // (see the max-width:900px rules below) — anything narrower is where the
+  // poster crop still looks right.
+  const common = {
+    alt: `${m.title}${m.year ? ` (${m.year})` : ""} poster`,
+    sizes: "100vw",
+    priority: true,
+    className: "hero__bgimg",
+  } as const;
+  const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: backdrop(m, "w1280"), width: 1280, height: 720 });
+  const { props: { srcSet: mobileSrcSet, ...heroImgProps } } = getImageProps({ ...common, src: posterLg(m), width: 500, height: 750 });
+
   return (
     <section
       className="hero hero--slider"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
       aria-roledescription="carousel"
       aria-label="Featured titles"
     >
-      <Image
-        key={`img-${m.id}`}
-        fill
-        alt={`${m.title}${m.year ? ` (${m.year})` : ""} poster`}
-        src={posterLg(m)}
-        className="hero__bgimg"
-        sizes="100vw"
-        priority
-      />
+      <picture key={`img-${m.id}`} className="hero__pic">
+        <source media="(min-width: 901px)" srcSet={desktopSrcSet} />
+        <img {...heroImgProps} srcSet={mobileSrcSet} />
+      </picture>
       <div className="hero__scrim" />
 
       <Link className="hero__c" key={`link-${m.id}`} href={`/movie/${m.id}`}>
-        <div className="hero__t">{m.title}</div>
+        {/* The homepage otherwise has no <h1> — this rotates with the
+            slide, but the first slide (what search engines and first
+            paint both see) always renders here since `i` starts at 0. */}
+        <h1 className="hero__t">{m.title}</h1>
         <div className="hero__meta">
           <span className="hero__rate"><Icon name="star" size={12} /> {m.rating.toFixed(1)}</span>
           {m.year ? <span>{m.year}</span> : null}

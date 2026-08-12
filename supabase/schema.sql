@@ -137,6 +137,54 @@ drop policy if exists "self read admin_users" on admin_users;
 create policy "self read admin_users" on admin_users
   for select using (auth.uid() = user_id);
 
+-- =========================================================== watchlist ====
+-- Real per-account "My List", for signed-in visitors (see lib/watchlist.ts).
+-- Anonymous visitors still get the original localStorage-only watchlist —
+-- this table only comes into play once someone has a real account, at
+-- which point their local list is merged in once on first sign-in.
+create table if not exists watchlist (
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  movie_id    text not null,
+  created_at  timestamptz not null default now(),
+  primary key (user_id, movie_id)
+);
+alter table watchlist enable row level security;
+drop policy if exists "own watchlist" on watchlist;
+create policy "own watchlist" on watchlist
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ====================================================== recently_viewed ===
+-- Powers the real "Continue Watching" row for signed-in visitors — this
+-- site doesn't host playback, so there's no real "progress %" to track;
+-- what's genuinely knowable is which title pages someone actually opened,
+-- most-recent first. (Signed-out visitors keep seeing the existing
+-- admin-curated Continue Watching row — see app/page.tsx.)
+create table if not exists recently_viewed (
+  user_id     uuid not null references auth.users (id) on delete cascade,
+  movie_id    text not null,
+  viewed_at   timestamptz not null default now(),
+  primary key (user_id, movie_id)
+);
+alter table recently_viewed enable row level security;
+drop policy if exists "own recently_viewed" on recently_viewed;
+create policy "own recently_viewed" on recently_viewed
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- =========================================================== bot_state ====
+-- Single-row watermark for the Telegram auto-poster (see
+-- app/api/cron/telegram-digest/route.ts) — remembers the newest movie/blog
+-- post it has already announced, so a daily cron run only posts genuinely
+-- new items instead of re-posting the whole catalogue every time. Same
+-- singleton-row pattern as site_settings.
+create table if not exists bot_state (
+  id                     integer primary key default 1 check (id = 1),
+  last_movie_posted_at   timestamptz not null default now(),
+  last_blog_posted_at    timestamptz not null default now()
+);
+insert into bot_state (id) values (1) on conflict (id) do nothing;
+-- No RLS needed: never read from the public site, only from the cron route
+-- via the service-role key.
+
 -- ========================================================= subscribers ====
 -- Newsletter signups from the "Never miss a premiere" sidebar widget
 -- (components/NewsletterForm.tsx → POST /api/subscribers). The form was

@@ -1,34 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { clientKey, isRateLimited } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Same per-IP throttle as /api/comments — see that file for the tradeoffs
- *  (single-instance only, but a real deterrent for casual bots at zero
- *  extra infrastructure cost). */
+/** Same per-client throttle as /api/comments — see lib/rateLimit.ts for the
+ *  tradeoffs (single-instance only, but a real deterrent for casual bots
+ *  at zero extra infrastructure cost). */
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 5;
-const hits = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  if (hits.size > 5000) {
-    for (const [key, times] of hits) {
-      if (times.every((t) => now - t >= RATE_LIMIT_WINDOW_MS)) hits.delete(key);
-    }
-  }
-  return recent.length > RATE_LIMIT_MAX;
-}
-
-function clientIp(request: Request): string {
-  const fwd = request.headers.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0].trim();
-  return request.headers.get("x-real-ip") || "unknown";
-}
 
 // Deliberately simple (not RFC 5322) — this is a UX sanity check, not a
 // delivery guarantee. Bad addresses just bounce later; this only exists to
@@ -40,7 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  *  <button> with no handler, so every email typed there just vanished. */
 export async function POST(request: Request) {
   try {
-    if (isRateLimited(clientIp(request))) {
+    if (isRateLimited(clientKey(request), "subscribers", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
       return NextResponse.json({ error: "Too many attempts — please wait a minute and try again." }, { status: 429 });
     }
 
