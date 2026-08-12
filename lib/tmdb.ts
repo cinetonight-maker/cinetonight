@@ -145,6 +145,18 @@ export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | n
   };
 }
 
+/** Resolve a cast member's TMDB person id by name — for cast rows that came
+ *  from the local catalogue (or an older sync) without a stored tmdbId, so
+ *  their person page can still be filled out with real, live filmography
+ *  instead of just the 1-2 titles that happen to be in the local
+ *  catalogue. TMDB's own relevance/popularity ranking on this endpoint
+ *  means the first hit is almost always the right person for a well-known
+ *  cast credit's exact name. */
+export async function searchPersonTmdb(name: string): Promise<number | null> {
+  const data = await get<any>("/search/person", { query: name, include_adult: "false", page: 1 });
+  return data?.results?.[0]?.id ?? null;
+}
+
 /** A cast member resolved live from TMDB, for /person/tmdb-p-<id> — people
  *  who only appear in on-demand-fetched titles (fetchTitle above) aren't in
  *  the local catalogue's peopleOf() list, so app/person/[id]/page.tsx falls
@@ -154,9 +166,22 @@ export async function fetchPerson(id: string): Promise<{ name: string; character
   if (!d?.name) return null;
 
   const castCredits = (d.combined_credits?.cast ?? []) as any[];
+  // TMDB's combined_credits.cast can legitimately list the same title twice
+  // (e.g. a recurring TV role tracked as separate credit_ids, or a title
+  // that's both directed and acted in showing up once per department) —
+  // dedupe by id+media_type BEFORE slicing to 20, so the cap doesn't burn
+  // slots on repeats and callers never get two React children with the
+  // same key (movie.id is what MovieCard keys off of).
+  const seenCredit = new Set<string>();
   const credits = castCredits
     .filter((c: any) => c.media_type === "movie" || c.media_type === "tv")
     .sort((a: any, b: any) => (b.popularity ?? 0) - (a.popularity ?? 0))
+    .filter((c: any) => {
+      const key = `${c.media_type}-${c.id}`;
+      if (seenCredit.has(key)) return false;
+      seenCredit.add(key);
+      return true;
+    })
     .slice(0, 20)
     .map((c: any) => fromSearchHit({ ...c, media_type: c.media_type }))
     .filter(Boolean) as Movie[];
@@ -399,6 +424,160 @@ export async function animeTmdb(kind: MovieKind | "all" = "all", limit = 6): Pro
     })
   );
   return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
+
+/* ---------------------------------------------------------------------
+   Official TMDB list endpoints — /movie/now_playing, /movie/upcoming,
+   /movie/popular, /movie/top_rated, /tv/popular, /tv/top_rated and
+   /tv/on_the_air are TMDB's own curated/computed lists, distinct from the
+   discover approximations above (e.g. topRatedTmdb sorts *current*
+   discover results by rating; /movie/top_rated is TMDB's real all-time
+   chart). The homepage's new sections use these so "Top Rated Movies of
+   All Time" / "Now Showing" / "Upcoming" mean exactly what they say.
+   ------------------------------------------------------------------- */
+
+async function officialList(kind: MovieKind, path: string, limit: number, params: Record<string, string | number> = {}): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const [d, genres] = await Promise.all([get<any>(path, { page: 1, ...params }), genreMap(kind)]);
+  return ((d?.results ?? []) as any[])
+    .map((hit) => fromDiscoverHit(hit, kind, genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
+/** "Now Showing" — movies actually in theatres right now (TMDB /movie/now_playing). */
+export const nowPlayingTmdb = (limit = 6) => officialList("movie", "/movie/now_playing", limit);
+
+/** "Upcoming" — TMDB's /movie/upcoming window includes films released in the
+ *  last few days, so filter to strictly-future release dates: an "Upcoming"
+ *  row showing already-released titles reads as broken. Two pages fetched
+ *  because filtering can thin page 1 below the requested limit. */
+export async function upcomingTmdb(limit = 6): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const [p1, p2, genres] = await Promise.all([
+    get<any>("/movie/upcoming", { page: 1 }),
+    get<any>("/movie/upcoming", { page: 2 }),
+    genreMap("movie"),
+  ]);
+  const hits = [...(p1?.results ?? []), ...(p2?.results ?? [])] as any[];
+  const seen = new Set<number>();
+  return hits
+    .filter((h) => String(h.release_date || "") > today)
+    .filter((h) => (seen.has(h.id) ? false : (seen.add(h.id), true)))
+    .sort((a, b) => String(a.release_date).localeCompare(String(b.release_date)))
+    .map((h) => fromDiscoverHit(h, "movie", genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
+/** "Popular Movies" / "Popular TV Shows" — TMDB's own popularity chart. */
+export const popularListTmdb = (kind: MovieKind, limit = 6) =>
+  officialList(kind, kind === "series" ? "/tv/popular" : "/movie/popular", limit);
+
+/** "Top Rated ... of All Time" — TMDB's real all-time top-rated chart. */
+export const topRatedListTmdb = (kind: MovieKind, limit = 6) =>
+  officialList(kind, kind === "series" ? "/tv/top_rated" : "/movie/top_rated", limit);
+
+/** "On The Air" — shows with an episode airing in the next 7 days. */
+export const onTheAirTmdb = (limit = 6) => officialList("series", "/tv/on_the_air", limit);
+
+/** Genre rows (Thriller / Action / Animation / Kids / Crime / Western...) —
+ *  discover filtered to one genre, most-popular-first, released-only.
+ *  Genre is passed by NAME (resolved against TMDB's own per-kind genre
+ *  list, with the movie→tv alias table applied), so callers read cleanly:
+ *  genreRowTmdb("movie", "Thriller"), genreRowTmdb("series", "Kids"). */
+export async function genreRowTmdb(kind: MovieKind, genre: string, limit = 6): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const isTv = kind === "series";
+  const today = new Date().toISOString().slice(0, 10);
+  const [gid, genres] = await Promise.all([genreIdFor(kind, genre), genreMap(kind)]);
+  if (!gid) return [];
+  const params: Record<string, string | number> = {
+    sort_by: "popularity.desc",
+    include_adult: "false",
+    with_genres: gid,
+    "vote_count.gte": 20,
+    page: 1,
+  };
+  params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+  const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+  return ((d?.results ?? []) as any[])
+    .map((hit) => fromDiscoverHit(hit, kind, genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
+/** Titles currently streaming on one platform (Netflix, Prime Video,
+ *  JioHotstar, ZEE5...) — discover filtered by TMDB's watch-provider data
+ *  (sourced from JustWatch). watch_region defaults to IN since that's
+ *  where this site's audience (and JioHotstar/ZEE5/SonyLIV themselves)
+ *  are; availability genuinely differs per country, so a region is
+ *  required by the API for the filter to apply at all. */
+export async function providerTitlesTmdb(providerId: number, kind: MovieKind, limit = 18, page = 1, region = "IN"): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const isTv = kind === "series";
+  const [d, genres] = await Promise.all([
+    get<any>(isTv ? "/discover/tv" : "/discover/movie", {
+      sort_by: "popularity.desc",
+      include_adult: "false",
+      with_watch_providers: providerId,
+      watch_region: region,
+      page: Math.max(1, page),
+    }),
+    genreMap(kind),
+  ]);
+  return ((d?.results ?? []) as any[])
+    .map((hit) => fromDiscoverHit(hit, kind, genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
+/* ---------------------------------------------------------------------
+   Seasons & episodes — powers the season/episode picker on a series'
+   detail page. Episode-level trailers are sparse on TMDB, so the trailer
+   lookup falls back episode → season → show before giving up.
+   ------------------------------------------------------------------- */
+
+export interface SeasonInfo { season: number; name: string; episodeCount: number; year: number | null }
+export interface EpisodeInfo { episode: number; name: string; overview: string; stillPath: string | null; airDate: string; runtime: number | null }
+
+/** Real seasons for a show (specials/"Season 0" excluded — they're mostly
+ *  behind-the-scenes reels and would confuse the picker). */
+export async function fetchSeasons(id: string | number): Promise<SeasonInfo[]> {
+  const d = await get<any>(`/tv/${id}`);
+  return ((d?.seasons ?? []) as any[])
+    .filter((s) => (s.season_number ?? 0) > 0 && (s.episode_count ?? 0) > 0)
+    .map((s) => ({
+      season: s.season_number,
+      name: s.name || `Season ${s.season_number}`,
+      episodeCount: s.episode_count ?? 0,
+      year: s.air_date ? Number(String(s.air_date).slice(0, 4)) || null : null,
+    }));
+}
+
+export async function fetchSeasonEpisodes(id: string | number, season: number): Promise<EpisodeInfo[]> {
+  const d = await get<any>(`/tv/${id}/season/${season}`);
+  return ((d?.episodes ?? []) as any[]).map((e) => ({
+    episode: e.episode_number,
+    name: e.name || `Episode ${e.episode_number}`,
+    overview: e.overview || "",
+    stillPath: e.still_path || null,
+    airDate: String(e.air_date || ""),
+    runtime: e.runtime ?? null,
+  }));
+}
+
+/** Best available video for one episode: the episode's own trailer/teaser
+ *  first, then the season's, then the show's main trailer. */
+export async function episodeTrailerTmdb(id: string | number, season: number, episode: number): Promise<string | null> {
+  const ep = await get<any>(`/tv/${id}/season/${season}/episode/${episode}/videos`);
+  const epKey = ep?.results ? pickTrailer(ep.results) : null;
+  if (epKey) return epKey;
+  const se = await get<any>(`/tv/${id}/season/${season}/videos`);
+  const seKey = se?.results ? pickTrailer(se.results) : null;
+  if (seKey) return seKey;
+  return trailerFor("series", String(id));
 }
 
 /* ---------------------------------------------------------------------

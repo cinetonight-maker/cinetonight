@@ -3,75 +3,21 @@ import Hero from "@/components/Hero";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
 import BigCard from "@/components/BigCard";
-import ContinueWatching from "@/components/ContinueWatching";
+import ChannelCard from "@/components/ChannelCard";
 import BlogSection from "@/components/BlogSection";
 import NewSinceLastVisit from "@/components/NewSinceLastVisit";
 import MoodRoulette from "@/components/MoodRoulette";
 import { PosterWidget, GenresWidget, NewsWidget } from "@/components/RightRail";
-import { getMovies, getSiteConfig, resolveRow, byIds, trendingNow, topRated } from "@/lib/data";
+import { getMovies, getSiteConfig, resolveRow, byIds, trendingNow, topRated, recentlyAdded } from "@/lib/data";
+import { CHANNELS } from "@/lib/channels";
 import {
   latestReleasesTmdb, trendingLiveTmdb, topRatedTmdb, hollywoodTmdb, bollywoodTmdb,
   koreanTmdb, chineseTmdb, animeTmdb, teluguTmdb, tmdbConfigured,
-  parseTmdbId, fetchTitle,
+  nowPlayingTmdb, upcomingTmdb, popularListTmdb, topRatedListTmdb, onTheAirTmdb, genreRowTmdb,
 } from "@/lib/tmdb";
-import { supabaseServer } from "@/lib/supabase/server";
-import type { Movie, RowConfig, ContinueItem } from "@/lib/types";
+import type { Movie, RowConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-
-function relativeTime(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.round(diffMs / 60_000);
-  if (mins < 60) return mins <= 1 ? "Just now" : `${mins} min ago`;
-  const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return days === 1 ? "Yesterday" : `${days}d ago`;
-}
-
-/** Real "Continue Watching" for signed-in visitors, sourced from the
- *  `recently_viewed` table each movie page writes to (see
- *  app/movie/[id]/page.tsx). Returns null for signed-out visitors or if
- *  Supabase isn't reachable, so the caller can fall back to the original
- *  admin-curated row — nobody sees an empty homepage. Ids that point at a
- *  live-TMDB title (not in the curated `movies` catalogue) get resolved
- *  individually so they still render instead of silently vanishing. */
-async function getRecentlyViewed(movies: Movie[]): Promise<{ items: ContinueItem[]; extra: Movie[] } | null> {
-  try {
-    const supabase = await supabaseServer();
-    if (!supabase) return null;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data, error } = await supabase
-      .from("recently_viewed")
-      .select("movie_id, viewed_at")
-      .eq("user_id", user.id)
-      .order("viewed_at", { ascending: false })
-      .limit(8);
-    if (error || !data) return null;
-
-    const localIds = new Set(movies.map((m) => m.id));
-    const missing = data.filter((r) => !localIds.has(r.movie_id as string));
-    const extra = (
-      await Promise.all(
-        missing.map((r) => {
-          const parsed = parseTmdbId(r.movie_id as string);
-          return parsed ? fetchTitle(parsed.kind, parsed.id) : Promise.resolve(null);
-        })
-      )
-    ).filter((x): x is Movie => Boolean(x));
-
-    const items: ContinueItem[] = data.map((r) => ({
-      id: r.movie_id as string,
-      progress: 0,
-      note: relativeTime(r.viewed_at as string),
-    }));
-    return { items, extra };
-  } catch {
-    return null;
-  }
-}
 
 /** "live" rows pull from TMDB in real time — an unrestricted global mix
  *  (Hollywood + Bollywood + everything else) unless the row specifically
@@ -95,20 +41,66 @@ async function itemsFor(row: RowConfig, movies: Movie[]): Promise<Movie[]> {
   return resolveRow(row, movies);
 }
 
+const noMovies = Promise.resolve([] as Movie[]);
+
 export default async function HomePage() {
-  const ViewAll = <Link className="sec__all" href="/movies">View All</Link>;
   const [movies, site] = await Promise.all([getMovies(), getSiteConfig()]);
-  const rows = await Promise.all(site.rows.map(async (row) => ({ row, items: await itemsFor(row, movies) })));
-  const [railTrending, railTop, recentlyViewed] = await Promise.all([
-    tmdbConfigured ? trendingLiveTmdb("all", 4) : Promise.resolve([]),
-    tmdbConfigured ? topRatedTmdb("all", 4) : Promise.resolve([]),
-    getRecentlyViewed(movies),
+  const live = tmdbConfigured;
+
+  // Every live section fetched in ONE parallel wave (each call is cached
+  // 6h server-side — see lib/tmdb.ts `get()` — so steady-state renders hit
+  // TMDB rarely). Sections whose fetch comes back empty simply don't
+  // render, so a TMDB hiccup degrades to a shorter page, never a broken one.
+  const [
+    recentMovies, recentShows,
+    nowShowing, top10Movies, upcoming, popularMovies, topRatedMovies,
+    onAir, top10Shows,
+    thrillerMovies, actionMovies, topRatedShows, popularShows,
+    animationMovies, kidsShows, crimeShows, westernShows,
+    railTrending, railTop,
+  ] = await Promise.all([
+    recentlyAdded("movie", 8), recentlyAdded("series", 8),
+    live ? nowPlayingTmdb(10) : noMovies,
+    live ? trendingLiveTmdb("movie", 10) : noMovies,
+    live ? upcomingTmdb(8) : noMovies,
+    live ? popularListTmdb("movie", 10) : noMovies,
+    live ? topRatedListTmdb("movie", 10) : noMovies,
+    live ? onTheAirTmdb(10) : noMovies,
+    live ? trendingLiveTmdb("series", 10) : noMovies,
+    live ? genreRowTmdb("movie", "Thriller", 10) : noMovies,
+    live ? genreRowTmdb("movie", "Action", 10) : noMovies,
+    live ? topRatedListTmdb("series", 10) : noMovies,
+    live ? popularListTmdb("series", 10) : noMovies,
+    live ? genreRowTmdb("movie", "Animation", 10) : noMovies,
+    live ? genreRowTmdb("series", "Kids", 10) : noMovies,
+    live ? genreRowTmdb("series", "Crime", 10) : noMovies,
+    live ? genreRowTmdb("series", "Western", 10) : noMovies,
+    live ? trendingLiveTmdb("all", 4) : noMovies,
+    live ? topRatedTmdb("all", 4) : noMovies,
   ]);
+  const rows = await Promise.all(site.rows.map(async (row) => ({ row, items: await itemsFor(row, movies) })));
+
   // Top-of-catalogue slice (already newest-first — see getMovies()'s
   // order-by-year query) used purely as a "what's new" fingerprint for
   // NewSinceLastVisit below; nothing else on the page depends on this.
   const latestIds = movies.slice(0, 12).map((m) => m.id);
   const latestTitles = Object.fromEntries(movies.slice(0, 12).map((m) => [m.id, m.title]));
+
+  const allMovies = <Link className="sec__all" href="/movies">View All</Link>;
+  const allShows = <Link className="sec__all" href="/tv-shows">View All</Link>;
+  const allTrending = <Link className="sec__all" href="/trending">View All</Link>;
+
+  /** Plain rail of MovieCards — the workhorse for most sections below. */
+  const rail = (
+    key: string, title: string, sub: string, items: Movie[],
+    opts: { ranked?: boolean; badge?: string; all?: React.ReactNode } = {},
+  ) => items.length > 0 && (
+    <Row key={key} title={title} sub={sub} all={opts.all ?? allMovies}>
+      {items.map((m, i) => (
+        <MovieCard key={m.id} movie={m} rank={opts.ranked ? i + 1 : undefined} badge={opts.badge} />
+      ))}
+    </Row>
+  );
 
   return (
     <div className="page">
@@ -118,26 +110,44 @@ export default async function HomePage() {
         <div className="pagemain">
           <MoodRoulette movies={movies} />
 
-          {recentlyViewed ? (
-            <ContinueWatching
-              title="Continue Watching"
-              items={recentlyViewed.items}
-              movies={recentlyViewed.extra.length ? [...movies, ...recentlyViewed.extra] : movies}
-            />
-          ) : (
-            <ContinueWatching items={site.continueWatching} movies={movies} />
-          )}
+          {/* 1 · Channels — the old Editor's Picks slot (same wide-card
+                rail), now selling platforms instead of individual titles. */}
+          <Row title="Popular" sub="Movie channels — pick a platform, see what's streaming on it">
+            {CHANNELS.map((c) => <ChannelCard key={c.slug} channel={c} />)}
+          </Row>
 
-          {topRated(movies, 6).length > 0 && (
-            <Row title="Editor's Picks" all={ViewAll}>
-              {topRated(movies, 6).map((m) => <BigCard key={m.id} movie={m} eyebrow="Top Rated" />)}
+          {/* 2–3 · Editor-curated: newest catalogue additions, by created-at
+                (never auto-updates — only changes when the editor adds titles). */}
+          {rail("recent-movies", "Recently Added Movies", "Fresh movies hand-picked and added by our editors", recentMovies, { badge: "NEW" })}
+          {rail("recent-shows", "Recently Added Shows", "The latest web series & TV shows added by our editors", recentShows, { badge: "NEW", all: allShows })}
+
+          {/* 4–8 · Live movie blocks. */}
+          {rail("now-showing", "Now Showing", "Movies playing in theatres right now", nowShowing)}
+          {rail("top10-movies", "Top 10 Movies in the World Today", "The most-watched movies across the globe, updated daily", top10Movies.slice(0, 10), { ranked: true, all: allTrending })}
+
+          {/* 5 · Upcoming keeps the wide "editor's pick" card style. */}
+          {upcoming.length > 0 && (
+            <Row title="Upcoming" sub="Upcoming movies hitting theatres soon — watch the trailers first" all={allMovies}>
+              {upcoming.map((m) => <BigCard key={m.id} movie={m} eyebrow="Coming Soon" />)}
             </Row>
           )}
 
+          {rail("popular-movies", "Popular Movies", "Popular movies streaming now, straight from the global charts", popularMovies)}
+          {rail("toprated-movies", "Top Rated Movies", "The highest-rated movies of all time", topRatedMovies)}
+
+          {/* 9–12 · Live TV blocks. */}
+          {rail("on-air", "On The Air", "New episodes recently aired & airing this week", onAir, { all: allShows })}
+          {rail("top10-shows", "Top 10 TV Shows in the World Today", "The most-watched shows across the globe, updated daily", top10Shows.slice(0, 10), { ranked: true, all: allShows })}
+          {rail("popular-shows", "Popular TV Shows", "The shows everyone is streaming right now", popularShows, { all: allShows })}
+          {rail("toprated-shows", "Top Rated TV Shows", "The highest-rated series of all time", topRatedShows, { all: allShows })}
+
+          {/* 13+ · The dashboard-managed rows (Latest, Trending This Week,
+                K-Drama, Hollywood, Bollywood, Telugu, Anime, C-Drama, …) —
+                kept exactly as configured in /admin. */}
           {rows.map(({ row, items }) => {
             if (!items.length) return null;
             return (
-              <Row key={row.id} title={row.title} all={ViewAll}>
+              <Row key={row.id} title={row.title} all={allMovies}>
                 {items.map((m, i) => (
                   <MovieCard
                     key={m.id}
@@ -149,6 +159,15 @@ export default async function HomePage() {
               </Row>
             );
           })}
+
+          {/* Genre deep-cuts — movies first, then TV, ending on niche
+                rows so the page finishes with discovery, not repetition. */}
+          {rail("thriller", "Thriller Movies", "Edge-of-your-seat thrillers trending now", thrillerMovies)}
+          {rail("action", "Action Movies", "Big, loud & spectacular — the most popular action films", actionMovies)}
+          {rail("animation", "Animation Movies", "Animated features for every age", animationMovies)}
+          {rail("kids-tv", "Kids TV Shows", "Family-friendly shows the kids will love", kidsShows, { all: allShows })}
+          {rail("crime-tv", "Crime TV Shows", "Heists, detectives & underworld drama", crimeShows, { all: allShows })}
+          {rail("western-tv", "Western TV Shows", "Frontier tales & modern westerns", westernShows, { all: allShows })}
         </div>
         <aside className="pageaside">
           <PosterWidget title="Trending Now" movies={railTrending.length ? railTrending : trendingNow(movies, 4)} href="/trending" />

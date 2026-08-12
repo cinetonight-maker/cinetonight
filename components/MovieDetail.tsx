@@ -7,9 +7,10 @@ import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
 import type { Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
-import { personTmdbId } from "@/lib/tmdb";
+import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
 import PlatformStrip from "./PlatformStrip";
+import EpisodePicker from "./EpisodePicker";
 
 // Where-to-Watch used to list five platforms side by side — five identical,
 // low-contrast options split a visitor's attention and none of them stood
@@ -23,7 +24,7 @@ function Det({ rows }: { rows: [string, string][] }) {
   ))}</>;
 }
 
-export default function MovieDetail({ movie }: { movie: Movie }) {
+export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; seasons?: SeasonInfo[] }) {
   const stars = movie.cast.slice(0, 3).map((c) => c.name).join(", ") || "—";
   const isSeries = movie.kind === "series";
 
@@ -79,6 +80,19 @@ export default function MovieDetail({ movie }: { movie: Movie }) {
         <PlatformStrip movie={movie} name={FEATURED_PLATFORM[0]} desc={FEATURED_PLATFORM[1]} color={FEATURED_PLATFORM[2]} />
         <div className="plat-note">Availability may vary by region and platform.</div>
       </section>
+
+      {/* Series only: pick a season → tap an episode → its trailer plays.
+          seasons is fetched server-side (app/movie/[id]/page.tsx) and is
+          [] for films and for series TMDB doesn't know, so this renders
+          nothing in those cases. */}
+      {isSeries && movie.tmdbId != null && seasons.length > 0 && (
+        <EpisodePicker
+          tvId={movie.tmdbId}
+          showTitle={movie.title}
+          seasons={seasons}
+          fallbackTrailerKey={movie.trailerKey ?? null}
+        />
+      )}
 
       <section className="sec">
         <div className="sec__head"><h2>Cast</h2></div>

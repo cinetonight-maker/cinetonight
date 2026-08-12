@@ -106,6 +106,27 @@ export function resolveRow(row: RowConfig, movies: Movie[]): Movie[] {
   return list.slice(0, rule.limit ?? 6);
 }
 
+/** "Recently Added" — the newest titles the editor has actually put into
+ *  the catalogue (dashboard adds / sync runs), ordered by when the row was
+ *  CREATED in Supabase, not by release year. getMovies() orders by year,
+ *  which answers "what's newest in cinema" — this answers "what did the
+ *  editor add most recently", which is a deliberately manual, human-curated
+ *  list (it only changes when the catalogue does, never auto-updates from
+ *  TMDB). Falls back to bundled-snapshot order if Supabase is unreachable. */
+export const recentlyAdded = cache(async (kind: Movie["kind"], n = 6): Promise<Movie[]> => {
+  const sb = supabasePublic();
+  if (sb) {
+    const { data, error } = await sb
+      .from("movies")
+      .select("*")
+      .eq("kind", kind)
+      .order("created_at", { ascending: false })
+      .limit(n);
+    if (!error && data && data.length > 0) return data.map(movieFromRow);
+  }
+  return FALLBACK_MOVIES.filter((m) => m.kind === kind).slice(0, n);
+});
+
 export const genresOf = (movies: Movie[]): string[] => Array.from(new Set(movies.flatMap((m) => m.genres))).sort();
 export const topRated = (movies: Movie[], n = 4) => movies.slice().sort((a, b) => b.rating - a.rating).slice(0, n);
 export const trendingNow = (movies: Movie[], n = 5) => movies.slice().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, n);

@@ -12,9 +12,10 @@ const SOCIAL: [string, string, string][] = [
 ];
 
 // Static fallbacks — used until you add real links in Dashboard → Menus & Footer,
-// and always used if Supabase isn't configured yet.
-const FALLBACK_SUPPORT: [string, string][] = [["Help Center", "#"], ["Contact Us", "#"], ["DMCA", "#"]];
-const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "#"], ["Privacy Policy", "#"], ["Refund Policy", "#"]];
+// and always used if Supabase isn't configured yet. Terms/Privacy point at
+// the real /p/ pages seeded by scripts/seed-legal-pages.mjs; Refund Policy
+// has no page yet, so it stays a placeholder until one's written.
+const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "/p/terms-of-service"], ["Privacy Policy", "/p/privacy-policy"], ["Refund Policy", "#"]];
 
 type NavLink = { label: string; url: string; is_external: boolean };
 
@@ -35,7 +36,17 @@ async function getFooterLinks() {
 
 export default async function Footer() {
   const [links, settings] = await Promise.all([getFooterLinks(), getSiteSettings()]);
-  const support = links?.support?.length ? links.support.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_SUPPORT;
+  // "Contact Us" now points at the real Contact page (seeded by
+  // scripts/seed-legal-pages.mjs) instead of a raw mailto — falls back to
+  // mailto if Settings → Contact email is set but the page hasn't been
+  // seeded yet, and to "#" if neither exists (still overridden by a real
+  // nav_link if one's been added under Menus & Footer).
+  const fallbackSupport: [string, string][] = [
+    ["Help Center", "#"],
+    ["Contact Us", "/p/contact"],
+    ["DMCA", "#"],
+  ];
+  const support = links?.support?.length ? links.support.map((l) => [l.label, l.url] as [string, string]) : fallbackSupport;
   const legal = links?.legal?.length ? links.legal.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_LEGAL;
   const social = SOCIAL.map(([key, icon, bg]) => [icon, bg, settings.social[key]] as const).filter(([, , url]) => !!url);
 
@@ -49,7 +60,7 @@ export default async function Footer() {
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link>
+          <Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/p/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>

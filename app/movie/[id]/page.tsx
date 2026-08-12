@@ -3,31 +3,10 @@ import type { Metadata } from "next";
 import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovies, trendingNow, newestSeries } from "@/lib/data";
-import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { posterLg } from "@/lib/images";
-import { supabaseServer } from "@/lib/supabase/server";
 import type { Movie } from "@/lib/types";
-
-/** Powers the real "Continue Watching" row for signed-in visitors (see
- *  app/page.tsx) — this site doesn't host playback, so a title page visit
- *  is the honest signal of "this person looked at this movie." Best-effort:
- *  a signed-out visitor or a Supabase hiccup just means nothing gets
- *  recorded, never a broken page. */
-async function recordView(movieId: string) {
-  try {
-    const supabase = await supabaseServer();
-    if (!supabase) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase.from("recently_viewed").upsert(
-      { user_id: user.id, movie_id: movieId, viewed_at: new Date().toISOString() },
-      { onConflict: "user_id,movie_id" }
-    );
-  } catch {
-    // Never let view-tracking break the page.
-  }
-}
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
@@ -81,10 +60,6 @@ export default async function MoviePage({ params }: Params) {
   const m = await resolve(id, movies);
   if (!m) notFound();
 
-  // No-op for signed-out visitors; upserts a "last viewed" row for
-  // signed-in ones. See recordView() above for why.
-  await recordView(m.id);
-
   // Related: genuine TMDB recommendations for fetched titles. "Featured" is a
   // live trending/latest fill-in either way, falling back to the local
   // catalogue only if TMDB is unreachable/unconfigured.
@@ -102,6 +77,13 @@ export default async function MoviePage({ params }: Params) {
     featured = (liveFeatured.length ? liveFeatured : newestSeries(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
   }
   if (!featured.length) featured = newestSeries(movies, 4).filter((x) => x.id !== m.id);
+
+  // Series only: real season/episode structure for the episode picker.
+  // Wrapped so a TMDB hiccup degrades to "no picker", never a 500.
+  let seasons: SeasonInfo[] = [];
+  if (m.kind === "series" && m.tmdbId != null && tmdbConfigured) {
+    try { seasons = await fetchSeasons(m.tmdbId); } catch { seasons = []; }
+  }
 
   // Structured data (schema.org/Movie) — this is what makes Google eligible
   // to show a "Rich Result" card (poster thumbnail + star rating right in
@@ -138,7 +120,7 @@ export default async function MoviePage({ params }: Params) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
       <div className="pagerow">
-        <div className="pagemain"><MovieDetail movie={m} /></div>
+        <div className="pagemain"><MovieDetail movie={m} seasons={seasons} /></div>
         <aside className="pageaside">
           {related.length > 0 && <PosterWidget title="Related Movies" movies={related} href="/trending" />}
           {featured.length > 0 && <PosterWidget title="Featured" movies={featured} href="/web-series" />}

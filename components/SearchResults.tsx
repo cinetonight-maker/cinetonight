@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import MovieCard from "./MovieCard";
 import BigCard from "./BigCard";
-import Icon from "./Icon";
+import SearchBox from "./SearchBox";
 import type { Movie } from "@/lib/types";
 
 type State = { loading: boolean; results: Movie[]; source: string; error: string | null };
@@ -13,23 +13,8 @@ type State = { loading: boolean; results: Movie[]; source: string; error: string
 export default function SearchResults({
   trendingMovie = null, trendingSeries = null, genres = [],
 }: { trendingMovie?: Movie | null; trendingSeries?: Movie | null; genres?: string[] }) {
-  const router = useRouter();
   const q = (useSearchParams().get("q") ?? "").trim();
-  // This page's own search box — the header's search form works fine, but
-  // this page rendered no input of its own, so anyone who landed here
-  // directly (or cleared the query) had no way to search from the page
-  // itself. Kept in sync with the URL's ?q= so back/forward and links here
-  // still reflect the box correctly.
-  const [term, setTerm] = useState(q);
   const [s, setS] = useState<State>({ loading: false, results: [], source: "", error: null });
-
-  useEffect(() => { setTerm(q); }, [q]);
-
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const v = term.trim();
-    router.push(v ? `/search?q=${encodeURIComponent(v)}` : "/search");
-  }
 
   useEffect(() => {
     if (!q) { setS({ loading: false, results: [], source: "", error: null }); return; }
@@ -54,22 +39,7 @@ export default function SearchResults({
     <>
       <div className="page__head">
         <h1>{q ? `Results for “${q}”` : "Search"}</h1>
-        <form className="pagesearch" onSubmit={onSubmit} role="search">
-          <Icon name="search" size={16} />
-          <input
-            placeholder="Search movies, web series, anime…"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            aria-label="Search movies and shows"
-            autoFocus
-          />
-          {term && (
-            <button type="button" className="pagesearch__clear" aria-label="Clear search" onClick={() => { setTerm(""); router.push("/search"); }}>
-              <Icon name="x" size={14} />
-            </button>
-          )}
-          <button className="pagesearch__go" type="submit" aria-label="Search"><Icon name="search" size={14} /></button>
-        </form>
+        <SearchBox variant="page" placeholder="Search movies, web series, anime…" initialValue={q} autoFocus />
         <p>{sub}</p>
       </div>
 

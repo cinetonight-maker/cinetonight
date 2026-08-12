@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getMovies, getBlogs, genresOf, peopleOf, personId } from "@/lib/data";
+import { CHANNELS } from "@/lib/channels";
 import { trendingLiveTmdb, latestReleasesTmdb, topRatedTmdb, tmdbConfigured } from "@/lib/tmdb";
 import { baseUrl } from "@/lib/site";
 
@@ -67,6 +68,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/pricing", priority: 0.4 },
   ].map(({ path, priority }) => ({ url: `${base}${path}`, lastModified: now, changeFrequency: "daily" as const, priority }));
 
+  // Channel pages ("what's streaming on Netflix/Prime/JioHotstar/..." )
+  // refresh from live TMDB data on every visit, so daily is honest.
+  const channelRoutes: MetadataRoute.Sitemap = CHANNELS.map((c) => ({
+    url: `${base}/channel/${c.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7,
+  }));
+
   const movieRoutes: MetadataRoute.Sitemap = movies.map((m) => ({
     url: `${base}/movie/${m.id}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8,
   }));
@@ -91,5 +98,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}/person/${personId(p.name)}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
   }));
 
-  return [...staticRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
+  return [...staticRoutes, ...channelRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
 }

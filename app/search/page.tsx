@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import SearchResults from "@/components/SearchResults";
 import { TrendingWidget, NewsWidget } from "@/components/RightRail";
 import { getMovies, genresOf, trendingNow } from "@/lib/data";
+import { trendingLiveTmdb, tmdbConfigured } from "@/lib/tmdb";
 
 // Internal search-results pages are near-infinite query-string variations
 // of thin/duplicate content — Google's own guidance is to keep these out of
@@ -19,9 +20,19 @@ export default async function Page() {
   // discovery pattern competitors' search tabs use, instead of a blank
   // "type to search" screen. Just the #1 trending movie + #1 trending show
   // as spotlight cards (not a whole grid) — matches the reference layout.
-  const movies = await getMovies();
-  const trendingMovie = trendingNow(movies.filter((m) => m.kind === "movie"), 1)[0] ?? null;
-  const trendingSeries = trendingNow(movies.filter((m) => m.kind === "series"), 1)[0] ?? null;
+  //
+  // These used to be sorted by the local catalogue's `votes` field, which
+  // is static — it never changes on its own, so the same two titles sat
+  // here indefinitely. Pulled from the real TMDB /trending endpoint now
+  // (same fix as the homepage/‌/trending page), same as the rest of the
+  // site; falls back to the local sort only if TMDB is unreachable.
+  const [movies, liveMovieTrending, liveSeriesTrending] = await Promise.all([
+    getMovies(),
+    tmdbConfigured ? trendingLiveTmdb("movie", 1) : Promise.resolve([]),
+    tmdbConfigured ? trendingLiveTmdb("series", 1) : Promise.resolve([]),
+  ]);
+  const trendingMovie = liveMovieTrending[0] ?? trendingNow(movies.filter((m) => m.kind === "movie"), 1)[0] ?? null;
+  const trendingSeries = liveSeriesTrending[0] ?? trendingNow(movies.filter((m) => m.kind === "series"), 1)[0] ?? null;
   const genres = genresOf(movies).slice(0, 12);
 
   return (

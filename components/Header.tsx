@@ -1,19 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Icon from "./Icon";
+import SearchBox from "./SearchBox";
 import { useWatchlist } from "@/lib/watchlist";
 import { useAuth } from "@/lib/auth";
 import { NAV } from "./Sidebar";
 
 export default function Header() {
-  const router = useRouter();
   const pathname = usePathname();
   const { count } = useWatchlist();
   const { user } = useAuth();
-  const [q, setQ] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
@@ -25,13 +24,6 @@ export default function Header() {
   // Close the drawer on any route change (e.g. back/forward navigation),
   // not just clicks on its own links.
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
-
-  function onSearch(e: FormEvent) {
-    e.preventDefault();
-    const v = q.trim();
-    setDrawerOpen(false);
-    router.push(v ? `/search?q=${encodeURIComponent(v)}` : "/search");
-  }
 
   return (
     <>
@@ -60,10 +52,7 @@ export default function Header() {
           <Link key={n.href} className={active(n.href) ? "on" : undefined} href={n.href}>{n.label}</Link>
         ))}
       </nav>
-      <form className="search" onSubmit={onSearch}>
-        <input placeholder="Search movies, web series..." value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
-        <button className="sb" type="submit" aria-label="Search"><Icon name="search" size={14} /></button>
-      </form>
+      <SearchBox onNavigate={() => setDrawerOpen(false)} />
       <Link className="premium-mini" href="/pricing" aria-label="Go Premium">
         <Icon name="crown" size={14} /><span>Premium</span>
       </Link>
