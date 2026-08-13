@@ -60,7 +60,7 @@ export default async function Footer() {
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/p/about-us">About</Link>
+          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/p/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>

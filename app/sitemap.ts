@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getMovies, getBlogs, genresOf, peopleOf, personId } from "@/lib/data";
 import { CHANNELS } from "@/lib/channels";
+import { getClassics } from "@/lib/classics";
 import { trendingLiveTmdb, latestReleasesTmdb, topRatedTmdb, tmdbConfigured } from "@/lib/tmdb";
 import { baseUrl } from "@/lib/site";
 
@@ -74,6 +75,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}/channel/${c.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7,
   }));
 
+  // Free Classics — the landing page plus every published watch page.
+  const classicsList = await getClassics();
+  const classicsRoutes: MetadataRoute.Sitemap = [
+    { url: `${base}/free-movies`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },
+    ...classicsList.map((c) => ({
+      url: `${base}/free-movies/${c.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.6,
+    })),
+  ];
+
   const movieRoutes: MetadataRoute.Sitemap = movies.map((m) => ({
     url: `${base}/movie/${m.id}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8,
   }));
@@ -98,5 +108,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}/person/${personId(p.name)}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
   }));
 
-  return [...staticRoutes, ...channelRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
+  return [...staticRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
 }

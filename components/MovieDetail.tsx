@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
-import PlayButton from "./PlayButton";
+import WatchlistButton from "./WatchlistButton";
 import TicketStub from "./TicketStub";
 import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
@@ -9,14 +9,9 @@ import type { Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
-import PlatformStrip from "./PlatformStrip";
+import InlineTrailer from "./InlineTrailer";
+import WhereToWatch from "./WhereToWatch";
 import EpisodePicker from "./EpisodePicker";
-
-// Where-to-Watch used to list five platforms side by side — five identical,
-// low-contrast options split a visitor's attention and none of them stood
-// out enough to click. This is affiliate space, so it works better as one
-// single, unmissable, best-of-breed strip than a wall of equal choices.
-const FEATURED_PLATFORM: [string, string, string] = ["Netflix", "Stream instantly in HD — no ads, no waiting", "#e50914"];
 
 function Det({ rows }: { rows: [string, string][] }) {
   return <>{rows.map(([k, v]) => (
@@ -30,7 +25,7 @@ export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; sea
 
   const minfo: [string, string][][] = [
     [["Release Year", String(movie.year)], ["Runtime", movie.runtime], ["Language", movie.language], ["Certification", movie.cert]],
-    [["Genres", movie.genres.join(", ") || "—"], ["Country", "India"], ["Director", movie.director], ["Writers", movie.writers]],
+    [["Genres", movie.genres.join(", ") || "—"], ["Votes", movie.votes ? movie.votes.toLocaleString("en-US") : "—"], ["Director", movie.director], ["Writers", movie.writers]],
     [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", `${movie.rating.toFixed(1)} / 10`], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
   ];
   const about = [
@@ -41,44 +36,43 @@ export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; sea
 
   return (
     <>
-      <div className="crumb">
-        <Link href="/">Home</Link><span className="sep">›</span>
-        <Link href={isSeries ? "/web-series" : "/movies"}>{isSeries ? "Web Series" : "Movies"}</Link><span className="sep">›</span>
-        <span className="cur">{movie.title}</span>
-      </div>
+      {/* Inline trailer banner — plays IN PLACE at the top of the page
+          (reference-mock pattern), no fullscreen modal takeover. */}
+      <InlineTrailer movie={movie} />
 
-      <section className="dhero">
-        <div className="dposter">
-          <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 40vw, 300px" priority />
+      {/* Compact reference-style detail bar under the trailer: small
+          poster, title + genre chips + one meta line, actions to the
+          right. The long synopsis lives in "About" further down — this
+          block's job is identification + actions, in as little vertical
+          space as possible. */}
+      <section className="dbar">
+        <div className="dbar__poster">
+          <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 30vw, 120px" priority />
         </div>
-        <div>
-          <h1 className="dtitle">{movie.title}</h1>
-          <div className="dmeta">
-            <span>{movie.year}</span><span>•</span><span>{movie.runtime}</span><span>•</span>
-            {movie.genres.length > 0 && <><span>{movie.genres.join(", ")}</span><span>•</span></>}<span className="cert">{movie.cert}</span>
+        <div className="dbar__body">
+          <h1 className="dbar__title">{movie.title}</h1>
+          <div className="dbar__chips">
+            {movie.genres.slice(0, 3).map((g) => (
+              <Link key={g} className="dbar__chip" href={`/movies?genre=${encodeURIComponent(g)}`}>{g}</Link>
+            ))}
           </div>
-          <div className="drate">
-            <div className="drate__n"><Icon name="star" size={16} /> {movie.rating.toFixed(1)}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="imdb-badge">IMDb</span><span className="votes">User rating</span>
-            </div>
-            <div className="score">User Score <div className="ring"><span>{Math.round(movie.rating * 10)}%</span></div></div>
+          <div className="dbar__meta">
+            <span className="dbar__rate"><Icon name="star" size={13} /> {movie.rating.toFixed(1)}</span>
+            <span className="dot">·</span><span>{movie.year}</span>
+            <span className="dot">·</span><span>{movie.runtime}</span>
+            {movie.cert && movie.cert !== "NR" && <><span className="dot">·</span><span className="cert">{movie.cert}</span></>}
           </div>
-          <p className="dsyn">{movie.desc}</p>
-          <div className="dbtns">
-            {/* This site doesn't host playback — Watch Now opens the real
-                trailer instead of a fake "no trailer available" sample clip,
-                so the button's behavior always matches what it promises. */}
-            <PlayButton movie={movie} mode="trailer" />
-            <TicketStub movie={movie} />
-          </div>
+        </div>
+        <div className="dbar__acts">
+          {/* No Watch Now button here — the inline trailer right above IS
+              the play action; a second play button was redundant. */}
+          <WatchlistButton id={movie.id} />
+          <TicketStub movie={movie} />
         </div>
       </section>
 
       <section className="sec">
-        <div className="sec__head"><h2>Where to Watch</h2></div>
-        <PlatformStrip movie={movie} name={FEATURED_PLATFORM[0]} desc={FEATURED_PLATFORM[1]} color={FEATURED_PLATFORM[2]} />
-        <div className="plat-note">Availability may vary by region and platform.</div>
+        <WhereToWatch movie={movie} />
       </section>
 
       {/* Series only: pick a season → tap an episode → its trailer plays.

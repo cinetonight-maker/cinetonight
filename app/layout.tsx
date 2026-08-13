@@ -73,8 +73,15 @@ export const viewport: Viewport = { themeColor: "#0a0a12" };
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSiteSettings();
   return (
-    <html lang="en" className={`${inter.variable} ${poppins.variable}`}>
-      <body>
+    // suppressHydrationWarning on <html> AND <body>: browser extensions
+    // (ColorZilla, Grammarly, password managers, extension launchers...)
+    // inject attributes like cz-shortcut-listen / crxlauncher into both
+    // elements before React hydrates, which triggers a scary-but-harmless
+    // hydration warning in dev. This silences attribute mismatches on these
+    // two elements ONLY — children still get full hydration checking, so
+    // real bugs elsewhere are still caught.
+    <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AuthProvider>
           <MaintenanceGate active={settings.maintenanceMode}>
             <Header />

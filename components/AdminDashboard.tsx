@@ -7,12 +7,13 @@ import type { Movie, SiteConfig, RowConfig } from "@/lib/types";
 import { poster } from "@/lib/images";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-type Tab = "hero" | "rows" | "blog" | "catalogue" | "pages" | "menus" | "media" | "settings" | "comments";
+type Tab = "hero" | "rows" | "blog" | "catalogue" | "classics" | "pages" | "menus" | "media" | "settings" | "comments";
 const TABS: [Tab, string, string][] = [
   ["hero", "Hero Slides", "sparkle"],
   ["rows", "Home Rows", "grid"],
   ["blog", "Blog Posts", "article"],
   ["catalogue", "Catalogue", "film"],
+  ["classics", "Free Movies", "playc"],
   ["pages", "Pages", "article"],
   ["menus", "Menus & Footer", "grid"],
   ["media", "Media Library", "film"],
@@ -116,6 +117,7 @@ export default function AdminDashboard() {
       {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
       {tab === "blog" && <BlogTab />}
       {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
+      {tab === "classics" && <ClassicsTab />}
       {tab === "pages" && <PagesTab />}
       {tab === "menus" && <MenusTab />}
       {tab === "media" && <MediaTab />}
@@ -770,6 +772,178 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
             </div>
           ))}
         </div>
+      </section>
+    </div>
+  );
+}
+
+/* ---------------------------- free classics ------------------------------ */
+type ClassicRow = {
+  id: string; slug: string; title: string; year: number;
+  source_type: "archive" | "youtube"; source_id: string;
+  tmdb_id: number | null; description: string; runtime: string | null;
+  genre: string | null; status: "draft" | "published"; note: string | null; sort_order: number;
+};
+const EMPTY_CLASSIC = {
+  slug: "", title: "", year: new Date().getFullYear(), source_type: "archive" as "archive" | "youtube",
+  source_id: "", tmdb_id: "" as string | number, description: "", runtime: "", genre: "", status: "draft" as "draft" | "published", note: "",
+};
+
+function ClassicsTab() {
+  const [films, setFilms] = useState<ClassicRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null); // row id, or "new"
+  const [draft, setDraft] = useState(EMPTY_CLASSIC);
+  const [busy, setBusy] = useState(false);
+  // Per-row + in-editor source verification results, keyed by "<type>:<id>".
+  const [verify, setVerify] = useState<Record<string, { ok: boolean; why: string } | "checking">>({});
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { ok, data } = await api<{ classics?: ClassicRow[]; error?: string }>("/api/admin/classics");
+    if (ok) { setFilms(data.classics ?? []); setErr(null); } else setErr(data.error ?? "Could not load films.");
+    setLoading(false);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const checkSource = async (type: "archive" | "youtube", id: string) => {
+    const key = `${type}:${id}`;
+    setVerify((v) => ({ ...v, [key]: "checking" }));
+    const { data } = await api<{ ok: boolean; why: string }>(
+      `/api/admin/classics/verify?type=${type}&id=${encodeURIComponent(id)}`
+    );
+    setVerify((v) => ({ ...v, [key]: { ok: !!data.ok, why: data.why ?? "No response" } }));
+  };
+
+  const startNew = () => { setDraft(EMPTY_CLASSIC); setEditing("new"); };
+  const startEdit = (f: ClassicRow) => {
+    setDraft({
+      slug: f.slug, title: f.title, year: f.year, source_type: f.source_type, source_id: f.source_id,
+      tmdb_id: f.tmdb_id ?? "", description: f.description, runtime: f.runtime ?? "", genre: f.genre ?? "",
+      status: f.status, note: f.note ?? "",
+    });
+    setEditing(f.id);
+  };
+
+  const commit = async () => {
+    if (!draft.title.trim() || !draft.source_id.trim()) return;
+    setBusy(true);
+    const body = JSON.stringify({ ...(editing === "new" ? {} : { id: editing }), ...draft, tmdb_id: draft.tmdb_id === "" ? null : Number(draft.tmdb_id) });
+    const res = editing === "new"
+      ? await api("/api/admin/classics", { method: "POST", headers: { "content-type": "application/json" }, body })
+      : await api("/api/admin/classics", { method: "PUT", headers: { "content-type": "application/json" }, body });
+    setBusy(false);
+    if (res.ok) { setEditing(null); load(); } else setErr(res.data.error ?? "Could not save film.");
+  };
+
+  const remove = async (f: ClassicRow) => {
+    if (!confirm(`Delete “${f.title}”?`)) return;
+    await api(`/api/admin/classics?id=${encodeURIComponent(f.id)}`, { method: "DELETE" });
+    load();
+  };
+
+  const togglePublish = async (f: ClassicRow) => {
+    await api("/api/admin/classics", {
+      method: "PUT", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: f.id, status: f.status === "published" ? "draft" : "published" }),
+    });
+    load();
+  };
+
+  const draftVerify = verify[`${draft.source_type}:${draft.source_id.trim()}`];
+
+  if (err && !films.length && !loading) {
+    return <div className="ad__err">{err} — is the classics table set up? Run <code>supabase/classics.sql</code> in Supabase&apos;s SQL Editor, then <code>node scripts/sync-classics.mjs</code>.</div>;
+  }
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Free Classics <span className="ad__count">{films.length}</span></h2>
+          <button className="ad__btn" onClick={startNew}><Icon name="plus" size={14} /> Add film</button>
+        </div>
+        <p className="ad__hint">
+          Full films visitors can legally watch at <code>/free-movies</code>. Only add public-domain films
+          (archive.org) or official rights-holder uploads (YouTube) — never a fan upload of a copyrighted
+          movie. Always hit <strong>Verify</strong> before publishing: it confirms the source exists and
+          actually contains video.
+        </p>
+
+        {editing !== null && (
+          <div className="ad__card ad__card--edit">
+            <div className="ad__grid2">
+              <label className="ad__field"><span>Title</span>
+                <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Night of the Living Dead" /></label>
+              <label className="ad__field"><span>Year</span>
+                <input type="number" value={draft.year} onChange={(e) => setDraft({ ...draft, year: Number(e.target.value) || 0 })} /></label>
+            </div>
+            <div className="ad__grid2">
+              <label className="ad__field"><span>Source</span>
+                <select value={draft.source_type} onChange={(e) => setDraft({ ...draft, source_type: e.target.value as "archive" | "youtube" })}>
+                  <option value="archive">Internet Archive (public domain)</option>
+                  <option value="youtube">YouTube (official upload)</option>
+                </select></label>
+              <label className="ad__field">
+                <span>{draft.source_type === "archive" ? "Archive identifier — from archive.org/details/<this-part>" : "YouTube video ID — from watch?v=<this-part>"}</span>
+                <input value={draft.source_id} onChange={(e) => setDraft({ ...draft, source_id: e.target.value })} placeholder={draft.source_type === "archive" ? "night-of-the-living-dead_1968" : "dQw4w9WgXcQ"} /></label>
+            </div>
+            <div className="ad__grid2">
+              <label className="ad__field"><span>TMDB id (optional — pulls real poster/rating/cast)</span>
+                <input value={String(draft.tmdb_id)} onChange={(e) => setDraft({ ...draft, tmdb_id: e.target.value })} placeholder="10331" /></label>
+              <label className="ad__field"><span>Genre · Runtime (optional)</span>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input value={draft.genre} onChange={(e) => setDraft({ ...draft, genre: e.target.value })} placeholder="Horror" />
+                  <input value={draft.runtime} onChange={(e) => setDraft({ ...draft, runtime: e.target.value })} placeholder="1h 36m" />
+                </div></label>
+            </div>
+            <label className="ad__field"><span>Description</span>
+              <textarea rows={3} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></label>
+            <label className="ad__field"><span>Curation note (private — e.g. why this is public domain)</span>
+              <input value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} /></label>
+            <label className="ad__field">
+              <span>Status</span>
+              <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
+                <option value="draft">Draft (hidden)</option>
+                <option value="published">Published (live)</option>
+              </select>
+            </label>
+            <div className="ad__actions">
+              <button className="ad__btn" disabled={!draft.source_id.trim() || draftVerify === "checking"} onClick={() => checkSource(draft.source_type, draft.source_id.trim())}>
+                {draftVerify === "checking" ? "Checking…" : "Verify source"}
+              </button>
+              {draftVerify && draftVerify !== "checking" && (
+                <span className={draftVerify.ok ? "ad__ok" : "ad__bad"}>{draftVerify.ok ? "✓" : "✗"} {draftVerify.why}</span>
+              )}
+            </div>
+            <div className="ad__actions">
+              <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commit}><Icon name="check" size={14} /> Save film</button>
+              <button className="ad__btn" onClick={() => setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {loading ? <div className="empty">Loading…</div> : (
+          <div className="ad__list">
+            {films.map((f) => {
+              const v = verify[`${f.source_type}:${f.source_id}`];
+              return (
+                <div className="ad__row" key={f.id}>
+                  <span className="ad__cat">{f.status}</span>
+                  <span className="ad__name">{f.title} <span style={{ color: "var(--muted2)", fontWeight: 400 }}>({f.year})</span></span>
+                  <span className="ad__meta">{f.source_type}:{f.source_id}</span>
+                  {v && v !== "checking" && <span className={v.ok ? "ad__ok" : "ad__bad"} title={v.why}>{v.ok ? "✓" : "✗"}</span>}
+                  <button className="ad__mini" disabled={v === "checking"} onClick={() => checkSource(f.source_type, f.source_id)}>{v === "checking" ? "…" : "Verify"}</button>
+                  <button className="ad__mini" onClick={() => togglePublish(f)}>{f.status === "published" ? "Unpublish" : "Publish"}</button>
+                  <button className="ad__mini" onClick={() => startEdit(f)}>Edit</button>
+                  <button className="ad__mini ad__mini--x" onClick={() => remove(f)}>✕</button>
+                </div>
+              );
+            })}
+            {!films.length && <div className="ad__empty">No films yet — hit “Add film”.</div>}
+          </div>
+        )}
       </section>
     </div>
   );

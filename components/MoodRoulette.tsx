@@ -6,7 +6,7 @@ import Image from "next/image";
 import Icon from "./Icon";
 import WatchlistButton from "./WatchlistButton";
 import { poster } from "@/lib/images";
-import { MOODS, moviesForMood, pickForMood, type Mood } from "@/lib/moods";
+import { MOODS, moviesForMood, type Mood } from "@/lib/moods";
 import type { Movie } from "@/lib/types";
 
 type Step = "moods" | "spinning" | "result";
@@ -22,6 +22,10 @@ export default function MoodRoulette({ movies }: { movies: Movie[] }) {
   const [flicker, setFlicker] = useState<Movie | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Live TMDB pools, cached per mood for the session — first spin fetches,
+  // "Spin Again" is instant.
+  const livePoolRef = useRef<Record<string, Movie[]>>({});
+  const spinSeq = useRef(0);
 
   const clearTimers = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
@@ -36,23 +40,58 @@ export default function MoodRoulette({ movies }: { movies: Movie[] }) {
     document.body.style.overflow = open ? "hidden" : "";
   }, [open]);
 
+  /** Live, popular, well-rated TMDB titles for this mood — falling back to
+   *  the local catalogue pool if the API has nothing (TMDB down/unset), so
+   *  the wheel always has something to land on. */
+  async function poolFor(m: Mood): Promise<Movie[]> {
+    const cached = livePoolRef.current[m.id];
+    if (cached?.length) return cached;
+    try {
+      const res = await fetch(`/api/mood?id=${encodeURIComponent(m.id)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.results) && data.results.length) {
+          livePoolRef.current[m.id] = data.results;
+          return data.results;
+        }
+      }
+    } catch { /* fall through to local */ }
+    return moviesForMood(m, movies);
+  }
+
   function spin(m: Mood, avoidId?: string) {
     clearTimers();
-    const pool = moviesForMood(m, movies);
+    const mySpin = ++spinSeq.current;
     setMood(m);
     setStep("spinning");
-    if (!pool.length) { setStep("moods"); return; }
+    // Flicker over the local pool immediately (feels instant) while the
+    // live pool loads; once it arrives, flicker + final pick use it.
+    let pool = moviesForMood(m, movies);
+    if (pool.length) setFlicker(pool[Math.floor(Math.random() * pool.length)]);
 
     intervalRef.current = setInterval(() => {
-      setFlicker(pool[Math.floor(Math.random() * pool.length)]);
+      if (pool.length) setFlicker(pool[Math.floor(Math.random() * pool.length)]);
     }, FLICKER_MS);
 
-    timeoutRef.current = setTimeout(() => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      const final = pickForMood(m, movies, avoidId);
-      setResult(final);
-      setStep("result");
-    }, SPIN_MS);
+    const started = Date.now();
+    poolFor(m).then((livePool) => {
+      if (mySpin !== spinSeq.current) return; // superseded by a newer spin/close
+      if (livePool.length) pool = livePool;
+      const finish = () => {
+        if (mySpin !== spinSeq.current) return;
+        clearTimers();
+        if (!pool.length) { setStep("moods"); return; }
+        // Weight the pick toward the strongest matches (top of the pool is
+        // sorted by votes/popularity server-side) while avoiding an
+        // immediate repeat on "Spin Again".
+        const top = pool.slice(0, 12).filter((x) => x.id !== avoidId);
+        const list = top.length ? top : pool;
+        setResult(list[Math.floor(Math.random() * list.length)]);
+        setStep("result");
+      };
+      const elapsed = Date.now() - started;
+      timeoutRef.current = setTimeout(finish, Math.max(SPIN_MS - elapsed, 150));
+    });
   }
 
   function close() {

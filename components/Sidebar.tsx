@@ -9,10 +9,13 @@ export const NAV: { icon: string; label: string; href: string; top?: boolean; bo
   { icon: "film", label: "Movies", href: "/movies", top: true, bottom: true },
   { icon: "search", label: "Search", href: "/search", bottom: true },
   { icon: "monitor", label: "Web Series", href: "/web-series", top: true, bottom: true, short: "Series" },
-  { icon: "tv", label: "TV Shows", href: "/tv-shows", top: true },
-  { icon: "grid", label: "Genres", href: "/genres", top: true },
+  // TV Shows & Genres deliberately have no `top` flag — removed from the
+  // header nav to keep it tight (still reachable via sidebar + mobile drawer).
+  { icon: "tv", label: "TV Shows", href: "/tv-shows" },
+  { icon: "grid", label: "Genres", href: "/genres" },
   { icon: "trend", label: "Trending", href: "/trending", top: true },
   { icon: "sparkle", label: "Latest", href: "/latest" },
+  { icon: "playc", label: "Free Movies", href: "/free-movies", top: true, short: "Free" },
   { icon: "article", label: "Blog", href: "/blog", top: true },
   { icon: "bookmark", label: "My List", href: "/my-list", bottom: true },
 ];

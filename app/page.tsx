@@ -3,7 +3,8 @@ import Hero from "@/components/Hero";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
 import BigCard from "@/components/BigCard";
-import ChannelCard from "@/components/ChannelCard";
+import ChannelCardRich from "@/components/ChannelCardRich";
+import ClassicsRow from "@/components/ClassicsRow";
 import BlogSection from "@/components/BlogSection";
 import NewSinceLastVisit from "@/components/NewSinceLastVisit";
 import MoodRoulette from "@/components/MoodRoulette";
@@ -112,8 +113,12 @@ export default async function HomePage() {
 
           {/* 1 · Channels — the old Editor's Picks slot (same wide-card
                 rail), now selling platforms instead of individual titles. */}
+          {/* Every channel renders the rich card (logo + live top-4 poster
+                fan); ChannelCardRich itself falls back to the gradient card
+                for channels without a logo or live data, so the rail always
+                looks complete. */}
           <Row title="Popular" sub="Movie channels — pick a platform, see what's streaming on it">
-            {CHANNELS.map((c) => <ChannelCard key={c.slug} channel={c} />)}
+            {CHANNELS.map((c) => <ChannelCardRich key={c.slug} channel={c} />)}
           </Row>
 
           {/* 2–3 · Editor-curated: newest catalogue additions, by created-at
@@ -140,6 +145,10 @@ export default async function HomePage() {
           {rail("top10-shows", "Top 10 TV Shows in the World Today", "The most-watched shows across the globe, updated daily", top10Shows.slice(0, 10), { ranked: true, all: allShows })}
           {rail("popular-shows", "Popular TV Shows", "The shows everyone is streaming right now", popularShows, { all: allShows })}
           {rail("toprated-shows", "Top Rated TV Shows", "The highest-rated series of all time", topRatedShows, { all: allShows })}
+
+          {/* Free Classics — the only "watch the FULL movie here" shelf on
+                the site: hand-curated public-domain films (see lib/classics). */}
+          <ClassicsRow />
 
           {/* 13+ · The dashboard-managed rows (Latest, Trending This Week,
                 K-Drama, Hollywood, Bollywood, Telugu, Anime, C-Drama, …) —

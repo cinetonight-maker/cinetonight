@@ -106,6 +106,31 @@ export async function searchTmdb(query: string, limit = 24): Promise<Movie[]> {
     .slice(0, limit) as Movie[];
 }
 
+/** Find one movie by title + year — used by the Free Classics shelf to
+ *  auto-resolve real TMDB posters/data for films whose curated entry has
+ *  no tmdbId. Year-filtered first (so "Mahal" finds the 1949 Madhubala
+ *  film, not a 2020s one); if that misses (TMDB release years sometimes
+ *  differ by one from the commonly-cited year), falls back to an
+ *  unfiltered search but only accepts a hit within ±1 year. */
+export async function findMovieTmdb(title: string, year?: number): Promise<Movie | null> {
+  const q = title.trim();
+  if (!q) return null;
+  if (year) {
+    const exact = await get<any>("/search/movie", { query: q, primary_release_year: year, include_adult: "false", page: 1 });
+    const hit = exact?.results?.[0];
+    if (hit) return fromSearchHit({ ...hit, media_type: "movie" });
+    const loose = await get<any>("/search/movie", { query: q, include_adult: "false", page: 1 });
+    const near = (loose?.results ?? []).find((r: any) => {
+      const y = Number(String(r.release_date || "").slice(0, 4));
+      return y && Math.abs(y - year) <= 1;
+    });
+    return near ? fromSearchHit({ ...near, media_type: "movie" }) : null;
+  }
+  const d = await get<any>("/search/movie", { query: q, include_adult: "false", page: 1 });
+  const hit = d?.results?.[0];
+  return hit ? fromSearchHit({ ...hit, media_type: "movie" }) : null;
+}
+
 /** Full details for a title that isn't in the local catalogue. */
 export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | null> {
   const isTv = kind === "series";
@@ -506,6 +531,70 @@ export async function genreRowTmdb(kind: MovieKind, genre: string, limit = 6): P
     .map((hit) => fromDiscoverHit(hit, kind, genres))
     .filter(Boolean)
     .slice(0, limit) as Movie[];
+}
+
+/** Per-title watch providers (region-scoped) — TMDB's watch/providers
+ *  endpoint, whose data comes from JustWatch (attribution required in the
+ *  UI). Merged across flatrate/free/ads (→ "stream") and rent/buy, deduped
+ *  with streaming access winning, so a title both streamable and rentable
+ *  on the same platform shows as streamable. */
+export interface WatchProvider { providerId: number; name: string; access: "stream" | "rent" | "buy" }
+export async function watchProvidersTmdb(kind: MovieKind, id: string | number, region = "IN"): Promise<WatchProvider[]> {
+  const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/watch/providers`);
+  const r = d?.results?.[region];
+  if (!r) return [];
+  const seen = new Map<number, WatchProvider>();
+  const addAll = (list: any[] | undefined, access: WatchProvider["access"]) => {
+    for (const p of list ?? []) {
+      if (p?.provider_id && !seen.has(p.provider_id)) {
+        seen.set(p.provider_id, { providerId: p.provider_id, name: p.provider_name ?? "Unknown", access });
+      }
+    }
+  };
+  addAll(r.flatrate, "stream");
+  addAll(r.free, "stream");
+  addAll(r.ads, "stream");
+  addAll(r.rent, "rent");
+  addAll(r.buy, "buy");
+  return [...seen.values()];
+}
+
+/** Live candidate pool for the Mood Roulette — popular, well-rated,
+ *  CURRENT titles matching a mood's genre recipe, straight from TMDB
+ *  (movies + shows merged), instead of only whatever happens to be in the
+ *  local catalogue. Genre names are resolved per-kind (movie/tv genre ids
+ *  differ); includes are OR'd (TMDB pipe syntax), excludes hard-filter via
+ *  without_genres. The vote floor keeps picks credible — a roulette that
+ *  lands on a 12-vote obscurity feels broken, not serendipitous. */
+export async function moodPoolTmdb(genres: string[], excludes: string[], limit = 20): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const lists = await Promise.all(
+    (["movie", "series"] as MovieKind[]).map(async (k) => {
+      const isTv = k === "series";
+      const [genreIds, excludeIds, map] = await Promise.all([
+        Promise.all(genres.map((g) => genreIdFor(k, g))),
+        Promise.all(excludes.map((g) => genreIdFor(k, g))),
+        genreMap(k),
+      ]);
+      const withGenres = genreIds.filter(Boolean).join("|");
+      if (!withGenres) return [] as Movie[];
+      const params: Record<string, string | number> = {
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        with_genres: withGenres,
+        "vote_count.gte": 100,
+        "vote_average.gte": 6,
+        page: 1,
+      };
+      const withoutGenres = excludeIds.filter(Boolean).join("|");
+      if (withoutGenres) params.without_genres = withoutGenres;
+      params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+      const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+      return ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, map)).filter(Boolean) as Movie[];
+    })
+  );
+  return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
 }
 
 /** Titles currently streaming on one platform (Netflix, Prime Video,

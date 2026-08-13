@@ -72,18 +72,23 @@ export function NewsWidget() {
   );
 }
 
-/** Compact row list (thumb + title/meta/rating) — narrower than a poster grid,
- *  so the sidebar can stay slim while still showing several titles. */
+/** Reference-style compact sidebar rows: poster thumb, bold title, a
+ *  year + star-rating meta line, and a two-line synopsis — a lot of
+ *  scannable info in a small area, so the sidebar sells each title
+ *  instead of just naming it. */
 export function PosterWidget({ title, movies, href = "/movies" }: { title: string; movies: Movie[]; href?: string }) {
   return (
     <Widget title={title} all={<Link href={href}>More</Link>}>
       {movies.map((m) => (
-        <Link key={m.id} className="trow" href={`/movie/${m.id}`}>
-          <div className="trow__th"><Image fill alt={`${m.title} poster`} src={poster(m, "w342")} sizes="44px" /></div>
-          <div>
-            <div className="trow__t">{m.title}</div>
-            <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>
-            <div className="trow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</div>
+        <Link key={m.id} className="srow" href={`/movie/${m.id}`}>
+          <div className="srow__th"><Image fill alt={`${m.title} poster`} src={poster(m, "w342")} sizes="64px" /></div>
+          <div className="srow__body">
+            <div className="srow__t">{m.title}</div>
+            <div className="srow__meta">
+              <span className="srow__y"><Icon name="cal" size={11} /> {m.year || "—"}</span>
+              <span className="srow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</span>
+            </div>
+            {m.desc && <p className="srow__x">{m.desc}</p>}
           </div>
         </Link>
       ))}

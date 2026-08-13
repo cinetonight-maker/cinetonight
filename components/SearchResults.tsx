@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import MovieCard from "./MovieCard";
 import BigCard from "./BigCard";
 import SearchBox from "./SearchBox";
+import RecentSearches from "./RecentSearches";
 import type { Movie } from "@/lib/types";
 
 type State = { loading: boolean; results: Movie[]; source: string; error: string | null };
@@ -40,6 +41,7 @@ export default function SearchResults({
       <div className="page__head">
         <h1>{q ? `Results for “${q}”` : "Search"}</h1>
         <SearchBox variant="page" placeholder="Search movies, web series, anime…" initialValue={q} autoFocus />
+        <RecentSearches />
         <p>{sub}</p>
       </div>
 

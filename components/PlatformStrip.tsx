@@ -1,22 +1,31 @@
-"use client";
-
 import Icon from "./Icon";
-import { openPlayer } from "@/lib/player";
 import type { Movie } from "@/lib/types";
 
 /** The single, best-of-breed "Where to Watch" strip on a movie's detail
- *  page — see MovieDetail.tsx for why this replaced a five-platform grid.
- *  This is affiliate real estate, so the whole strip is one big click
- *  target (not just a small button inside it) and opens the same trailer
- *  player Watch Now does, since the site doesn't host real playback. */
+ *  page. Clicking it now does what it PROMISES: opens the platform's own
+ *  search for this exact title in a new tab (it used to open our trailer
+ *  player — a bait-and-switch that confused people and undercut the strip's
+ *  whole purpose as affiliate real estate). rel includes "sponsored" so
+ *  search engines read this as the commercial link it is — the honest
+ *  labeling Google asks for on affiliate-style outbound links. */
+const SEARCH_URLS: Record<string, (title: string) => string> = {
+  Netflix: (t) => `https://www.netflix.com/search?q=${encodeURIComponent(t)}`,
+  "Prime Video": (t) => `https://www.primevideo.com/search?phrase=${encodeURIComponent(t)}`,
+  JioHotstar: (t) => `https://www.hotstar.com/in/explore?search_query=${encodeURIComponent(t)}`,
+  ZEE5: (t) => `https://www.zee5.com/search?q=${encodeURIComponent(t)}`,
+  YouTube: (t) => `https://www.youtube.com/results?search_query=${encodeURIComponent(`${t} movie`)}`,
+};
+
 export default function PlatformStrip({
   movie, name, desc, color,
 }: { movie: Pick<Movie, "id" | "title" | "trailerKey">; name: string; desc: string; color: string }) {
+  const buildUrl = SEARCH_URLS[name] ?? ((t: string) => `https://www.google.com/search?q=${encodeURIComponent(`watch ${t} on ${name}`)}`);
   return (
-    <button
-      type="button"
+    <a
       className="platstrip"
-      onClick={() => openPlayer({ title: movie.title, movieId: movie.id, trailerKey: movie.trailerKey, mode: "trailer" })}
+      href={buildUrl(movie.title)}
+      target="_blank"
+      rel="noopener noreferrer nofollow sponsored"
     >
       <span
         className="platstrip__logo"
@@ -33,6 +42,6 @@ export default function PlatformStrip({
         <span className="platstrip__desc">{desc}</span>
       </span>
       <span className="platstrip__cta"><Icon name="play" size={15} /> Watch Now</span>
-    </button>
+    </a>
   );
 }

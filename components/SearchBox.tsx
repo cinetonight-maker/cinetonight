@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent as Reac
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { poster } from "@/lib/images";
+import { addRecentSearch } from "@/lib/recentSearches";
 import type { Movie } from "@/lib/types";
 
 const DEBOUNCE_MS = 250;
@@ -74,12 +75,14 @@ export default function SearchBox({
 
   function goToResults(q: string) {
     setOpen(false);
+    if (q) addRecentSearch(q);
     router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
     onNavigate?.();
   }
   function goToTitle(m: Movie) {
     setOpen(false);
     setTerm(m.title);
+    addRecentSearch(m.title);
     router.push(`/movie/${m.id}`);
     onNavigate?.();
   }

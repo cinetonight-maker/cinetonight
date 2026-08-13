@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import MovieCard from "@/components/MovieCard";
-import { CHANNELS, channelBySlug, channelTitles } from "@/lib/channels";
+import { CHANNELS, channelBySlug, channelTitlesForRegion } from "@/lib/channels";
 import { tmdbConfigured } from "@/lib/tmdb";
+import { visitorRegion, regionName } from "@/lib/region";
 import { baseUrl } from "@/lib/site";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
@@ -43,10 +44,15 @@ export default async function ChannelPage({ params }: Params) {
   const channel = channelBySlug(slug);
   if (!channel) notFound();
 
-  const [movies, shows] = await Promise.all([
-    channelTitles(channel, "movie", 18),
-    channelTitles(channel, "series", 12),
+  const region = await visitorRegion();
+  const [movieRes, showRes] = await Promise.all([
+    channelTitlesForRegion(channel, "movie", 18, region),
+    channelTitlesForRegion(channel, "series", 12, region),
   ]);
+  const movies = movieRes.titles;
+  const shows = showRes.titles;
+  const usedRegion = movieRes.titles.length ? movieRes.usedRegion : showRes.usedRegion;
+  const showingFallbackRegion = usedRegion !== region && (movies.length > 0 || shows.length > 0);
 
   return (
     <div className="page">
@@ -74,6 +80,12 @@ export default async function ChannelPage({ params }: Params) {
 
       {!tmdbConfigured && (
         <div className="empty">Live channel data needs TMDB_API_KEY in .env.local.</div>
+      )}
+
+      {showingFallbackRegion && (
+        <p className="chan__regionnote">
+          {channel.name} availability isn&apos;t tracked for {regionName(region)} yet — showing its {regionName(usedRegion)} lineup.
+        </p>
       )}
 
       {movies.length > 0 && (

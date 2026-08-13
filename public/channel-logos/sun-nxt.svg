@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="Sun NXT">
+  <defs><linearGradient id="sn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd21e"/><stop offset="1" stop-color="#f7a600"/></linearGradient></defs>
+  <circle cx="36" cy="40" r="24" fill="url(#sn)"/>
+  <circle cx="36" cy="40" r="13" fill="#e5352b"/>
+  <text x="76" y="57" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="800" fill="#ffffff">Sun</text>
+  <text x="168" y="57" font-family="Arial, Helvetica, sans-serif" font-size="44" font-weight="800" fill="#f7a600" letter-spacing="2">NXT</text>
+</svg>
