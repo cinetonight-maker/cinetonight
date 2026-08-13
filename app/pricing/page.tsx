@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Icon from "@/components/Icon";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/pricing" },
   title: "Go Premium",
   description: "Compare MOVIEX plans — HD to 4K streaming, ad-free viewing, and offline downloads. Cancel anytime.",
 };

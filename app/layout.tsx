@@ -82,6 +82,51 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     // real bugs elsewhere are still caught.
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
       <body suppressHydrationWarning>
+        {/* Almost every image on the site comes from TMDB's CDN — opening
+            the connection early shaves the TLS handshake off the first
+            poster paint. (preconnect links are honored in <body>.) */}
+        <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
+        {/* WebSite structured data + SearchAction: tells Google this site
+            has its own search, making it eligible for a search box directly
+            in the SERP (sitelinks searchbox). */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger -- static JSON-LD, not user input
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              name: settings.siteTitle.split(" — ")[0] || settings.siteTitle,
+              url: baseUrl(),
+              potentialAction: {
+                "@type": "SearchAction",
+                target: { "@type": "EntryPoint", urlTemplate: `${baseUrl()}/search?q={search_term_string}` },
+                "query-input": "required name=search_term_string",
+              },
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
+        {/* Organization entity: declares WHO runs this site (name, logo,
+            social profiles) — the sameAs links strengthen the brand's
+            entity graph, which is what AI search engines (Perplexity,
+            Gemini, ChatGPT Search) use to recognize and cite a source. */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger -- static JSON-LD, not user input
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: settings.siteTitle.split(" — ")[0] || settings.siteTitle,
+              url: baseUrl(),
+              logo: `${baseUrl()}/icon`,
+              ...(settings.contactEmail ? { email: settings.contactEmail } : {}),
+              ...(Object.values(settings.social).filter(Boolean).length
+                ? { sameAs: Object.values(settings.social).filter(Boolean) }
+                : {}),
+            }).replace(/</g, "\\u003c"),
+          }}
+        />
         <AuthProvider>
           <MaintenanceGate active={settings.maintenanceMode}>
             <Header />

@@ -9,6 +9,13 @@ const nextConfig = {
       // always <project-ref>.supabase.co — wildcard covers any project.
       { protocol: "https", hostname: "*.supabase.co" },
     ] },
+  // Custom pages moved from /p/<slug> to /<slug> (keyword-bearing URLs).
+  // A config-level redirect emits a REAL HTTP 308 before any rendering —
+  // the in-app fallback (app/p/[slug]) streams a 200, which crawlers treat
+  // less cleanly. permanent:true = 308, transfers indexed standing.
+  async redirects() {
+    return [{ source: "/p/:slug", destination: "/:slug", permanent: true }];
+  },
   // Baseline security headers — free, no third-party service required.
   // X-Frame-Options: DENY stops other sites from framing MOVIEX for
   // clickjacking; it has no effect on us embedding YouTube trailers

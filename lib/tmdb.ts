@@ -13,17 +13,25 @@ const TOKEN = process.env.TMDB_READ_TOKEN?.trim();
 
 export const tmdbConfigured = Boolean(KEY || TOKEN);
 
-/** Ids for titles that aren't in the local catalogue: "tmdb-m-1234" / "tmdb-t-1234". */
-export const tmdbId = (kind: MovieKind, id: number | string) => `tmdb-${kind === "series" ? "t" : "m"}-${id}`;
+/** Ids for titles that aren't in the local catalogue. With a title, the id
+ *  carries an SEO slug — "tmdb-m-1234-captain-america" — so every URL a
+ *  card links to contains the movie's NAME, not just a number (keywords in
+ *  the URL + a human-readable link in search results). The parser accepts
+ *  both slugged and legacy bare ids, so nothing already indexed or saved
+ *  (watchlists, old links) ever breaks. */
+const seoSlug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+export const tmdbId = (kind: MovieKind, id: number | string, title?: string) =>
+  `tmdb-${kind === "series" ? "t" : "m"}-${id}` + (title ? `-${seoSlug(title)}` : "");
 export function parseTmdbId(slug: string): { kind: MovieKind; id: string } | null {
-  const m = /^tmdb-(m|t)-(\d+)$/.exec(slug);
+  const m = /^tmdb-(m|t)-(\d+)(?:-[a-z0-9-]*)?$/.exec(slug);
   return m ? { kind: m[1] === "t" ? "series" : "movie", id: m[2] } : null;
 }
 
 /** Same idea, for a person who isn't in the local catalogue's cast list. */
-export const personTmdbId = (id: number | string) => `tmdb-p-${id}`;
+export const personTmdbId = (id: number | string, name?: string) =>
+  `tmdb-p-${id}` + (name ? `-${seoSlug(name)}` : "");
 export function parsePersonTmdbId(slug: string): string | null {
-  const m = /^tmdb-p-(\d+)$/.exec(slug);
+  const m = /^tmdb-p-(\d+)(?:-[a-z0-9-]*)?$/.exec(slug);
   return m ? m[1] : null;
 }
 
@@ -72,7 +80,7 @@ function fromSearchHit(hit: any): Movie | null {
   if (!title) return null;
   const date = String(hit.release_date || hit.first_air_date || "");
   return {
-    id: tmdbId(kind, hit.id),
+    id: tmdbId(kind, hit.id, title),
     tmdbId: hit.id,
     title,
     year: Number(date.slice(0, 4)) || 0,
@@ -147,7 +155,7 @@ export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | n
   const date = String(isTv ? d.first_air_date : d.release_date ?? "");
 
   return {
-    id: tmdbId(kind, id),
+    id: tmdbId(kind, id, (isTv ? d.name : d.title) || undefined),
     tmdbId: Number(id),
     title: (isTv ? d.name : d.title) || "Untitled",
     year: Number(date.slice(0, 4)) || 0,
@@ -276,7 +284,7 @@ function fromDiscoverHit(hit: any, kind: MovieKind, genres: Record<number, strin
   if (!title || !hit.poster_path) return null; // skip titles with no artwork — looks broken in a row
   const date = String((kind === "series" ? hit.first_air_date : hit.release_date) || "");
   return {
-    id: tmdbId(kind, hit.id),
+    id: tmdbId(kind, hit.id, title),
     tmdbId: hit.id,
     title,
     year: Number(date.slice(0, 4)) || 0,

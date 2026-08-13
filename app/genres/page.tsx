@@ -7,6 +7,7 @@ import { backdrop, img } from "@/lib/images";
 import type { Movie } from "@/lib/types";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/genres" },
   title: "Genres",
   description: "Browse movies and shows by genre — action, comedy, drama, horror, K-drama, anime and every mood in between.",
 };
@@ -38,7 +39,7 @@ export default async function GenresPage() {
           const { src, count } = coverFor(g, movies);
           return (
             <Link className="gtile" key={g} href={`/movies?genre=${encodeURIComponent(g)}`}>
-              <Image fill alt="" src={src} sizes="(max-width: 760px) 45vw, 220px" />
+              <Image fill alt={`${g} movies and shows`} src={src} sizes="(max-width: 760px) 45vw, 220px" />
               <span>
                 {g}
                 <em>{count} title{count === 1 ? "" : "s"}</em>

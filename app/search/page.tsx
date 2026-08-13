@@ -11,7 +11,7 @@ import { trendingLiveTmdb, tmdbConfigured } from "@/lib/tmdb";
 // crawl budget away from actual content pages). robots: noindex here does
 // NOT stop the /search page itself from working; it just tells Google not
 // to list it.
-export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true } };
+export const metadata: Metadata = { title: "Search", robots: { index: false, follow: true }, alternates: { canonical: "/search" } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

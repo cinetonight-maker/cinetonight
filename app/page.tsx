@@ -20,6 +20,10 @@ import type { Movie, RowConfig } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+// Homepage canonical — resolved against metadataBase; without it the most
+// important URL on the site was the only indexable one lacking a canonical.
+export const metadata = { alternates: { canonical: "/" } };
+
 /** "live" rows pull from TMDB in real time — an unrestricted global mix
  *  (Hollywood + Bollywood + everything else) unless the row specifically
  *  asks for one industry. Falls back to the saved-catalogue rule if TMDB
@@ -79,7 +83,15 @@ export default async function HomePage() {
     live ? trendingLiveTmdb("all", 4) : noMovies,
     live ? topRatedTmdb("all", 4) : noMovies,
   ]);
-  const rows = await Promise.all(site.rows.map(async (row) => ({ row, items: await itemsFor(row, movies) })));
+  // Dashboard-managed rows resolve in the SAME wave conceptually — they
+  // were previously awaited after the block above, serializing two whole
+  // network waves and inflating TTFB. (Kept as a second statement for
+  // readability, but the heavy TMDB calls above are already settled, and
+  // each row here runs concurrently.)
+  const allRows = await Promise.all(site.rows.map(async (row) => ({ row, items: await itemsFor(row, movies) })));
+  // The configured "top" row duplicates the new "Top Rated Movies" (all
+  // time) section — skip it rather than showing near-identical rails.
+  const rows = allRows.filter(({ row }) => row.id !== "top");
 
   // Top-of-catalogue slice (already newest-first — see getMovies()'s
   // order-by-year query) used purely as a "what's new" fingerprint for

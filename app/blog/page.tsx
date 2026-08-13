@@ -6,6 +6,7 @@ import { getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/blog" },
   title: "Blog",
   description: "Guides, spotlights and streaming news — what to watch next and why.",
 };
@@ -19,7 +20,7 @@ export default async function BlogPage() {
       <div className="blog-grid">
         {blogs.map((b) => (
           <Link className="blogc" href={`/blog/${b.slug}`} key={b.slug}>
-            <div className="blogc__img"><Image fill alt="" src={b.imageUrl || img(`b-${b.slug}`, 600, 340)} sizes="(max-width: 760px) 100vw, 380px" /></div>
+            <div className="blogc__img"><Image fill alt={b.title} src={b.imageUrl || img(`b-${b.slug}`, 600, 340)} sizes="(max-width: 760px) 100vw, 380px" /></div>
             <div className="blogc__b">
               <span className="blogc__cat">{b.cat}</span>
               <div className="blogc__t">{b.title}</div>

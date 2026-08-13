@@ -70,7 +70,7 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 ## Questions?
 
-Reach out any time on the [Contact page](/p/contact) — see also our [Privacy Policy](/p/privacy-policy) and [Terms of Service](/p/terms-of-service).
+Reach out any time on the [Contact page](/contact) — see also our [Privacy Policy](/privacy-policy) and [Terms of Service](/terms-of-service).
 
 *Last updated: ${TODAY}.*`,
   },
@@ -93,7 +93,7 @@ We read every message and try to reply within a few days. For fastest handling, 
 
 ## Copyright / takedown requests
 
-If you're a rights holder with a concern about a trailer, poster, or piece of listing data, email the address above with the title in question and a description of the concern, and it will be looked at promptly. See also our [Terms of Service](/p/terms-of-service) for how MOVIEX sources and uses this content.
+If you're a rights holder with a concern about a trailer, poster, or piece of listing data, email the address above with the title in question and a description of the concern, and it will be looked at promptly. See also our [Terms of Service](/terms-of-service) for how MOVIEX sources and uses this content.
 
 ## Business & press
 
@@ -144,7 +144,7 @@ If this policy changes in a meaningful way, the "Last updated" date above will c
 
 ## Contact
 
-Questions about this policy? See our [Contact page](/p/contact) or email [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}).`,
+Questions about this policy? See our [Contact page](/contact) or email [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}).`,
   },
   {
     slug: "terms-of-service",
@@ -194,14 +194,14 @@ We may update these terms from time to time; the "Last updated" date above refle
 
 ## Contact
 
-Questions about these terms? See our [Contact page](/p/contact) or email [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}).`,
+Questions about these terms? See our [Contact page](/contact) or email [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}).`,
   },
 ];
 
 const NAV_LINKS = [
-  { location: "footer_legal", label: "Privacy Policy", url: "/p/privacy-policy", sort_order: 1, is_external: false },
-  { location: "footer_legal", label: "Terms of Service", url: "/p/terms-of-service", sort_order: 2, is_external: false },
-  { location: "footer_support", label: "Contact Us", url: "/p/contact", sort_order: 1, is_external: false },
+  { location: "footer_legal", label: "Privacy Policy", url: "/privacy-policy", sort_order: 1, is_external: false },
+  { location: "footer_legal", label: "Terms of Service", url: "/terms-of-service", sort_order: 2, is_external: false },
+  { location: "footer_support", label: "Contact Us", url: "/contact", sort_order: 1, is_external: false },
 ];
 
 try {
@@ -234,7 +234,7 @@ try {
     console.log(`✓ footer link — ${link.label} → ${link.url}`);
   }
 
-  console.log("\nDone. About Us, Contact, Privacy Policy and Terms of Service are live at /p/about-us, /p/contact, /p/privacy-policy, /p/terms-of-service.");
+  console.log("\nDone. About Us, Contact, Privacy Policy and Terms of Service are live at /about-us, /contact, /privacy-policy, /terms-of-service.");
   console.log("Footer's Privacy Policy / Terms of Service / Contact Us links now point at them.");
   console.log("Edit CONTACT_EMAIL at the top of this script and re-run any time to update the address used on the Contact page.");
 } catch (e) {

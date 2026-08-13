@@ -96,7 +96,7 @@ export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; sea
             // both local-catalogue and live-fetched titles); fall back to
             // the name-slug route, which only resolves for people who
             // appear in the local catalogue (see app/person/[id]/page.tsx).
-            <Link className="castc" href={`/person/${c.tmdbId ? personTmdbId(c.tmdbId) : personId(c.name)}`} key={c.name}>
+            <Link className="castc" href={`/person/${c.tmdbId ? personTmdbId(c.tmdbId, c.name) : personId(c.name)}`} key={c.name}>
               <div className="castc__ph"><Image fill alt={c.name} src={profile(c)} sizes="64px" /></div>
               <div className="castc__n">{c.name}</div>
               <div className="castc__r">as {c.character}</div>

@@ -39,7 +39,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // big site — long-tail intent phrases are the gap a small new site can
   // actually win).
   const title = `${m.title} (${m.year}) — Cast, Trailer & Where to Watch`;
-  const description = `${m.desc} Watch ${m.title} (${m.year}): full cast & crew, trailer, ratings, and where to stream it online.`.slice(0, 300);
+  // Intent phrase FIRST, then synopsis, capped at snippet length — Google
+  // truncates ~160 chars, so the old 300-char version buried the call to
+  // action past the ellipsis.
+  const description = `Watch ${m.title} (${m.year}) — trailer, cast, ratings & where to stream. ${m.desc}`.slice(0, 158);
   const image = posterLg(m);
   const url = `${baseUrl()}/movie/${m.id}`;
   return {
@@ -64,6 +67,15 @@ export default async function MoviePage({ params }: Params) {
   // live trending/latest fill-in either way, falling back to the local
   // catalogue only if TMDB is unreachable/unconfigured.
   const parsed = parseTmdbId(m.id);
+  // Seasons kick off in parallel with the related/featured fetches below —
+  // they were previously awaited after them, adding a full extra network
+  // round-trip to every series page's TTFB. try/catch inside the promise
+  // so a TMDB hiccup degrades to "no picker", never a 500.
+  const seasonsPromise: Promise<SeasonInfo[]> =
+    m.kind === "series" && m.tmdbId != null && tmdbConfigured
+      ? fetchSeasons(m.tmdbId).catch(() => [])
+      : Promise.resolve([]);
+
   let related: Movie[];
   let featured: Movie[];
   if (parsed) {
@@ -71,19 +83,16 @@ export default async function MoviePage({ params }: Params) {
     related = recs.slice(0, 4);
     featured = recs.slice(4, 8).length ? recs.slice(4, 8) : await latestReleasesTmdb("series", 4);
   } else {
-    const liveRelated = tmdbConfigured ? await trendingLiveTmdb("all", 8) : [];
+    const [liveRelated, liveFeatured] = await Promise.all([
+      tmdbConfigured ? trendingLiveTmdb("all", 8) : Promise.resolve([] as Movie[]),
+      tmdbConfigured ? latestReleasesTmdb("series", 8) : Promise.resolve([] as Movie[]),
+    ]);
     related = (liveRelated.length ? liveRelated : trendingNow(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
-    const liveFeatured = tmdbConfigured ? await latestReleasesTmdb("series", 8) : [];
     featured = (liveFeatured.length ? liveFeatured : newestSeries(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
   }
   if (!featured.length) featured = newestSeries(movies, 4).filter((x) => x.id !== m.id);
 
-  // Series only: real season/episode structure for the episode picker.
-  // Wrapped so a TMDB hiccup degrades to "no picker", never a 500.
-  let seasons: SeasonInfo[] = [];
-  if (m.kind === "series" && m.tmdbId != null && tmdbConfigured) {
-    try { seasons = await fetchSeasons(m.tmdbId); } catch { seasons = []; }
-  }
+  const seasons = await seasonsPromise;
 
   // Structured data (schema.org/Movie) — this is what makes Google eligible
   // to show a "Rich Result" card (poster thumbnail + star rating right in

@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 // "Legally" is the keyword that separates this page's SERP from the piracy
 // swamp — searchers who type it are exactly the visitors we want, and
 // Google's results for it are thin, credible sites.
-const TITLE = "Watch Free Movies Online — Legally | Classic Bollywood Films in Full";
+const TITLE = "Free Classic Bollywood Movies — Watch Online Legally";
 const DESCRIPTION =
-  "Watch full classic movies free and 100% legally — golden-age Bollywood masterpieces like Awaara, Pyaasa, Mughal-e-Azam and Mother India in the public domain. No signup, no tricks.";
+  "Watch full classic Bollywood movies free & 100% legally — Awaara, Pyaasa, Mughal-e-Azam and more, streaming from the public domain. No signup.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -22,11 +22,44 @@ export const metadata: Metadata = {
   twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };
 
+// The explainer section below already answers these questions in prose;
+// FAQPage schema makes the same answers machine-extractable — eligible for
+// Google featured snippets, People Also Ask, and voice answers (AEO).
+const FAQ = [
+  {
+    q: "Is it legal to watch these movies for free?",
+    a: "Yes. Every film on this page is in the public domain — in India a film's copyright lasts 60 years, so golden-age classics have outlived their protection and belong to everyone. Watching them is as legal as watching a trailer.",
+  },
+  {
+    q: "Where are these free movies streamed from?",
+    a: "The prints are preserved and streamed by the nonprofit Internet Archive, or by rights holders' own official YouTube channels. We embed their players directly — nothing is hosted on our servers.",
+  },
+  {
+    q: "Do I need an account or payment to watch?",
+    a: "No. Every film on this page plays free, with no signup, subscription, or payment of any kind.",
+  },
+];
+
 export default async function FreeMoviesPage() {
   const classics = await getClassicsEnriched();
 
   return (
     <div className="page">
+      {/* eslint-disable-next-line react/no-danger -- static JSON-LD, not user input */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: FAQ.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="crumb">
         <Link href="/">Home</Link><span className="sep">›</span>
         <span className="cur">Free Movies</span>
@@ -86,7 +119,7 @@ export default async function FreeMoviesPage() {
         <p>
           Every film on this shelf is hand-checked by our editors before it appears — both that the
           print actually plays and that the film is genuinely out of copyright. Spot a problem, or think
-          a title isn&apos;t public domain in your region? <Link href="/p/contact">Contact us</Link> and
+          a title isn&apos;t public domain in your region? <Link href="/contact">Contact us</Link> and
           we&apos;ll review it promptly.
         </p>
       </section>

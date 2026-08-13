@@ -997,7 +997,7 @@ function PagesTab() {
           <h2>Pages <span className="ad__count">{pages.length}</span></h2>
           <button className="ad__btn" onClick={startNew}><Icon name="plus" size={14} /> New page</button>
         </div>
-        <p className="ad__hint">Published pages are live immediately at <code>/p/&lt;slug&gt;</code> — e.g. an "About" page becomes <code>/p/about</code>.</p>
+        <p className="ad__hint">Published pages are live immediately at <code>/&lt;slug&gt;</code> — e.g. an "About" page becomes <code>/about</code>.</p>
 
         {editing !== null && (
           <div className="ad__card ad__card--edit">
@@ -1029,7 +1029,7 @@ function PagesTab() {
               <div className="ad__row" key={p.id}>
                 <span className="ad__cat">{p.status}</span>
                 <span className="ad__name">{p.title}</span>
-                <span className="ad__meta">/p/{p.slug}</span>
+                <span className="ad__meta">/{p.slug}</span>
                 <button className="ad__mini" onClick={() => startEdit(p)}>Edit</button>
                 <button className="ad__mini ad__mini--x" onClick={() => remove(p)}>✕</button>
               </div>
@@ -1096,7 +1096,7 @@ function MenusTab() {
             <label className="ad__field"><span>Label</span>
               <input value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Contact Us" /></label>
             <label className="ad__field"><span>URL</span>
-              <input value={draft.url} onChange={(e) => setDraft({ ...draft, url: e.target.value })} placeholder="/p/contact or https://…" /></label>
+              <input value={draft.url} onChange={(e) => setDraft({ ...draft, url: e.target.value })} placeholder="/contact or https://…" /></label>
           </div>
           <div className="ad__actions">
             <button className="ad__btn ad__btn--primary" onClick={add}><Icon name="plus" size={14} /> Add link</button>

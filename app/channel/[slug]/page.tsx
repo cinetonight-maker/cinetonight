@@ -27,8 +27,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // "Latest X Movies & Web Series" + "watch trailers" is the long-tail
   // phrasing people actually search for a platform's lineup — same
   // strategy as the movie detail pages' titles.
-  const title = `Latest ${channel.name} Movies & Web Series — Watch Trailers`;
-  const description = `${channel.desc}. Browse what's streaming on ${channel.name} right now — latest movies and web series with ratings, trailers and where-to-watch info, updated live.`;
+  const title = `${channel.name} — Latest Movies & Shows to Watch`;
+  const description = `${channel.desc}. What's streaming on ${channel.name} now — movies & web series with trailers and ratings, updated live.`.slice(0, 158);
   const url = `${baseUrl()}/channel/${channel.slug}`;
   return {
     title,

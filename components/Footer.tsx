@@ -13,9 +13,9 @@ const SOCIAL: [string, string, string][] = [
 
 // Static fallbacks — used until you add real links in Dashboard → Menus & Footer,
 // and always used if Supabase isn't configured yet. Terms/Privacy point at
-// the real /p/ pages seeded by scripts/seed-legal-pages.mjs; Refund Policy
+// the real pages seeded by scripts/seed-legal-pages.mjs; Refund Policy
 // has no page yet, so it stays a placeholder until one's written.
-const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "/p/terms-of-service"], ["Privacy Policy", "/p/privacy-policy"], ["Refund Policy", "#"]];
+const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "/terms-of-service"], ["Privacy Policy", "/privacy-policy"]];
 
 type NavLink = { label: string; url: string; is_external: boolean };
 
@@ -41,10 +41,13 @@ export default async function Footer() {
   // mailto if Settings → Contact email is set but the page hasn't been
   // seeded yet, and to "#" if neither exists (still overridden by a real
   // nav_link if one's been added under Menus & Footer).
+  // Every fallback link goes somewhere REAL — '#' links read as broken to
+  // both users and crawlers. Help/DMCA both route to Contact (that's where
+  // those requests are handled) until dedicated pages exist.
   const fallbackSupport: [string, string][] = [
-    ["Help Center", "#"],
-    ["Contact Us", "/p/contact"],
-    ["DMCA", "#"],
+    ["Help Center", "/contact"],
+    ["Contact Us", "/contact"],
+    ["DMCA", "/contact"],
   ];
   const support = links?.support?.length ? links.support.map((l) => [l.label, l.url] as [string, string]) : fallbackSupport;
   const legal = links?.legal?.length ? links.legal.map((l) => [l.label, l.url] as [string, string]) : FALLBACK_LEGAL;
@@ -60,7 +63,7 @@ export default async function Footer() {
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/p/about-us">About</Link>
+          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>

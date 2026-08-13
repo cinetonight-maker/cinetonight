@@ -18,7 +18,8 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const classic = await getClassic(slug);
   if (!classic) notFound();
   const title = `Watch ${classic.title} (${classic.year}) Free Online — Full Movie, Legal`;
-  const description = `${classic.desc} Watch the full movie free and legally — streamed from the public domain.`.slice(0, 300);
+  // Intent phrase first, snippet-capped — Google truncates ~160 chars.
+  const description = `Watch ${classic.title} (${classic.year}) full movie free & legally. ${classic.desc}`.slice(0, 158);
   const url = `${baseUrl()}/free-movies/${classic.slug}`;
   return {
     title,

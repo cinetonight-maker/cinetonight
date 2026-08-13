@@ -6,7 +6,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const { genre } = await searchParams;
   return listingMetadata({
     path: "/tv-shows",
-    baseTitle: "TV Shows",
+    baseTitle: "TV Shows — What to Watch on OTT",
     baseDescription: "Stream live TV and on-demand series — top-rated shows across every genre, updated daily.",
     genre,
   });

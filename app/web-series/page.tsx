@@ -6,7 +6,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const { genre } = await searchParams;
   return listingMetadata({
     path: "/web-series",
-    baseTitle: "Web Series",
+    baseTitle: "Web Series — Trailers & Where to Stream",
     baseDescription: "Binge-worthy original web series and trending shows — the latest seasons, ranked and filterable by genre.",
     genre,
   });

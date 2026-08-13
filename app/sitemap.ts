@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { getMovies, getBlogs, genresOf, peopleOf, personId } from "@/lib/data";
 import { CHANNELS } from "@/lib/channels";
 import { getClassics } from "@/lib/classics";
+import { supabasePublic } from "@/lib/supabase/public";
 import { trendingLiveTmdb, latestReleasesTmdb, topRatedTmdb, tmdbConfigured } from "@/lib/tmdb";
 import { baseUrl } from "@/lib/site";
 
@@ -75,6 +76,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}/channel/${c.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7,
   }));
 
+  // Published custom pages (About, Contact, Privacy, Terms, ...) at their
+  // root-level URLs.
+  let pageRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const sb = supabasePublic();
+    if (sb) {
+      const { data } = await sb.from("pages").select("slug").eq("status", "published");
+      pageRoutes = (data ?? []).map((r) => ({
+        url: `${base}/${r.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
+      }));
+    }
+  } catch { /* pages table missing — skip */ }
+
   // Free Classics — the landing page plus every published watch page.
   const classicsList = await getClassics();
   const classicsRoutes: MetadataRoute.Sitemap = [
@@ -108,5 +122,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: `${base}/person/${personId(p.name)}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
   }));
 
-  return [...staticRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
+  return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
 }
