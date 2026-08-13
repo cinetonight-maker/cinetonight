@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MOVIEX — TMDB sync.
+ * CineTonight — TMDB sync.
  *
  *   1. Get a free API key:  https://www.themoviedb.org/settings/api
  *   2. Put it in .env.local:  TMDB_API_KEY=your_key_here

@@ -69,7 +69,7 @@ export async function GET(request: Request) {
 
     let newestMovieAt = lastMovie;
     for (const m of newMovies ?? []) {
-      const text = `🎬 <b>New on MOVIEX</b>\n${escapeHtml(m.title)}${m.year ? ` (${m.year})` : ""}\n${base}/movie/${m.id}`;
+      const text = `🎬 <b>New on CineTonight</b>\n${escapeHtml(m.title)}${m.year ? ` (${m.year})` : ""}\n${base}/movie/${m.id}`;
       const sent = await sendTelegramMessage(text);
       if (sent.ok) { results.moviesPosted++; newestMovieAt = m.created_at as string; }
       else results.errors.push(`movie ${m.id}: ${sent.error}`);
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
 
     let newestBlogAt = lastBlog;
     for (const b of newBlogs ?? []) {
-      const text = `📝 <b>New on the MOVIEX Blog</b>\n${escapeHtml(b.title)}\n${base}/blog/${b.slug}`;
+      const text = `📝 <b>New on the CineTonight Blog</b>\n${escapeHtml(b.title)}\n${base}/blog/${b.slug}`;
       const sent = await sendTelegramMessage(text);
       if (sent.ok) { results.blogPosted++; newestBlogAt = b.created_at as string; }
       else results.errors.push(`blog ${b.slug}: ${sent.error}`);

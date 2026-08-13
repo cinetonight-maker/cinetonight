@@ -19,7 +19,7 @@ export function baseUrl(): string {
   if (process.env.NODE_ENV === "production" && !warnedMissingSiteUrl) {
     warnedMissingSiteUrl = true;
     console.error(
-      "[moviex] NEXT_PUBLIC_SITE_URL is not set in production. " +
+      "[cinetonight] NEXT_PUBLIC_SITE_URL is not set in production. " +
         "Canonical tags, OpenGraph URLs, and the sitemap are falling back to " +
         (process.env.VERCEL_URL ? `the Vercel deployment URL (${process.env.VERCEL_URL})` : "http://localhost:3000") +
         " — set NEXT_PUBLIC_SITE_URL to your real domain to fix this."

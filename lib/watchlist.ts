@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./auth";
 import { supabaseBrowser } from "./supabase/client";
 
-const KEY = "moviex:watchlist";
-const EVENT = "moviex:wl-change";
+const KEY = "cinetonight:watchlist";
+const EVENT = "cinetonight:wl-change";
 
 function readLocal(): string[] {
   if (typeof window === "undefined") return [];

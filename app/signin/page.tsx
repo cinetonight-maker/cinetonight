@@ -7,7 +7,7 @@ export default function Page() {
     <div className="page">
       <div className="auth">
         <h1>Welcome back</h1>
-        <p className="sub">Sign in to continue to MOVIEX.</p>
+        <p className="sub">Sign in to continue to CineTonight.</p>
         <SignInForm />
         <div className="auth__alt">New here? <Link href="/signup">Create an account</Link></div>
       </div>

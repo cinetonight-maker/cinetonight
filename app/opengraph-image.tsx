@@ -10,7 +10,7 @@ import { ImageResponse } from "next/og";
  *  time from JSX/CSS (Next's built-in ImageResponse/Satori), so it needs
  *  no external image asset and stays in sync with the brand colors in
  *  globals.css automatically if this file is updated alongside them. */
-export const alt = "MOVIEX — Watch More, Stream Better";
+export const alt = "CineTonight — Know What to Watch Tonight";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -39,11 +39,11 @@ export default function Image() {
           }}
         />
         <div style={{ display: "flex", alignItems: "center", fontSize: 110, fontWeight: 800, letterSpacing: -3, color: "#eceaf2" }}>
-          MOVIE
-          <span style={{ color: "#a855f7" }}>X</span>
+          Cine
+          <span style={{ color: "#a855f7" }}>Tonight</span>
         </div>
         <div style={{ display: "flex", fontSize: 34, color: "#8b8798", marginTop: 22, fontWeight: 500 }}>
-          Watch More, Stream Better.
+          Know what to watch — tonight.
         </div>
       </div>
     ),

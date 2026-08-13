@@ -47,9 +47,9 @@ export default function PlayerModal() {
     };
 
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setS(CLOSED); };
-    window.addEventListener("moviex:play", onPlay);
+    window.addEventListener("cinetonight:play", onPlay);
     window.addEventListener("keydown", onKey);
-    return () => { window.removeEventListener("moviex:play", onPlay); window.removeEventListener("keydown", onKey); };
+    return () => { window.removeEventListener("cinetonight:play", onPlay); window.removeEventListener("keydown", onKey); };
   }, []);
 
   useEffect(() => {

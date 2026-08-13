@@ -57,13 +57,13 @@ export default async function Footer() {
     <footer className="footer">
       <div className="footer__in">
         <div className="footer__brand">
-          <div className="brand__name">MOVIE<b style={{ color: "var(--purple2)" }}>X</b></div>
+          <div className="brand__name">Cine<b style={{ color: "var(--purple2)" }}>Tonight</b></div>
           <p>Your Entertainment Hub. Watch the latest movies and web series in HD quality.</p>
         </div>
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/pricing">Pricing</Link><Link href="/about-us">About</Link>
+          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>
@@ -88,7 +88,7 @@ export default async function Footer() {
         )}
       </div>
       <div className="footer__copy">
-        © 2024 MOVIEX. All rights reserved. · Demo project.
+        © {new Date().getFullYear()} CineTonight. All rights reserved.
         <br />
         <span className="tmdb-attr">
           Movie &amp; TV data provided by{" "}

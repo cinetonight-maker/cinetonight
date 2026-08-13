@@ -16,7 +16,7 @@ export default function MaintenanceGate({ active, children }: { active: boolean;
     return (
       <div className="maintenance">
         <div className="maintenance__c">
-          <div className="brand__name">MOVIE<b>X</b></div>
+          <div className="brand__name">Cine<b>Tonight</b></div>
           <h1>We&apos;ll be right back</h1>
           <p>This site is down for scheduled maintenance. Please check back shortly.</p>
         </div>

@@ -22,7 +22,7 @@ const OUT_DIR = resolve(process.cwd(), "public/channel-logos");
 const FORCE = process.argv.includes("--force");
 // Wikimedia asks for a descriptive User-Agent with contact info; generic
 // UAs get blocked on the wiki/API domains.
-const UA = "MOVIEX-site-build/1.0 (movie discovery site; logo asset fetch; contact: site admin)";
+const UA = "CineTonight-site-build/1.0 (movie discovery site; logo asset fetch; contact: site admin)";
 
 const LOGOS = [
   { file: "netflix.svg", urls: ["https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg"], names: ["Netflix 2015 logo.svg"] },

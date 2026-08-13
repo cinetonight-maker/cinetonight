@@ -1,4 +1,4 @@
--- MOVIEX admin dashboard schema
+-- CineTonight admin dashboard schema
 -- Run this once in Supabase → SQL Editor (your project → SQL Editor → New query → paste → Run).
 -- Safe to re-run: every statement is guarded with IF NOT EXISTS / OR REPLACE.
 
@@ -206,7 +206,7 @@ alter table subscribers enable row level security;
 -- Single-row table: global SEO / contact / social settings.
 create table if not exists site_settings (
   id               integer primary key default 1 check (id = 1),
-  site_title       text not null default 'MOVIEX',
+  site_title       text not null default 'CineTonight',
   site_description text not null default 'Stream the latest movies and web series in HD.',
   meta_keywords    text not null default '',
   contact_email    text not null default '',

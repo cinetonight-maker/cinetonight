@@ -50,7 +50,7 @@ export default function TicketStub({ movie }: { movie: Movie }) {
   async function download() {
     try {
       const blob = await blobOrFallback();
-      triggerDownload(blob, `${movie.id}-moviex-ticket.png`);
+      triggerDownload(blob, `${movie.id}-cinetonight-ticket.png`);
     } catch {
       /* canvas truly unreadable — it's still visible on screen to screenshot */
     }
@@ -59,12 +59,12 @@ export default function TicketStub({ movie }: { movie: Movie }) {
   async function share() {
     try {
       const blob = await blobOrFallback();
-      const file = new File([blob], `${movie.id}-moviex-ticket.png`, { type: "image/png" });
+      const file = new File([blob], `${movie.id}-cinetonight-ticket.png`, { type: "image/png" });
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-        await navigator.share({ files: [file], title: `${movie.title} — MOVIEX ticket` });
+        await navigator.share({ files: [file], title: `${movie.title} — CineTonight ticket` });
         return;
       }
-      triggerDownload(blob, `${movie.id}-moviex-ticket.png`);
+      triggerDownload(blob, `${movie.id}-cinetonight-ticket.png`);
     } catch {
       /* user cancelled the share sheet, or nothing could be extracted — no-op */
     }
@@ -79,7 +79,7 @@ export default function TicketStub({ movie }: { movie: Movie }) {
       <div className={`rmodal${open ? " open" : ""}`} onClick={() => setOpen(false)}>
         <div className="rmodal__box tstub__box" onClick={(e) => e.stopPropagation()}>
           <div className="rmodal__bar">
-            <b>🎟️ Your MOVIEX Ticket</b>
+            <b>🎟️ Your CineTonight Ticket</b>
             <button className="rmodal__x" onClick={() => setOpen(false)} aria-label="Close"><Icon name="x" size={18} /></button>
           </div>
           <div className="tstub__body">

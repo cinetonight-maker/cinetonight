@@ -89,7 +89,7 @@ export default async function PersonPage({ params }: Params) {
           <div className="person__n">{p.name}</div>
           <div className="person__role">Actor</div>
           <p className="person__bio">
-            {p.name} appears in {credits.length} title{credits.length === 1 ? "" : "s"} on MOVIEX
+            {p.name} appears in {credits.length} title{credits.length === 1 ? "" : "s"} on CineTonight
             {credits.length ? `, including ${credits.slice(0, 2).map((c) => c.title).join(" and ")}` : ""}.
             Known on screen for roles such as {p.character}.
           </p>

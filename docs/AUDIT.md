@@ -76,7 +76,7 @@ scroll. Desktop verified at 1400px.
 1. **Brand name decision** still gates the rebrand pass (see BRAND.md).
 2. Footer tagline still says "Watch the latest movies… in HD quality" —
    consider the BRAND.md voice ("Know what to watch") at rebrand time.
-3. "© 2024 MOVIEX · Demo project." in the footer — update year via
+3. "© 2024 CineTonight · Demo project." in the footer — update year via
    `new Date().getFullYear()` and drop "Demo project" at launch.
 4. Consider deleting the three unused component files above in one commit.
 5. Blog has 4 posts — for SEO momentum, 1–2 posts/week targeting "ott

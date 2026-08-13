@@ -44,8 +44,8 @@ export default function Header() {
         <Icon name="menu" size={20} />
       </button>
       <Link className="brand" href="/">
-        <div className="brand__name">MOVIE<b>X</b></div>
-        <div className="brand__tag">Movies, K-Drama, Anime &amp; More.</div>
+        <div className="brand__name">Cine<b>Tonight</b></div>
+        <div className="brand__tag">Know what to watch.</div>
       </Link>
       <nav className="topnav">
         {NAV.filter((n) => n.top && n.href !== "/").map((n) => (
@@ -53,9 +53,6 @@ export default function Header() {
         ))}
       </nav>
       <SearchBox onNavigate={() => setDrawerOpen(false)} />
-      <Link className="premium-mini" href="/pricing" aria-label="Go Premium">
-        <Icon name="crown" size={14} /><span>Premium</span>
-      </Link>
       <Link className="hicon" href="/my-list" aria-label="My List">
         <Icon name="bell" size={18} />
         {count > 0 ? <span className="wl-badge">{count}</span> : null}
@@ -86,7 +83,7 @@ export default function Header() {
     <div className={`navdrawer__overlay${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)} />
     <div className={`navdrawer${drawerOpen ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Menu">
       <div className="navdrawer__head">
-        <div className="brand__name">MOVIE<b>X</b></div>
+        <div className="brand__name">Cine<b>Tonight</b></div>
         <button type="button" className="navdrawer__x" aria-label="Close menu" onClick={() => setDrawerOpen(false)}>
           <Icon name="x" size={18} />
         </button>

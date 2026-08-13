@@ -5,8 +5,8 @@
  *  search/suggestion click; the search page shows the chips. The custom
  *  event keeps any mounted chip list live-updating in the same tab
  *  (the `storage` event only fires across OTHER tabs). */
-const KEY = "moviex:recent-searches";
-const EVENT = "moviex:recent-searches-change";
+const KEY = "cinetonight:recent-searches";
+const EVENT = "cinetonight:recent-searches-change";
 const MAX = 8;
 
 export function getRecentSearches(): string[] {

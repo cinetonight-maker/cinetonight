@@ -11,7 +11,7 @@ import type { Movie } from "@/lib/types";
  *  platform's own search for the exact title, so a signed-in user lands
  *  one tap from playing it. */
 
-/** Amazon Associates tag (e.g. "moviex-21"). Set AMAZON_ASSOCIATES_TAG in
+/** Amazon Associates tag (e.g. "cinetonight-21"). Set AMAZON_ASSOCIATES_TAG in
  *  .env.local + Vercel once approved — the Prime row then links to the
  *  Prime signup page WITH your tag (the free-trial bounty page) and the
  *  disclosure line appears automatically. */

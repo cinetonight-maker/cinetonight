@@ -5,7 +5,7 @@ import { posterLg } from "./images";
  *  shareable "movie ticket" image for any title onto a <canvas>, entirely
  *  client-side. Built for Instagram/WhatsApp-Status sharing: no backend,
  *  no tokens, nothing to configure. Colors mirror the site's CSS variables
- *  in app/globals.css so the ticket looks like it belongs to MOVIEX. */
+ *  in app/globals.css so the ticket looks like it belongs to CineTonight. */
 
 const W = 1200;
 const H = 630;
@@ -188,10 +188,10 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = COLORS.purple2;
   ctx.font = "800 20px system-ui, -apple-system, sans-serif";
-  ctx.fillText("MOVIE", padX, 56);
-  const movieW = ctx.measureText("MOVIE").width;
+  ctx.fillText("Cine", padX, 56);
+  const movieW = ctx.measureText("Cine").width;
   ctx.fillStyle = "#fff";
-  ctx.fillText("X", padX + movieW, 56);
+  ctx.fillText("Tonight", padX + movieW, 56);
 
   ctx.textAlign = "right";
   ctx.fillStyle = COLORS.muted;
@@ -199,7 +199,7 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   ctx.fillText("ADMIT ONE", W - 40, 30);
   ctx.font = "600 11px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = COLORS.muted2;
-  ctx.fillText("Watch More, Stream Better.", W - 40, 52);
+  ctx.fillText("Know what to watch — tonight.", W - 40, 52);
   ctx.textAlign = "left";
 
   ctx.strokeStyle = COLORS.line;

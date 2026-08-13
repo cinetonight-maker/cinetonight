@@ -198,8 +198,8 @@ export type SiteSettings = {
   social: Record<string, string>; maintenanceMode: boolean;
 };
 const FALLBACK_SETTINGS: SiteSettings = {
-  siteTitle: "MOVIEX — Watch More, Stream Better",
-  siteDescription: "Stream the latest movies, web series, K-Drama, anime and C-Drama in HD. Trending titles, top rated picks, and your personal watchlist.",
+  siteTitle: "CineTonight — What to Watch Tonight: Trailers & OTT Picks",
+  siteDescription: "Know what to watch tonight — trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
   metaKeywords: "",
   contactEmail: "",
   social: {},

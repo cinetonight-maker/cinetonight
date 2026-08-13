@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const KEY = "moviex:lastSeenIds";
+const KEY = "cinetonight:lastSeenIds";
 
 /** Cheap "welcome back" nudge — no account, no schema change, just a
  *  browser-side diff against what was on the homepage last time this

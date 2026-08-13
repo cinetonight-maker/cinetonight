@@ -24,7 +24,7 @@ export default function Icon() {
           borderRadius: 6,
         }}
       >
-        <span style={{ display: "flex", fontSize: 22, fontWeight: 800, color: "#a855f7" }}>X</span>
+        <span style={{ display: "flex", fontSize: 20, fontWeight: 800, color: "#a855f7" }}>C</span>
       </div>
     ),
     { ...size }

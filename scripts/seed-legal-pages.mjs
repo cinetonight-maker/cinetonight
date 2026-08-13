@@ -52,17 +52,17 @@ const PAGES = [
   {
     slug: "about-us",
     title: "About Us",
-    content: `# About MOVIEX
+    content: `# About CineTonight
 
-MOVIEX is a personal, non-commercial project built for discovering movies, web series, K-Dramas, anime and more — trailers, ratings, cast, and where to watch each title, all in one place.
+CineTonight is a personal, non-commercial project built for discovering movies, web series, K-Dramas, anime and more — trailers, ratings, cast, and where to watch each title, all in one place.
 
-## What MOVIEX is
+## What CineTonight is
 
-MOVIEX pulls posters, synopses, ratings and cast information from [The Movie Database (TMDB)](https://www.themoviedb.org/), embeds official trailers from YouTube, and links out to the legitimate platforms (Netflix, Prime Video, and others) that actually carry each title.
+CineTonight pulls posters, synopses, ratings and cast information from [The Movie Database (TMDB)](https://www.themoviedb.org/), embeds official trailers from YouTube, and links out to the legitimate platforms (Netflix, Prime Video, and others) that actually carry each title.
 
-## What MOVIEX is not
+## What CineTonight is not
 
-MOVIEX does **not** host, stream, or distribute any full movie or TV episode. Clicking "Watch Now" on a title opens its trailer — it never plays pirated or unlicensed content, and it never claims to be an official service of any studio, network, or streaming platform it links to or mentions.
+CineTonight does **not** host, stream, or distribute any full movie or TV episode. Clicking "Watch Now" on a title opens its trailer — it never plays pirated or unlicensed content, and it never claims to be an official service of any studio, network, or streaming platform it links to or mentions.
 
 ## Data sources
 
@@ -93,7 +93,7 @@ We read every message and try to reply within a few days. For fastest handling, 
 
 ## Copyright / takedown requests
 
-If you're a rights holder with a concern about a trailer, poster, or piece of listing data, email the address above with the title in question and a description of the concern, and it will be looked at promptly. See also our [Terms of Service](/terms-of-service) for how MOVIEX sources and uses this content.
+If you're a rights holder with a concern about a trailer, poster, or piece of listing data, email the address above with the title in question and a description of the concern, and it will be looked at promptly. See also our [Terms of Service](/terms-of-service) for how CineTonight sources and uses this content.
 
 ## Business & press
 
@@ -108,7 +108,7 @@ Same address — just say what it's regarding in the subject line.
 
 *Last updated: ${TODAY}*
 
-This page explains what information MOVIEX collects, why, and how it's handled. MOVIEX is a personal, non-commercial project — this policy is written in plain language rather than dense legal boilerplate, but it's accurate to how the site actually works.
+This page explains what information CineTonight collects, why, and how it's handled. CineTonight is a personal, non-commercial project — this policy is written in plain language rather than dense legal boilerplate, but it's accurate to how the site actually works.
 
 ## Information we collect
 
@@ -124,11 +124,11 @@ This page explains what information MOVIEX collects, why, and how it's handled. 
 
 ## What we don't do
 
-We don't sell your personal information, and we don't share it with advertisers for targeted ad profiles. We don't collect payment information — MOVIEX doesn't process any payments.
+We don't sell your personal information, and we don't share it with advertisers for targeted ad profiles. We don't collect payment information — CineTonight doesn't process any payments.
 
 ## Third parties
 
-MOVIEX embeds trailers from **YouTube** and pulls listing data from **TMDB**; visiting a page that loads either may be subject to that provider's own privacy policy. Where MOVIEX links out to a streaming platform (e.g. "Watch on Netflix"), that platform's own privacy policy applies once you leave MOVIEX.
+CineTonight embeds trailers from **YouTube** and pulls listing data from **TMDB**; visiting a page that loads either may be subject to that provider's own privacy policy. Where CineTonight links out to a streaming platform (e.g. "Watch on Netflix"), that platform's own privacy policy applies once you leave CineTonight.
 
 ## Your choices
 
@@ -136,7 +136,7 @@ You can edit or delete your account data, request a copy of what we hold, or ask
 
 ## Children's privacy
 
-MOVIEX is not directed at children under 13, and we don't knowingly collect personal information from them.
+CineTonight is not directed at children under 13, and we don't knowingly collect personal information from them.
 
 ## Changes to this policy
 
@@ -153,11 +153,11 @@ Questions about this policy? See our [Contact page](/contact) or email [${CONTAC
 
 *Last updated: ${TODAY}*
 
-Welcome to MOVIEX. By using this site, you agree to the terms below. If you don't agree, please don't use the site.
+Welcome to CineTonight. By using this site, you agree to the terms below. If you don't agree, please don't use the site.
 
-## What MOVIEX provides
+## What CineTonight provides
 
-MOVIEX is a discovery and information site for movies, web series, K-Dramas, anime and more. It shows trailers, ratings, cast details, and where a title is legitimately available to watch. **MOVIEX does not host, stream, sell, or distribute any copyrighted movie or TV episode.** Trailers are embedded from YouTube; listing data (titles, posters, cast, ratings) is sourced from TMDB. Links to streaming platforms (Netflix, Prime Video, and others) take you to those platforms' own sites or apps to actually watch — MOVIEX has no control over, and makes no guarantee about, the availability of a title on any third-party platform.
+CineTonight is a discovery and information site for movies, web series, K-Dramas, anime and more. It shows trailers, ratings, cast details, and where a title is legitimately available to watch. **CineTonight does not host, stream, sell, or distribute any copyrighted movie or TV episode.** Trailers are embedded from YouTube; listing data (titles, posters, cast, ratings) is sourced from TMDB. Links to streaming platforms (Netflix, Prime Video, and others) take you to those platforms' own sites or apps to actually watch — CineTonight has no control over, and makes no guarantee about, the availability of a title on any third-party platform.
 
 ## Accounts
 
@@ -167,7 +167,7 @@ You're responsible for keeping your account credentials secure and for anything 
 
 You agree not to:
 
-- Use MOVIEX for anything unlawful, or to infringe anyone else's rights
+- Use CineTonight for anything unlawful, or to infringe anyone else's rights
 - Attempt to scrape, reverse-engineer, or overload the service beyond normal personal use
 - Post comments that are abusive, defamatory, spam, or infringe someone else's copyright
 - Attempt to bypass any security or rate-limiting measures on the site
@@ -176,21 +176,21 @@ We reserve the right to remove content or suspend accounts that violate these te
 
 ## Content and copyright
 
-Movie/TV posters, backdrops, and metadata are provided by TMDB; trailer video is provided by YouTube and remains the property of its respective owners. All trademarks, service marks, and studio/platform names mentioned belong to their respective owners — MOVIEX's use of them is for identification purposes only and doesn't imply endorsement or affiliation.
+Movie/TV posters, backdrops, and metadata are provided by TMDB; trailer video is provided by YouTube and remains the property of its respective owners. All trademarks, service marks, and studio/platform names mentioned belong to their respective owners — CineTonight's use of them is for identification purposes only and doesn't imply endorsement or affiliation.
 
-If you believe content on MOVIEX infringes your copyright, contact us at [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}) with details and it will be reviewed and removed if warranted.
+If you believe content on CineTonight infringes your copyright, contact us at [${CONTACT_EMAIL}](mailto:${CONTACT_EMAIL}) with details and it will be reviewed and removed if warranted.
 
 ## No warranty
 
-MOVIEX is provided "as is," as a personal project, without warranties of any kind. Ratings, availability, and "where to watch" information are sourced from third parties and may be inaccurate or out of date. We don't guarantee the site will be error-free, uninterrupted, or available at all times.
+CineTonight is provided "as is," as a personal project, without warranties of any kind. Ratings, availability, and "where to watch" information are sourced from third parties and may be inaccurate or out of date. We don't guarantee the site will be error-free, uninterrupted, or available at all times.
 
 ## Limitation of liability
 
-To the fullest extent permitted by law, MOVIEX and its creator are not liable for any indirect, incidental, or consequential damages arising from your use of the site, including reliance on any information it displays.
+To the fullest extent permitted by law, CineTonight and its creator are not liable for any indirect, incidental, or consequential damages arising from your use of the site, including reliance on any information it displays.
 
 ## Changes to these terms
 
-We may update these terms from time to time; the "Last updated" date above reflects the latest revision. Continuing to use MOVIEX after a change means you accept the updated terms.
+We may update these terms from time to time; the "Last updated" date above reflects the latest revision. Continuing to use CineTonight after a change means you accept the updated terms.
 
 ## Contact
 

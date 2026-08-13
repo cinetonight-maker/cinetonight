@@ -1,4 +1,4 @@
--- Starter content for MOVIEX's Pages + footer Nav — run this ONCE in the
+-- Starter content for CineTonight's Pages + footer Nav — run this ONCE in the
 -- Supabase SQL Editor (safe to re-run: guarded with ON CONFLICT / WHERE NOT
 -- EXISTS, so re-running never creates duplicates).
 --
@@ -19,26 +19,26 @@ values (
   'About Us',
   $page$> **Draft — review and edit before publishing.**
 
-# About MOVIEX
+# About CineTonight
 
-MOVIEX is a movie and TV companion site: browse posters, ratings, cast and crew details, and trailers for thousands of titles, all in one place.
+CineTonight is a movie and TV companion site: browse posters, ratings, cast and crew details, and trailers for thousands of titles, all in one place.
 
-## What MOVIEX is
+## What CineTonight is
 
 - A discovery and information hub for movies and web series — genres, ratings, cast, and what's trending right now.
-- Metadata (posters, descriptions, cast, ratings) is sourced from [The Movie Database (TMDB)](https://www.themoviedb.org/) and displayed under their terms of use. MOVIEX is not endorsed or certified by TMDB.
+- Metadata (posters, descriptions, cast, ratings) is sourced from [The Movie Database (TMDB)](https://www.themoviedb.org/) and displayed under their terms of use. CineTonight is not endorsed or certified by TMDB.
 - Trailers are embedded directly from YouTube.
 
-## What MOVIEX is not
+## What CineTonight is not
 
-MOVIEX does not host, store, or distribute copyrighted film or television content. See our [DMCA & Copyright](/p/dmca) page for details.
+CineTonight does not host, store, or distribute copyrighted film or television content. See our [DMCA & Copyright](/p/dmca) page for details.
 
 ## Questions
 
 Reach out any time — see our [Contact](/p/contact) page.
 
 ---
-*[Replace this paragraph with a short note about who built MOVIEX and why — a founder's note, a portfolio project description, or a company overview, whichever applies.]*
+*[Replace this paragraph with a short note about who built CineTonight and why — a founder's note, a portfolio project description, or a company overview, whichever applies.]*
 $page$,
   'draft'
 )
@@ -74,7 +74,7 @@ values (
 
 _Last updated: [date]_
 
-This Privacy Policy explains what information MOVIEX ("we", "us") collects when you use this site, and how it is used.
+This Privacy Policy explains what information CineTonight ("we", "us") collects when you use this site, and how it is used.
 
 ## Information we collect
 
@@ -115,11 +115,11 @@ values (
 
 _Last updated: [date]_
 
-By using MOVIEX, you agree to these terms.
+By using CineTonight, you agree to these terms.
 
 ## Use of the site
 
-MOVIEX provides movie and TV information, ratings, and trailers for personal, non-commercial use. Do not scrape, resell, or misuse the content or the service.
+CineTonight provides movie and TV information, ratings, and trailers for personal, non-commercial use. Do not scrape, resell, or misuse the content or the service.
 
 ## Accounts
 
@@ -160,7 +160,7 @@ values (
 
 # DMCA & Copyright Notice
 
-MOVIEX does not host, store, or stream copyrighted film or television content. The site displays:
+CineTonight does not host, store, or stream copyrighted film or television content. The site displays:
 
 - Movie/TV metadata (titles, posters, descriptions, cast) sourced from [TMDB](https://www.themoviedb.org/) under their terms of use.
 - Trailers embedded directly from YouTube, played through YouTube's own embedded player.

@@ -14,10 +14,14 @@ const nextConfig = {
   // the in-app fallback (app/p/[slug]) streams a 200, which crawlers treat
   // less cleanly. permanent:true = 308, transfers indexed standing.
   async redirects() {
-    return [{ source: "/p/:slug", destination: "/:slug", permanent: true }];
+    return [
+      { source: "/p/:slug", destination: "/:slug", permanent: true },
+      // Old demo "Go Premium" page — CineTonight sells no streaming plans.
+      { source: "/pricing", destination: "/", permanent: true },
+    ];
   },
   // Baseline security headers — free, no third-party service required.
-  // X-Frame-Options: DENY stops other sites from framing MOVIEX for
+  // X-Frame-Options: DENY stops other sites from framing CineTonight for
   // clickjacking; it has no effect on us embedding YouTube trailers
   // (that's us framing them, not the reverse). HSTS only matters once the
   // site is actually served over HTTPS (true on Vercel by default).

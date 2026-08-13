@@ -101,7 +101,15 @@ movies and public-domain classics, clearly labeled.
 
 ## Brand name status
 
-Decision pending. Vetted-clean shortlist (all SERP-checked Aug 2026):
+**FINAL (Aug 13, 2026): CineTonight.** Chosen because the brand SERP is
+empty (only ghost: a French over-blog dead since 2012), the name IS the
+positioning ("what to watch tonight" — our core query family), it's
+entity-unambiguous for Google/AI engines, and "cine" is native vocabulary
+across South Asia. Domain: cinetonight.com (registered via Porkbun).
+Nearby-but-distinct: cine-night.com (grey-area streamer — different name,
+different spelling; our clean-legal positioning is the insulation).
+
+Runner-up shortlist kept for the record (all SERP-checked Aug 2026):
 
 | Name | Style | Notes |
 |---|---|---|

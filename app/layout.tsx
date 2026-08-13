@@ -45,7 +45,7 @@ const poppins = localFont({
   display: "swap",
 });
 
-// Was a static object pointing at hardcoded "MOVIEX" copy — Dashboard →
+// Was a static object pointing at hardcoded "CineTonight" copy — Dashboard →
 // SEO & Settings could be edited and saved all day with zero effect on the
 // live site. Now sourced from the same settings row the dashboard writes.
 export async function generateMetadata(): Promise<Metadata> {

@@ -14,5 +14,5 @@ export interface PlayRequest {
 export function openPlayer(req: PlayRequest | string = {}) {
   if (typeof window === "undefined") return;
   const detail: PlayRequest = typeof req === "string" ? { title: req } : req;
-  window.dispatchEvent(new CustomEvent("moviex:play", { detail }));
+  window.dispatchEvent(new CustomEvent("cinetonight:play", { detail }));
 }

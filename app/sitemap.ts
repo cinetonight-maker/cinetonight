@@ -67,7 +67,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/latest", priority: 0.7 },
     { path: "/genres", priority: 0.6 },
     { path: "/blog", priority: 0.6 },
-    { path: "/pricing", priority: 0.4 },
   ].map(({ path, priority }) => ({ url: `${base}${path}`, lastModified: now, changeFrequency: "daily" as const, priority }));
 
   // Channel pages ("what's streaming on Netflix/Prime/JioHotstar/..." )

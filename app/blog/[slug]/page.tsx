@@ -56,7 +56,7 @@ export default async function ArticlePage({ params }: Params) {
     description: b.excerpt,
     image,
     datePublished: isoDate(b.date),
-    author: { "@type": "Organization", name: "MOVIEX Editorial" },
+    author: { "@type": "Organization", name: "CineTonight Editorial" },
     mainEntityOfPage: `${baseUrl()}/blog/${b.slug}`,
   };
 

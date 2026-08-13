@@ -1,6 +1,6 @@
-# MOVIEX — Next.js streaming site
+# CineTonight — Next.js streaming site
 
-The MOVIEX design (dark navy + purple, collapsible sidebar, right rail) built as a real
+The CineTonight design (dark navy + purple, collapsible sidebar, right rail) built as a real
 **Next.js (App Router) + TypeScript** app. Server-rendered pages, statically-generated
 movie / blog / person routes, and client interactivity where it matters.
 
@@ -87,4 +87,3 @@ it by hand. Until you run the sync it ships with hand-written metadata for 18 In
 series and placeholder artwork.
 
 *Demo project. Reviews, platform availability and "continue watching" progress are illustrative.*
-"# stream" 
