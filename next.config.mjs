@@ -1,7 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: { remotePatterns: [
+  images: {
+    // Serve images directly from their source CDNs instead of routing every
+    // poster through Vercel's metered image optimizer. TMDB already delivers
+    // pre-sized, CDN-cached art (we request exact w342/w500/w1280 variants),
+    // so the optimizer added little — but its 5,000/month Hobby-plan cap
+    // made the whole catalogue's images start FAILING once exhausted
+    // (the "broken posters everywhere" incident). next/image keeps doing
+    // lazy-loading and layout; only the transformation step is skipped.
+    // If the project ever moves to Vercel Pro, this can be revisited.
+    unoptimized: true,
+    remotePatterns: [
       { protocol: "https", hostname: "image.tmdb.org" },
       { protocol: "https", hostname: "picsum.photos" },
       // Uploaded Media Library files (blog featured images, catalogue poster
