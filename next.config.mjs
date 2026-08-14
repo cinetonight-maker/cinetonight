@@ -41,6 +41,20 @@ const nextConfig = {
       // the same directive at the HTTP-header level, which even non-HTML
       // responses and overly eager crawlers respect. robots.txt disallow +
       // meta noindex + header = every mechanism Google documents.
+      // Cache rendered pages at Vercel's edge for 5 minutes (+ a day of
+      // stale-while-revalidate). Page content is not per-user (watchlist
+      // and session UI are client-side), only lightly per-region, and the
+      // edge caches per-POP which roughly follows region anyway. This is
+      // the difference between every bot hit invoking a serverless
+      // function and the CDN absorbing them — the 1.5M-invocations
+      // incident that nearly paused the project. Vercel-CDN-Cache-Control
+      // affects ONLY the edge cache, never browsers.
+      {
+        source: "/((?!api/|admin).*)",
+        headers: [
+          { key: "Vercel-CDN-Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=86400" },
+        ],
+      },
       {
         source: "/admin/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],

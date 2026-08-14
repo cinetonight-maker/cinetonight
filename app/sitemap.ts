@@ -104,7 +104,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Live TMDB titles — same pages the "Related"/"Featured" rails and
   // homepage rows already link to, just newly listed here too.
-  const tmdbMovieRoutes: MetadataRoute.Sitemap = tmdbMovies.map((m) => ({
+  // Capped: advertising every live-TMDB page invited crawl storms over
+  // thousands of SSR pages. Crawlers still DISCOVER the rest through
+  // on-page links at their own pace; the sitemap now curates the core.
+  const tmdbMovieRoutes: MetadataRoute.Sitemap = tmdbMovies.slice(0, 150).map((m) => ({
     url: `${base}/movie/${m.id}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.6,
   }));
 
@@ -118,7 +121,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Actor/cast pages — every person with at least one credit in the
   // curated catalogue (mirrors generateStaticParams in app/person/[id]).
-  const personRoutes: MetadataRoute.Sitemap = people.map((p) => ({
+  const personRoutes: MetadataRoute.Sitemap = people.slice(0, 50).map((p) => ({
     url: `${base}/person/${personId(p.name)}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
   }));
 
