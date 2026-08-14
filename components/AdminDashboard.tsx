@@ -225,18 +225,6 @@ function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
   }));
   const removeRow = (id: string) => save((base) => ({ rows: (base.rows ?? []).filter((r) => r.id !== id) }));
 
-  const continueItems = site.continueWatching ?? [];
-  const updateContinue = (id: string, patch: Partial<(typeof continueItems)[number]>) => {
-    save((base) => {
-      const cur = base.continueWatching ?? [];
-      const idx = cur.findIndex((c) => c.id === id);
-      if (idx < 0) return {};
-      const next = cur.slice(); next[idx] = { ...next[idx], ...patch };
-      return { continueWatching: next };
-    });
-  };
-  const removeContinue = (id: string) => save((base) => ({ continueWatching: (base.continueWatching ?? []).filter((c) => c.id !== id) }));
-  const addContinue = (id: string) => save((base) => ({ continueWatching: [...(base.continueWatching ?? []), { id, progress: 20, note: "" }] }));
 
   return (
     <div className="ad__body ad__body--one">
@@ -339,37 +327,6 @@ function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
         ))}
       </section>
 
-      <section className="ad__panel">
-        <h2>Continue Watching <span className="ad__count">{continueItems.length}</span></h2>
-        <p className="ad__hint">The "pick up where you left off" row at the top of the home page. Progress and note are just display text — there's no real playback tracking.</p>
-        <div className="ad__list">
-          {continueItems.map((c, i) => {
-            const m = movies.find((x) => x.id === c.id);
-            return (
-              <div className="ad__row" key={c.id + i}>
-                {m && <img className="ad__thumb" alt="" src={poster(m)} />}
-                <span className="ad__name">{m?.title ?? c.id}</span>
-                <input type="number" min={0} max={100} value={c.progress}
-                  onChange={(e) => updateContinue(c.id, { progress: Math.max(0, Math.min(100, Number(e.target.value))) })}
-                  aria-label="Progress %" title="Progress %" />
-                <input type="text" value={c.note} placeholder="S1 E2 · 20m left"
-                  onChange={(e) => updateContinue(c.id, { note: e.target.value })} aria-label="Note" />
-                <button className="ad__mini ad__mini--x" onClick={() => removeContinue(c.id)}>✕</button>
-              </div>
-            );
-          })}
-          {!continueItems.length && <div className="ad__empty">Nothing yet — pick a title below.</div>}
-        </div>
-        <div className="ad__picker ad__picker--sm">
-          {movies.filter((m) => !continueItems.some((c) => c.id === m.id)).map((m) => (
-            <button key={m.id} className="ad__pick" onClick={() => addContinue(m.id)}>
-              <img alt="" src={poster(m)} />
-              <span>{m.title}</span>
-              <em><Icon name="plus" size={13} /></em>
-            </button>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

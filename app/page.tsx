@@ -14,7 +14,7 @@ import { CHANNELS } from "@/lib/channels";
 import {
   latestReleasesTmdb, trendingLiveTmdb, topRatedTmdb, hollywoodTmdb, bollywoodTmdb,
   koreanTmdb, chineseTmdb, animeTmdb, teluguTmdb, tmdbConfigured,
-  nowPlayingTmdb, upcomingTmdb, popularListTmdb, topRatedListTmdb, onTheAirTmdb, genreRowTmdb,
+  nowPlayingTmdb, upcomingTmdb, popularListTmdb, topRatedListTmdb, onTheAirTmdb, genreRowTmdb, languageRowTmdb,
 } from "@/lib/tmdb";
 import type { Movie, RowConfig } from "@/lib/types";
 
@@ -63,7 +63,9 @@ export default async function HomePage() {
     nowShowing, top10Movies, upcoming, popularMovies, topRatedMovies,
     onAir, top10Shows,
     thrillerMovies, actionMovies, topRatedShows, popularShows,
-    animationMovies, kidsShows, crimeShows, westernShows,
+    animationMovies, kidsShows, crimeShows,
+    bollywoodMovies, teluguMovies, tamilMovies,
+    indianSerials, pakistaniDramas, kdramas, anime,
     railTrending, railTop,
   ] = await Promise.all([
     recentlyAdded("movie", 8), recentlyAdded("series", 8),
@@ -81,7 +83,14 @@ export default async function HomePage() {
     live ? genreRowTmdb("movie", "Animation", 10) : noMovies,
     live ? genreRowTmdb("series", "Kids", 10) : noMovies,
     live ? genreRowTmdb("series", "Crime", 10) : noMovies,
-    live ? genreRowTmdb("series", "Western", 10) : noMovies,
+    // Audience-language rows: what South Asian viewers actually search for.
+    live ? languageRowTmdb("movie", "hi", 10) : noMovies,
+    live ? languageRowTmdb("movie", "te", 10) : noMovies,
+    live ? languageRowTmdb("movie", "ta", 10) : noMovies,
+    live ? languageRowTmdb("series", "hi", 10, "IN") : noMovies,
+    live ? languageRowTmdb("series", "ur", 10, "PK") : noMovies,
+    live ? languageRowTmdb("series", "ko", 10) : noMovies,
+    live ? languageRowTmdb("series", "ja", 10, undefined, "Animation") : noMovies,
     live ? trendingLiveTmdb("all", 4) : noMovies,
     live ? topRatedTmdb("all", 4) : noMovies,
   ]);
@@ -144,6 +153,12 @@ export default async function HomePage() {
           {rail("now-showing", "Now Showing", "Movies playing in theatres right now", nowShowing)}
           {rail("top10-movies", "Top 10 Movies in the World Today", "The most-watched movies across the globe, updated daily", top10Movies.slice(0, 10), { ranked: true, all: allTrending })}
 
+          {/* Audience language rows are woven through the page instead of
+              stacked at the end: Bollywood right after the Top 10, Telugu
+              and Tamil between the global movie rows, the serial and drama
+              rows inside the TV block, anime closing it. */}
+          {rail("bollywood", "Bollywood Movies", "The biggest Hindi films everyone is watching right now", bollywoodMovies)}
+
           {/* 5 · Upcoming keeps the wide "editor's pick" card style. */}
           {upcoming.length > 0 && (
             <Row title="Upcoming" sub="Upcoming movies hitting theatres soon — watch the trailers first" all={allMovies}>
@@ -151,14 +166,23 @@ export default async function HomePage() {
             </Row>
           )}
 
+          {rail("telugu", "Telugu Movies", "Tollywood blockbusters and pan India hits", teluguMovies)}
           {rail("popular-movies", "Popular Movies", "Popular movies streaming now, straight from the global charts", popularMovies)}
+          {rail("tamil", "Tamil Movies", "Kollywood favorites, from mass entertainers to gems", tamilMovies)}
           {rail("toprated-movies", "Top Rated Movies", "The highest-rated movies of all time", topRatedMovies)}
+          {rail("thriller", "Thriller Movies", "Edge of your seat thrillers trending now", thrillerMovies)}
+          {rail("action", "Action Movies", "Big, loud and spectacular action films", actionMovies)}
 
           {/* 9–12 · Live TV blocks. */}
           {rail("on-air", "On The Air", "New episodes recently aired & airing this week", onAir, { all: allShows })}
           {rail("top10-shows", "Top 10 TV Shows in the World Today", "The most-watched shows across the globe, updated daily", top10Shows.slice(0, 10), { ranked: true, all: allShows })}
+          {rail("indian-serials", "Indian Drama Serials", "Popular Hindi serials and shows from Indian television", indianSerials, { all: allShows })}
           {rail("popular-shows", "Popular TV Shows", "The shows everyone is streaming right now", popularShows, { all: allShows })}
+          {rail("pakistani-dramas", "Pakistani Dramas", "Acclaimed dramas from Pakistani television", pakistaniDramas, { all: allShows })}
+          {rail("kdrama", "K-Dramas", "The Korean dramas everyone is talking about", kdramas, { all: allShows })}
           {rail("toprated-shows", "Top Rated TV Shows", "The highest-rated series of all time", topRatedShows, { all: allShows })}
+          {rail("anime", "Anime", "Top anime series, from new seasons to all time greats", anime, { all: allShows })}
+          {rail("crime-tv", "Crime TV Shows", "Heists, detectives and underworld drama", crimeShows, { all: allShows })}
 
           {/* Free Classics — the only "watch the FULL movie here" shelf on
                 the site: hand-curated public-domain films (see lib/classics). */}
@@ -183,14 +207,8 @@ export default async function HomePage() {
             );
           })}
 
-          {/* Genre deep-cuts — movies first, then TV, ending on niche
-                rows so the page finishes with discovery, not repetition. */}
-          {rail("thriller", "Thriller Movies", "Edge-of-your-seat thrillers trending now", thrillerMovies)}
-          {rail("action", "Action Movies", "Big, loud & spectacular — the most popular action films", actionMovies)}
-          {rail("animation", "Animation Movies", "Animated features for every age", animationMovies)}
-          {rail("kids-tv", "Kids TV Shows", "Family-friendly shows the kids will love", kidsShows, { all: allShows })}
-          {rail("crime-tv", "Crime TV Shows", "Heists, detectives & underworld drama", crimeShows, { all: allShows })}
-          {rail("western-tv", "Western TV Shows", "Frontier tales & modern westerns", westernShows, { all: allShows })}
+          {rail("animation", "Animation & Cartoons", "Animated features for every age", animationMovies)}
+          {rail("kids-tv", "Kids TV Shows", "Family friendly shows the kids will love", kidsShows, { all: allShows })}
         </div>
         <aside className="pageaside">
           <PosterWidget title="Trending Now" movies={railTrending.length ? railTrending : trendingNow(movies, 4)} href="/trending" />

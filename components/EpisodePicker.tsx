@@ -90,7 +90,7 @@ export default function EpisodePicker({
       </div>
 
       {loading && <div className="eplist__msg">Loading episodes…</div>}
-      {error && !loading && <div className="eplist__msg">Couldn&apos;t load episodes — try again in a moment.</div>}
+      {error && !loading && <div className="eplist__msg">Couldn&apos;t load episodes. Try again in a moment.</div>}
 
       {!loading && !error && episodes.length > 0 && (
         <div className="eplist">

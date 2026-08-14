@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Stars from "./Stars";
 import type { Movie } from "@/lib/types";
+// (Movie is only used as a Pick — see props note above.)
 
 interface Comment {
   id: string;
@@ -19,7 +20,17 @@ interface Comment {
  *  worked; nothing on the public site ever called it. New comments land as
  *  "pending" and only appear here once approved from the dashboard, same
  *  spam-prevention model as before — just now actually wired up. */
-export default function CommentsSection({ movie }: { movie: Movie }) {
+export default function CommentsSection({
+  movie,
+  heading = "User Reviews",
+  showScore = true,
+}: {
+  /** Any commentable thing: a catalogue/TMDB title or a blog post
+   *  (id "blog-<slug>", rating 0, showScore false). */
+  movie: Pick<Movie, "id" | "title" | "rating">;
+  heading?: string;
+  showScore?: boolean;
+}) {
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [name, setName] = useState("");
   const [rating, setRating] = useState(5);
@@ -63,18 +74,18 @@ export default function CommentsSection({ movie }: { movie: Movie }) {
   return (
     <section className="sec">
       <div className="sec__head">
-        <h2>User Reviews {comments !== null && <span style={{ color: "var(--muted)", fontWeight: 500 }}>({count})</span>}</h2>
+        <h2>{heading} {comments !== null && <span style={{ color: "var(--muted)", fontWeight: 500 }}>({count})</span>}</h2>
       </div>
-      <div className="revwrap">
-        <div className="revscore">
+      <div className={`revwrap${showScore ? "" : " revwrap--full"}`}>
+        {showScore && <div className="revscore">
           <div className="revscore__n">{movie.rating.toFixed(1)}</div>
           <div className="revscore__stars"><Stars rating={Math.round(movie.rating / 2)} /></div>
           <div className="revscore__sub">Community rating</div>
-        </div>
+        </div>}
         <div className="revlist">
           {comments === null && <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading reviews…</p>}
           {comments !== null && comments.length === 0 && (
-            <p style={{ color: "var(--muted)", fontSize: 13 }}>No reviews yet — be the first to share your thoughts on {movie.title}.</p>
+            <p style={{ color: "var(--muted)", fontSize: 13 }}>No reviews yet. Be the first to share your thoughts on {movie.title}.</p>
           )}
           {comments?.map((c) => (
             <div className="rev" key={c.id}>

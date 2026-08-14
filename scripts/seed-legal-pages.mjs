@@ -201,6 +201,7 @@ Questions about these terms? See our [Contact page](/contact) or email [${CONTAC
 const NAV_LINKS = [
   { location: "footer_legal", label: "Privacy Policy", url: "/privacy-policy", sort_order: 1, is_external: false },
   { location: "footer_legal", label: "Terms of Service", url: "/terms-of-service", sort_order: 2, is_external: false },
+  { location: "footer_support", label: "FAQ", url: "/faq", sort_order: 0, is_external: false },
   { location: "footer_support", label: "Contact Us", url: "/contact", sort_order: 1, is_external: false },
 ];
 

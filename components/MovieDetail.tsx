@@ -5,6 +5,7 @@ import WatchlistButton from "./WatchlistButton";
 import TicketStub from "./TicketStub";
 import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
+import MovieCard from "./MovieCard";
 import type { Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
@@ -19,7 +20,7 @@ function Det({ rows }: { rows: [string, string][] }) {
   ))}</>;
 }
 
-export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; seasons?: SeasonInfo[] }) {
+export default function MovieDetail({ movie, seasons = [], suggestions = [] }: { movie: Movie; seasons?: SeasonInfo[]; suggestions?: Movie[] }) {
   const stars = movie.cast.slice(0, 3).map((c) => c.name).join(", ") || "—";
   const isSeries = movie.kind === "series";
 
@@ -120,6 +121,23 @@ export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; sea
           <div className="about__img"><Image fill alt={`${movie.title} backdrop`} src={backdrop(movie, "w780")} sizes="(max-width: 900px) 100vw, 380px" /></div>
         </div>
       </section>
+
+      {/* Suggestions sit between the movie's own content and the
+          community sections, and only where the sidebar (which shows
+          Related on wide screens) is hidden. */}
+      {suggestions.length > 0 && (
+        <section className="sec related-below">
+          <div className="sec__head">
+            <div className="sec__titles">
+              <h2>You Might Also Like</h2>
+              <p className="sec__sub">More like {movie.title}, picked from what people are watching</p>
+            </div>
+          </div>
+          <div className="grid">
+            {suggestions.map((s) => <MovieCard key={s.id} movie={s} />)}
+          </div>
+        </section>
+      )}
 
       <CommentsSection movie={movie} />
 

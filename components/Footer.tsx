@@ -47,6 +47,7 @@ export default async function Footer() {
   // both users and crawlers. Help/DMCA both route to Contact (that's where
   // those requests are handled) until dedicated pages exist.
   const fallbackSupport: [string, string][] = [
+    ["FAQ", "/faq"],
     ["Help Center", "/contact"],
     ["Contact Us", "/contact"],
     ["DMCA", "/contact"],
@@ -69,8 +70,9 @@ export default async function Footer() {
         </div>
         <div>
           <h4>Support</h4>
+          <Link href="/faq">FAQ</Link>
           <Link href="/signin">Sign In</Link>
-          {support.map(([label, url]) => <a key={label} href={url}>{label}</a>)}
+          {support.filter(([label]) => label.toLowerCase() !== "faq").map(([label, url]) => <a key={label} href={url}>{label}</a>)}
         </div>
         <div>
           <h4>Legal</h4>

@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import MovieCard from "@/components/MovieCard";
 import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
+import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { posterLg } from "@/lib/images";
@@ -99,12 +101,23 @@ export default async function MoviePage({ params }: Params) {
   }
   if (!featured.length) featured = newestSeries(movies, 4).filter((x) => x.id !== m.id);
 
+  // Below-detail suggestions: related first, featured as filler, no dupes.
+  const suggestions = [...related, ...featured]
+    .filter((x, i, arr) => x.id !== m.id && arr.findIndex((y) => y.id === x.id) === i)
+    .slice(0, 6);
+
   const seasons = await seasonsPromise;
 
   // Structured data (schema.org/Movie) — this is what makes Google eligible
   // to show a "Rich Result" card (poster thumbnail + star rating right in
   // the search listing) instead of a plain blue link. Costs nothing, no
   // account needed, just needs to be valid JSON-LD in the page <head>/body.
+  const crumbs = breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: m.kind === "series" ? "TV Shows" : "Movies", path: m.kind === "series" ? "/tv-shows" : "/movies" },
+    { name: m.title },
+  ]);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Movie",
@@ -135,8 +148,12 @@ export default async function MoviePage({ params }: Params) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      {/* eslint-disable-next-line react/no-danger -- static JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
       <div className="pagerow">
-        <div className="pagemain"><MovieDetail movie={m} seasons={seasons} /></div>
+        <div className="pagemain">
+          <MovieDetail movie={m} seasons={seasons} suggestions={suggestions} />
+        </div>
         <aside className="pageaside">
           {related.length > 0 && <PosterWidget title="Related Movies" movies={related} href="/trending" />}
           {featured.length > 0 && <PosterWidget title="Featured" movies={featured} href="/web-series" />}

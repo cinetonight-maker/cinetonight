@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import Link from "next/link";
-import { getImageProps } from "next/image";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
 import { posterLg, backdrop } from "@/lib/images";
@@ -82,14 +81,14 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
   // breakpoint the rest of this section's own responsive CSS already uses
   // (see the max-width:900px rules below) — anything narrower is where the
   // poster crop still looks right.
-  const common = {
-    alt: `${m.title}${m.year ? ` (${m.year})` : ""} poster`,
-    sizes: "100vw",
-    priority: true,
-    className: "hero__bgimg",
-  } as const;
-  const { props: { srcSet: desktopSrcSet } } = getImageProps({ ...common, src: backdrop(m, "w1280"), width: 1280, height: 720 });
-  const { props: { srcSet: mobileSrcSet, ...heroImgProps } } = getImageProps({ ...common, src: posterLg(m), width: 500, height: 750 });
+  // Plain URLs per breakpoint: with image optimization disabled,
+  // getImageProps() no longer emits srcSets, which silently killed the
+  // desktop <source> and let the PORTRAIT poster render on laptops. The
+  // <picture> art direction stays; the browser simply picks the wide
+  // backdrop at >=901px and the poster below it.
+  const desktopSrc = backdrop(m, "w1280");
+  const mobileSrc = posterLg(m);
+  const heroAlt = `${m.title}${m.year ? ` (${m.year})` : ""} poster`;
 
   return (
     <section
@@ -102,8 +101,9 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
       aria-label="Featured titles"
     >
       <picture key={`img-${m.id}`} className="hero__pic">
-        <source media="(min-width: 901px)" srcSet={desktopSrcSet} />
-        <img {...heroImgProps} srcSet={mobileSrcSet} />
+        <source media="(min-width: 901px)" srcSet={desktopSrc} />
+        {/* eslint-disable-next-line @next/next/no-img-element -- art-directed hero */}
+        <img src={mobileSrc} alt={heroAlt} className="hero__bgimg" fetchPriority="high" />
       </picture>
       <div className="hero__scrim" />
 

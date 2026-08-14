@@ -93,6 +93,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const classicsRoutes: MetadataRoute.Sitemap = [
     { url: `${base}/free-movies`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },
     { url: `${base}/follow`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4 },
+    { url: `${base}/faq`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.5 },
     ...classicsList.map((c) => ({
       url: `${base}/free-movies/${c.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.6,
     })),

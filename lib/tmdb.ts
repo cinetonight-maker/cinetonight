@@ -520,6 +520,36 @@ export const onTheAirTmdb = (limit = 6) => officialList("series", "/tv/on_the_ai
  *  Genre is passed by NAME (resolved against TMDB's own per-kind genre
  *  list, with the movie→tv alias table applied), so callers read cleanly:
  *  genreRowTmdb("movie", "Thriller"), genreRowTmdb("series", "Kids"). */
+/** Audience-language rows: the most popular titles in a given ORIGINAL
+ *  language (Bollywood hi, Telugu te, Tamil ta, Korean ko, Japanese ja),
+ *  optionally pinned to an origin country (IN serials, PK dramas). This is
+ *  what lets the homepage speak the audience's own languages instead of a
+ *  generic global feed. Lower vote floor than genre rows: regional titles
+ *  accumulate fewer TMDB votes than Hollywood at the same popularity. */
+export async function languageRowTmdb(
+  kind: MovieKind, lang: string, limit = 10, originCountry?: string, genreName?: string
+): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const isTv = kind === "series";
+  const genres = await genreMap(kind);
+  const params: Record<string, string | number> = {
+    sort_by: "popularity.desc",
+    include_adult: "false",
+    with_original_language: lang,
+    "vote_count.gte": 5,
+  };
+  if (originCountry) params.with_origin_country = originCountry;
+  if (genreName) {
+    const gid = await genreIdFor(kind, genreName);
+    if (gid) params.with_genres = gid;
+  }
+  const d = await get<any>(`/discover/${isTv ? "tv" : "movie"}`, params);
+  return (d?.results ?? [])
+    .map((r: any) => fromDiscoverHit(r, kind, genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
 export async function genreRowTmdb(kind: MovieKind, genre: string, limit = 6): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
   const isTv = kind === "series";

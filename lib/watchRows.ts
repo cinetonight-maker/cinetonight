@@ -93,8 +93,8 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
     color: channel?.color ?? "#8b5cf6",
     monogram: channel?.logoFile || p.logoPath ? undefined : name[0],
     benefit: isPrime && AMAZON_TAG
-      ? "Streaming now — new members get a 30-day free trial"
-      : streaming ? "Included with subscription — watch instantly" : "Rent or buy — no subscription needed",
+      ? "Streaming now, and new members get a 30-day free trial"
+      : streaming ? "Included with subscription, watch instantly" : "Rent or buy, no subscription needed",
     cta: isPrime && AMAZON_TAG ? "Start Free Trial" : streaming ? "Watch Now" : "Rent or Buy",
     url: isPrime && AMAZON_TAG
       ? `https://www.amazon.in/amazonprime?tag=${encodeURIComponent(AMAZON_TAG)}`
@@ -102,13 +102,6 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
   };
 }
 
-/** Generic panel for titles TMDB has no availability data for — better
- *  than an empty section, clearly labeled as not title-specific. */
-const FALLBACK_ROWS = (title: string): Row[] => [
-  { key: "prime", name: "Amazon Prime Video", logo: "/channel-logos/prime-video.svg", color: "#00a8e1", benefit: "30-day free trial for new members — then cancel anytime", cta: AMAZON_TAG ? "Start Free Trial" : "Watch Now", url: AMAZON_TAG ? `https://www.amazon.in/amazonprime?tag=${encodeURIComponent(AMAZON_TAG)}` : SEARCH_URLS["prime-video"](title) },
-  { key: "netflix", name: "Netflix", logo: "/channel-logos/netflix.svg", color: "#e50914", benefit: "Stream instantly in HD", cta: "Watch Now", url: SEARCH_URLS.netflix(title) },
-  { key: "jiohotstar", name: "JioHotstar", logo: "/channel-logos/jiohotstar.svg", color: "#1f80e0", benefit: "Blockbusters, originals & live cricket in one plan", cta: "Watch Now", url: SEARCH_URLS.jiohotstar(title) },
-];
 
 
 export interface WatchPayload {
@@ -117,6 +110,7 @@ export interface WatchPayload {
   region: string;
   countryName: string;
   affiliate: boolean;
+  searchLinks: { label: string; url: string; note: string }[];
 }
 
 export async function buildWatch(
@@ -152,7 +146,17 @@ export async function buildWatch(
     .map((p) => buildRow(p, undefined, title));
 
   const live = knownRows.length + unknownRows.length > 0;
-  const fallback = FALLBACK_ROWS(title).filter((r) => r.key !== "jiohotstar" || region === "IN");
-  const rows = live ? [...knownRows, ...unknownRows].slice(0, 6) : fallback;
-  return { rows, live, region, countryName: regionName(region), affiliate: !!AMAZON_TAG };
+  // NO fabricated rows when data is missing: a "Watch Now on Netflix"
+  // button for a title Netflix doesn't carry is a lie, and this panel's
+  // whole value is trust. Unconfirmed titles get honest SEARCH links
+  // instead (YouTube first: Pakistani and many regional dramas stream
+  // free on their channels' official YouTube uploads).
+  const rows = live ? [...knownRows, ...unknownRows].slice(0, 6) : [];
+  return {
+    rows, live, region, countryName: regionName(region), affiliate: !!AMAZON_TAG,
+    searchLinks: live ? [] : [
+      { label: "Search on YouTube", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " episode 1")}`, note: "Many dramas stream free on official channels" },
+      { label: "Search the web", url: `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} online`)}`, note: "Find where it officially streams" },
+    ],
+  };
 }

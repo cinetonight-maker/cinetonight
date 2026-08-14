@@ -12,9 +12,9 @@ export const revalidate = 3600;
 // "Legally" is the keyword that separates this page's SERP from the piracy
 // swamp — searchers who type it are exactly the visitors we want, and
 // Google's results for it are thin, credible sites.
-const TITLE = "Free Classic Bollywood Movies — Watch Online Legally";
+const TITLE = "Free Classic Bollywood Movies: Watch Online Legally";
 const DESCRIPTION =
-  "Watch full classic Bollywood movies free & 100% legally — Awaara, Pyaasa, Mughal-e-Azam and more, streaming from the public domain. No signup.";
+  "Watch full classic Bollywood movies free and 100% legally: Awaara, Pyaasa, Mughal-e-Azam and more, streaming from the public domain. No signup.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -30,11 +30,11 @@ export const metadata: Metadata = {
 const FAQ = [
   {
     q: "Is it legal to watch these movies for free?",
-    a: "Yes. Every film on this page is in the public domain — in India a film's copyright lasts 60 years, so golden-age classics have outlived their protection and belong to everyone. Watching them is as legal as watching a trailer.",
+    a: "Yes. Every film on this page is in the public domain: in India a film's copyright lasts 60 years, so golden-age classics have outlived their protection and belong to everyone. Watching them is as legal as watching a trailer.",
   },
   {
     q: "Where are these free movies streamed from?",
-    a: "The prints are preserved and streamed by the nonprofit Internet Archive, or by rights holders' own official YouTube channels. We embed their players directly — nothing is hosted on our servers.",
+    a: "The prints are preserved and streamed by the nonprofit Internet Archive, or by rights holders' own official YouTube channels. We embed their players directly, and nothing is hosted on our servers.",
   },
   {
     q: "Do I need an account or payment to watch?",
@@ -68,7 +68,7 @@ export default async function FreeMoviesPage() {
       </div>
 
       <div className="page__head">
-        <h1>Watch Free Movies — Legally</h1>
+        <h1>Watch Free Movies, Legally</h1>
         <p>
           Full classic films you can watch right here, right now. Every title on this page is in the
           public domain or officially released for free viewing — no signup, no piracy, no catch.
@@ -94,7 +94,7 @@ export default async function FreeMoviesPage() {
           </div>
         </section>
       ) : (
-        <div className="empty">The free classics shelf is being stocked — check back soon.</div>
+        <div className="empty">The free classics shelf is being stocked. Check back soon.</div>
       )}
 
       {/* Plain-language legality explainer — builds visitor trust AND gives

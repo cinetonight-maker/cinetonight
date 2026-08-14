@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Icon from "@/components/Icon";
+import CommentsSection from "@/components/CommentsSection";
 import FollowStrip from "@/components/FollowStrip";
 import { getBlog, getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 import { baseUrl } from "@/lib/site";
+import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 
 /** b.date is a display string like "Aug 1, 2024" — best-effort parse for
  *  JSON-LD's ISO datePublished; falls back to omitting the field rather
@@ -53,6 +55,10 @@ export default async function ArticlePage({ params }: Params) {
   if (!b) notFound();
 
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
+  const crumbs = breadcrumbJsonLd([
+    { name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: b.title },
+  ]);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
@@ -71,6 +77,8 @@ export default async function ArticlePage({ params }: Params) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
       />
+      {/* eslint-disable-next-line react/no-danger -- static JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
       <div className="article">
         <span className="article__cat">{b.cat}</span>
         <h1 className="article__t">{b.title}</h1>
@@ -79,6 +87,11 @@ export default async function ArticlePage({ params }: Params) {
         <div className="article__body">
           {(b.body ?? [b.excerpt]).map((p, i) => <p key={i}>{p}</p>)}
         </div>
+        <CommentsSection
+          movie={{ id: `blog-${b.slug}`, title: b.title, rating: 0 }}
+          heading="Comments"
+          showScore={false}
+        />
         <FollowStrip />
         <div style={{ marginTop: 24 }}>
           <Link className="btn btn--ghost" href="/blog"><Icon name="chevl" size={15} /> Back to Blog</Link>

@@ -36,17 +36,36 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
     );
   }
 
-  const { rows, live, countryName, affiliate } = data;
+  const { rows, live, countryName, affiliate, searchLinks } = data;
+
+  if (!live) {
+    return (
+      <div className="w2w">
+        <div className="w2w__head">
+          Where to Watch in <span className="w2w__country">{countryName}</span>
+        </div>
+        <p className="w2w__unknown">
+          We couldn&apos;t confirm streaming availability for this title in {countryName} yet.
+          It may be on a platform our data doesn&apos;t track, or on its channel&apos;s official YouTube.
+        </p>
+        <div className="w2w__searches">
+          {searchLinks.map((l) => (
+            <a key={l.url} className="w2w__searchbtn" href={l.url} target="_blank" rel="noopener noreferrer nofollow">
+              <span className="w2w__searchlabel">{l.label}</span>
+              <span className="w2w__searchnote">{l.note}</span>
+            </a>
+          ))}
+        </div>
+        <div className="w2w__note">Availability data by JustWatch via TMDB. We only show platforms confirmed to carry a title.</div>
+      </div>
+    );
+  }
+
   return (
     <div className="w2w">
       <div className="w2w__head">
         Where to Watch in <span className="w2w__country">{countryName}</span>
       </div>
-      {!live && (
-        <p className="w2w__unknown">
-          Live availability isn&apos;t tracked for this title yet — try these popular platforms:
-        </p>
-      )}
       <div className="w2w__rows">
         {rows.map((o) => (
           <a
@@ -79,7 +98,7 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
       </div>
       <div className="w2w__note">
         Availability may vary by region and plan. Streaming data by JustWatch via TMDB.
-        {affiliate && " Some links are affiliate links — we may earn a commission, at no extra cost to you."}
+        {affiliate && " Some links are affiliate links, and we may earn a commission at no extra cost to you."}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import Icon from "@/components/Icon";
 import { getClassics, getClassic, enrichClassic, getClassicsEnriched, classicEmbedUrl } from "@/lib/classics";
 import { baseUrl } from "@/lib/site";
+import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 
 interface Params { params: Promise<{ slug: string }> }
 
@@ -43,6 +44,10 @@ export default async function ClassicWatchPage({ params }: Params) {
   // VideoObject + Movie structured data: full watchable film on the page is
   // exactly what Google's video rich results want; contentUrl points at the
   // public-domain source, embedUrl at what we render.
+  const crumbs = breadcrumbJsonLd([
+    { name: "Home", path: "/" }, { name: "Free Movies", path: "/free-movies" }, { name: classic.title },
+  ]);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Movie",
@@ -71,6 +76,8 @@ export default async function ClassicWatchPage({ params }: Params) {
     <div className="page">
       {/* eslint-disable-next-line react/no-danger -- static JSON-LD built above, not user input */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      {/* eslint-disable-next-line react/no-danger -- static JSON-LD */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
 
       <div className="crumb">
         <Link href="/">Home</Link><span className="sep">›</span>
