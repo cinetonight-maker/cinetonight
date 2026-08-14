@@ -11,7 +11,7 @@ import PlayerModal from "@/components/PlayerModal";
 import MaintenanceGate from "@/components/MaintenanceGate";
 import { AuthProvider } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/data";
-import { baseUrl } from "@/lib/site";
+import { baseUrl, shortBrandName } from "@/lib/site";
 import "./globals.css";
 
 // Was a render-blocking request to fonts.googleapis.com on every page load
@@ -55,8 +55,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // separator of any punctuation (dash, pipe, bullet, colon); if the title
   // has NO separator at all, a long derived name falls back to its first
   // word so page titles never carry the whole tagline as a suffix.
-  const derived = s.siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim();
-  const shortName = (derived.length > 24 ? derived.split(/\s+/)[0] : derived) || s.siteTitle;
+  const shortName = shortBrandName(s.siteTitle);
   return {
     // Without this, Next resolves every relative OG/Twitter image URL
     // (including the new opengraph-image.tsx/icon.tsx) against
@@ -102,7 +101,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: settings.siteTitle.split(" — ")[0] || settings.siteTitle,
+              // Google's "site name" in results (the label above the URL) reads
+              // this — must be the BRAND, never the full tagline title.
+              name: shortBrandName(settings.siteTitle),
+              alternateName: "cinetonight.com",
               url: baseUrl(),
               potentialAction: {
                 "@type": "SearchAction",
@@ -123,9 +125,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              name: settings.siteTitle.split(" — ")[0] || settings.siteTitle,
+              name: shortBrandName(settings.siteTitle),
               url: baseUrl(),
-              logo: `${baseUrl()}/icon`,
+              logo: `${baseUrl()}/logo-512.png`,
               ...(settings.contactEmail ? { email: settings.contactEmail } : {}),
               ...(Object.values(settings.social).filter(Boolean).length
                 ? { sameAs: Object.values(settings.social).filter(Boolean) }

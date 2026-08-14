@@ -81,3 +81,13 @@ export function toIsoDuration(runtime: string | undefined | null): string | unde
   if (!h && !m) return undefined;
   return `PT${h ? `${h}H` : ""}${m ? `${m}M` : ""}`;
 }
+
+/** Brand-name extraction for title templates and schema "site name".
+ *  Handles a separator of any punctuation (dash, pipe, bullet, colon);
+ *  a separator-less long title falls back to its first word, so the brand
+ *  never carries the whole tagline. Google's "site name" display and the
+ *  "%s — Brand" title suffix both come from this. */
+export function shortBrandName(siteTitle: string): string {
+  const derived = siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim();
+  return (derived.length > 24 ? derived.split(/\s+/)[0] : derived) || siteTitle;
+}
