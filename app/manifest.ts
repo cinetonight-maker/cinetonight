@@ -10,8 +10,12 @@ import { getSiteSettings } from "@/lib/data";
  *  the <link rel="manifest"> tag automatically. */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const s = await getSiteSettings();
-  const shortName =
-    s.siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim() || s.siteTitle;
+  // Brand-name extraction for the "%s — Brand" title template. Handles a
+  // separator of any punctuation (dash, pipe, bullet, colon); if the title
+  // has NO separator at all, a long derived name falls back to its first
+  // word so page titles never carry the whole tagline as a suffix.
+  const derived = s.siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim();
+  const shortName = (derived.length > 24 ? derived.split(/\s+/)[0] : derived) || s.siteTitle;
   return {
     name: s.siteTitle,
     short_name: shortName,
