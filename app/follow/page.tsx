@@ -13,7 +13,9 @@ export const metadata: Metadata = {
   alternates: { canonical: `${baseUrl()}/follow` },
   openGraph: { title: TITLE, description: DESCRIPTION, type: "website", url: `${baseUrl()}/follow` },
 };
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 3600;
 
 /** What each platform gives a follower — the reason to tap Follow, not
  *  just a wall of icons. Only platforms with a saved URL render. Logos are

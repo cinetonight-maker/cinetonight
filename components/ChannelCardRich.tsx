@@ -6,7 +6,6 @@ import Icon from "./Icon";
 import ChannelCard from "./ChannelCard";
 import { poster } from "@/lib/images";
 import { channelTitlesForRegion, type Channel } from "@/lib/channels";
-import { visitorRegion } from "@/lib/region";
 
 /** The upgraded channel card: real brand logo up top (self-hosted from
  *  public/channel-logos/ — see scripts/fetch-channel-logos.mjs), a fanned
@@ -28,7 +27,10 @@ function logoPath(channel: Channel): string | null {
 
 export default async function ChannelCardRich({ channel }: { channel: Channel }) {
   const logo = logoPath(channel);
-  const region = await visitorRegion();
+  // Fixed home region (not per-visitor): keeps the homepage statically
+  // cacheable. The poster fan is decoration; the channel PAGE stays
+  // per-visitor. Uses the channel's home market.
+  const region = channel.region ?? "IN";
   const top = logo ? (await channelTitlesForRegion(channel, "movie", 4, region)).titles : [];
   if (!logo || top.length < 4) return <ChannelCard channel={channel} />;
 

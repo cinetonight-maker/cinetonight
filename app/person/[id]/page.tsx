@@ -17,7 +17,9 @@ export async function generateStaticParams() {
   return peopleOf(movies).map((p) => ({ id: personId(p.name) }));
 }
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 3600;
 
 /** Local catalogue first (cast links from local titles use this), then TMDB
  *  for ids like "tmdb-p-1234" — cast members who only appear on titles

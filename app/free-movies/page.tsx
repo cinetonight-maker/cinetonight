@@ -5,7 +5,9 @@ import Icon from "@/components/Icon";
 import { getClassicsEnriched } from "@/lib/classics";
 import { baseUrl } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 3600;
 
 // "Legally" is the keyword that separates this page's SERP from the piracy
 // swamp — searchers who type it are exactly the visitors we want, and

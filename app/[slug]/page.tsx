@@ -4,7 +4,9 @@ import { marked } from "marked";
 import { supabasePublic } from "@/lib/supabase/public";
 import { baseUrl } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 600;
 
 marked.setOptions({ breaks: true });
 

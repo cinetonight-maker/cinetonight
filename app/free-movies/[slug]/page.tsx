@@ -8,7 +8,9 @@ import { baseUrl } from "@/lib/site";
 
 interface Params { params: Promise<{ slug: string }> }
 
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 3600;
 export async function generateStaticParams() {
   return (await getClassics()).map((c) => ({ slug: c.slug }));
 }

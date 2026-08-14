@@ -10,7 +10,9 @@ export const metadata: Metadata = {
   title: "Blog",
   description: "Guides, spotlights and streaming news — what to watch next and why.",
 };
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 300s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 300;
 
 export default async function BlogPage() {
   const blogs = await getBlogs();

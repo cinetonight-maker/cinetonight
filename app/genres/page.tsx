@@ -11,7 +11,9 @@ export const metadata: Metadata = {
   title: "Genres",
   description: "Browse movies and shows by genre — action, comedy, drama, horror, K-drama, anime and every mood in between.",
 };
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 3600;
 
 /** The genre grid used to show the same generic stock-photo placeholder
  *  behind every tile — nothing about it actually looked like the genre it

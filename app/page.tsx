@@ -18,7 +18,9 @@ import {
 } from "@/lib/tmdb";
 import type { Movie, RowConfig } from "@/lib/types";
 
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 300s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 300;
 
 // Homepage canonical — resolved against metadataBase; without it the most
 // important URL on the site was the only indexable one lacking a canonical.

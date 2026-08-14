@@ -25,7 +25,9 @@ export async function generateStaticParams() {
   return blogs.map((b) => ({ slug: b.slug }));
 }
 export const dynamicParams = true;
-export const dynamic = "force-dynamic";
+// Cached (ISR): rendered once, reused for 300s, then refreshed in the
+// background. Turns bot storms into cache hits instead of function runs.
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
