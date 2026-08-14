@@ -33,8 +33,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const url = `${baseUrl()}/blog/${b.slug}`;
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
   return {
-    title: b.title,
-    description: b.excerpt,
+    // Dashboard SEO overrides win when set; title/excerpt are the fallback.
+    title: b.metaTitle || b.title,
+    description: (b.metaDescription || b.excerpt).slice(0, 158),
     // Per-page `alternates` fully replaces the root layout's (where the RSS
     // autodiscovery link normally lives), so it has to be repeated here.
     alternates: { canonical: url, types: { "application/rss+xml": "/rss.xml" } },

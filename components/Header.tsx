@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "./Icon";
+import BrandMark from "@/components/BrandMark";
 import SearchBox from "./SearchBox";
 import { useWatchlist } from "@/lib/watchlist";
 import { useAuth } from "@/lib/auth";
@@ -44,8 +45,11 @@ export default function Header() {
         <Icon name="menu" size={20} />
       </button>
       <Link className="brand" href="/">
-        <div className="brand__name">Cine<b>Tonight</b></div>
-        <div className="brand__tag">Know what to watch.</div>
+        <BrandMark size={30} />
+        <div className="brand__txt">
+          <div className="brand__name">Cine<b>Tonight</b></div>
+          <div className="brand__tag">Know what to watch.</div>
+        </div>
       </Link>
       <nav className="topnav">
         {NAV.filter((n) => n.top && n.href !== "/").map((n) => (
@@ -83,7 +87,7 @@ export default function Header() {
     <div className={`navdrawer__overlay${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)} />
     <div className={`navdrawer${drawerOpen ? " open" : ""}`} role="dialog" aria-modal="true" aria-label="Menu">
       <div className="navdrawer__head">
-        <div className="brand__name">Cine<b>Tonight</b></div>
+        <BrandMark size={22} /><div className="brand__name">Cine<b>Tonight</b></div>
         <button type="button" className="navdrawer__x" aria-label="Close menu" onClick={() => setDrawerOpen(false)}>
           <Icon name="x" size={18} />
         </button>

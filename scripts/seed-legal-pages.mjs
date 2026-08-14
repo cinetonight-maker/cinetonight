@@ -45,7 +45,7 @@ const supabase = createClient(url, secret, {
 
 // Change this if you'd rather a different inbox got Contact / DMCA mail —
 // it's baked into the Contact page text below, so edit here and re-run.
-const CONTACT_EMAIL = "helloqaisarumar@gmail.com";
+const CONTACT_EMAIL = "officialcinetonight@gmail.com";
 const TODAY = new Date().toISOString().slice(0, 10);
 
 const PAGES = [

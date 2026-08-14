@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Header from "@/components/Header";
@@ -50,7 +51,8 @@ const poppins = localFont({
 // live site. Now sourced from the same settings row the dashboard writes.
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSiteSettings();
-  const shortName = s.siteTitle.split(" — ")[0] || s.siteTitle;
+  const shortName =
+    s.siteTitle.split(/\s+[—–-]\s+/)[0].split(":")[0].trim() || s.siteTitle;
   return {
     // Without this, Next resolves every relative OG/Twitter image URL
     // (including the new opengraph-image.tsx/icon.tsx) against
@@ -146,6 +148,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             code, but the tracking snippet is now wired up and ready the
             moment you flip it. */}
         <Analytics />
+        {/* Google Analytics 4 — activates only when NEXT_PUBLIC_GA_ID is
+            set (e.g. G-XXXXXXXXXX). GA4 complements Vercel Analytics with
+            audience insight (countries, devices, acquisition channels,
+            content performance over time) and is what ad/affiliate
+            partners expect to see. Scripts load afterInteractive so they
+            never block rendering. */}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');`}
+            </Script>
+          </>
+        )}
         {/* Real-user Core Web Vitals (LCP, CLS, INP) per page, broken down
             by route — same zero-config pattern as Analytics above. Also
             only starts recording once "Speed Insights" is switched on for

@@ -38,6 +38,11 @@ export default function Image() {
               "radial-gradient(circle at 30% 20%, rgba(139,92,246,0.35) 0%, rgba(139,92,246,0) 45%)",
           }}
         />
+        <svg width="150" height="150" viewBox="0 0 100 100" style={{ marginBottom: 26 }}>
+          <path d="M52 36 L52 64 L76 50 Z" fill="#7e22ce" stroke="#7e22ce" strokeWidth="16" strokeLinejoin="round" />
+          <path d="M40 34 L40 66 L68 50 Z" fill="#a855f7" stroke="#a855f7" strokeWidth="16" strokeLinejoin="round" />
+          <path d="M36 8 Q38.6 21.4 52 24 Q38.6 26.6 36 40 Q33.4 26.6 20 24 Q33.4 21.4 36 8 Z" fill="#f4f2fa" />
+        </svg>
         <div style={{ display: "flex", alignItems: "center", fontSize: 110, fontWeight: 800, letterSpacing: -3, color: "#eceaf2" }}>
           Cine
           <span style={{ color: "#a855f7" }}>Tonight</span>

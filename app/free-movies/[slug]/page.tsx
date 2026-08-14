@@ -79,7 +79,7 @@ export default async function ClassicWatchPage({ params }: Params) {
       <div className="page__head">
         <h1>{classic.title} <span className="fm__year">({classic.year})</span></h1>
         <p>
-          {[classic.genre, classic.runtime, movie ? `★ ${movie.rating.toFixed(1)} / 10` : null].filter(Boolean).join(" · ")}
+          {[classic.genre, classic.runtime, movie ? `★ ${movie.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
           {" · "}<span className="fm__legal"><Icon name="check" size={13} /> Free &amp; legal — public domain</span>
         </p>
       </div>

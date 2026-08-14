@@ -51,6 +51,9 @@ function blogFromRow(r: any): Blog {
     date: r.date_label ?? "",
     read: r.read_label ?? "",
     status: r.status,
+    metaTitle: r.meta_title || undefined,
+    metaDescription: r.meta_description || undefined,
+    publishAt: r.publish_at ?? null,
   };
 }
 
@@ -81,7 +84,11 @@ export const getMovie = cache(async (id: string): Promise<Movie | null> => {
   if (sb) {
     const { data, error } = await sb.from("movies").select("*").eq("id", id).maybeSingle();
     if (!error && data) return movieFromRow(data);
-    if (!error) return null; // reached Supabase, genuinely not found there
+    // On "reached Supabase but no row" we still fall through to the built-in
+    // catalogue below: listing pages already fall back to it when the table
+    // is empty, so without this a card the homepage renders could click
+    // through to a 404 (exactly what happened live after the movies table
+    // lost its curated rows). DB row wins when present; JSON is the net.
   }
   return FALLBACK_MOVIES.find((m) => m.id === id) ?? null;
 });
@@ -163,7 +170,7 @@ export const getSiteConfig = cache(async (): Promise<Omit<SiteConfig, "blog">> =
 // (cast, description) turned out to be genuinely rendered on every card
 // (see components/MovieCard.tsx's synopsis line) and can't be trimmed the
 // same way without breaking that.
-const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label, read_label, status, created_at";
+const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label, read_label, status, publish_at, created_at";
 
 export const getBlogs = cache(async (): Promise<Blog[]> => {
   const sb = supabasePublic();
@@ -171,7 +178,7 @@ export const getBlogs = cache(async (): Promise<Blog[]> => {
     const { data, error } = await sb
       .from("blog_posts")
       .select(BLOG_LIST_COLUMNS)
-      .eq("status", "published")
+      .or(`status.eq.published,and(status.eq.scheduled,publish_at.lte.${new Date().toISOString()})`)
       .order("created_at", { ascending: false });
     // Same reasoning as getMovies(): an empty table before migration
     // shouldn't render a blank blog section.
@@ -183,7 +190,9 @@ export const getBlogs = cache(async (): Promise<Blog[]> => {
 export const getBlog = cache(async (slug: string): Promise<Blog | null> => {
   const sb = supabasePublic();
   if (sb) {
-    const { data, error } = await sb.from("blog_posts").select("*").eq("slug", slug).eq("status", "published").maybeSingle();
+    const { data, error } = await sb.from("blog_posts").select("*").eq("slug", slug)
+      .or(`status.eq.published,and(status.eq.scheduled,publish_at.lte.${new Date().toISOString()})`)
+      .maybeSingle();
     if (!error && data) return blogFromRow(data);
     if (!error) return null;
   }
@@ -201,8 +210,12 @@ const FALLBACK_SETTINGS: SiteSettings = {
   siteTitle: "CineTonight — What to Watch Tonight: Trailers & OTT Picks",
   siteDescription: "Know what to watch tonight — trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
   metaKeywords: "",
-  contactEmail: "",
-  social: {},
+  contactEmail: "officialcinetonight@gmail.com",
+  social: {
+    facebook: "https://www.facebook.com/cinetonight1/",
+    youtube: "https://www.youtube.com/@cinetonight",
+    tiktok: "https://www.tiktok.com/@cine.tonight",
+  },
   maintenanceMode: false,
 };
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Icon from "./Icon";
 import { supabasePublic } from "@/lib/supabase/public";
 import { getSiteSettings } from "@/lib/data";
+import BrandMark from "@/components/BrandMark";
 
 // Maps each icon to the matching key in Settings → social. Every icon here
 // used to link to "#" regardless of what was saved in the dashboard — now
@@ -9,6 +10,7 @@ import { getSiteSettings } from "@/lib/data";
 const SOCIAL: [string, string, string][] = [
   ["facebook", "fb", "#1877f2"], ["twitter", "tw", "#1da1f2"],
   ["instagram", "ig", "#e1306c"], ["youtube", "yt", "#ff0000"],
+  ["tiktok", "tiktok", "#111111"], ["telegram", "telegram", "#229ED9"],
 ];
 
 // Static fallbacks — used until you add real links in Dashboard → Menus & Footer,
@@ -57,8 +59,8 @@ export default async function Footer() {
     <footer className="footer">
       <div className="footer__in">
         <div className="footer__brand">
-          <div className="brand__name">Cine<b style={{ color: "var(--purple2)" }}>Tonight</b></div>
-          <p>Your Entertainment Hub. Watch the latest movies and web series in HD quality.</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BrandMark size={26} /><div className="brand__name">Cine<b style={{ color: "var(--purple2)" }}>Tonight</b></div></div>
+          <p>Your nightly guide to what's worth watching. Play the trailer, check the ratings, and see exactly where every movie and show streams in your country.</p>
         </div>
         <div>
           <h4>Explore</h4>
@@ -91,8 +93,8 @@ export default async function Footer() {
         © {new Date().getFullYear()} CineTonight. All rights reserved.
         <br />
         <span className="tmdb-attr">
-          Movie &amp; TV data provided by{" "}
-          <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>.
+          Posters, ratings and title details are powered by{" "}
+          <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer">TMDB</a>, with thanks to their community.
           This product uses the TMDB API but is not endorsed or certified by TMDB.
         </span>
       </div>

@@ -17,7 +17,8 @@ button{font-family:inherit}
 .header{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:20px;padding:12px 26px;background:rgba(10,10,18,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .burger{width:40px;height:40px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--txt);display:grid;place-items:center;cursor:pointer}
 .burger:hover{border-color:var(--purple);color:var(--purple2)}
-.brand{display:flex;flex-direction:column;line-height:1;cursor:pointer}
+.brand{display:flex;align-items:center;gap:9px;line-height:1;cursor:pointer;color:#fff}
+.brand__txt{display:flex;flex-direction:column}
 .brand__name{font-size:23px;font-weight:700}.brand__name b{color:var(--purple2)}
 .brand__tag{font-size:10px;color:var(--muted);margin-top:3px}
 .topnav{display:flex;gap:22px;flex:1;margin-left:8px}

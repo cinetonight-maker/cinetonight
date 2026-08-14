@@ -26,7 +26,7 @@ export default function MovieDetail({ movie, seasons = [] }: { movie: Movie; sea
   const minfo: [string, string][][] = [
     [["Release Year", String(movie.year)], ["Runtime", movie.runtime], ["Language", movie.language], ["Certification", movie.cert]],
     [["Genres", movie.genres.join(", ") || "—"], ["Votes", movie.votes ? movie.votes.toLocaleString("en-US") : "—"], ["Director", movie.director], ["Writers", movie.writers]],
-    [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", `${movie.rating.toFixed(1)} / 10`], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
+    [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", `${movie.rating.toFixed(1)} out of 10`], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
   ];
   const about = [
     movie.desc,

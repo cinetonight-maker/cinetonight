@@ -24,7 +24,10 @@ export default function Icon() {
           borderRadius: 6,
         }}
       >
-        <span style={{ display: "flex", fontSize: 20, fontWeight: 800, color: "#a855f7" }}>C</span>
+        <svg width="28" height="28" viewBox="0 0 100 100">
+          <path d="M40 34 L40 66 L68 50 Z" fill="#a855f7" stroke="#a855f7" strokeWidth="16" strokeLinejoin="round" />
+          <path d="M36 8 Q38.6 21.4 52 24 Q38.6 26.6 36 40 Q33.4 26.6 20 24 Q33.4 21.4 36 8 Z" fill="#f4f2fa" />
+        </svg>
       </div>
     ),
     { ...size }

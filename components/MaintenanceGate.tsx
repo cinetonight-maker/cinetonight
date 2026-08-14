@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import BrandMark from "@/components/BrandMark";
 
 /** When the dashboard's Settings → "Maintenance mode" checkbox is on, every
  *  public page renders this instead — except /admin (and /admin/login), so
@@ -16,7 +17,7 @@ export default function MaintenanceGate({ active, children }: { active: boolean;
     return (
       <div className="maintenance">
         <div className="maintenance__c">
-          <div className="brand__name">Cine<b>Tonight</b></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center" }}><BrandMark size={26} /><div className="brand__name">Cine<b>Tonight</b></div></div>
           <h1>We&apos;ll be right back</h1>
           <p>This site is down for scheduled maintenance. Please check back shortly.</p>
         </div>

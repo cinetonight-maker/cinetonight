@@ -27,6 +27,14 @@ const nextConfig = {
   // site is actually served over HTTPS (true on Vercel by default).
   async headers() {
     return [
+      // /admin already carries a noindex meta tag via its layout; this adds
+      // the same directive at the HTTP-header level, which even non-HTML
+      // responses and overly eager crawlers respect. robots.txt disallow +
+      // meta noindex + header = every mechanism Google documents.
+      {
+        source: "/admin/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }],
+      },
       {
         source: "/(.*)",
         headers: [

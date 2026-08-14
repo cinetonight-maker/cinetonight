@@ -10,7 +10,8 @@ import { getSiteSettings } from "@/lib/data";
  *  the <link rel="manifest"> tag automatically. */
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const s = await getSiteSettings();
-  const shortName = s.siteTitle.split(" — ")[0] || s.siteTitle;
+  const shortName =
+    s.siteTitle.split(/\s+[—–-]\s+/)[0].split(":")[0].trim() || s.siteTitle;
   return {
     name: s.siteTitle,
     short_name: shortName,

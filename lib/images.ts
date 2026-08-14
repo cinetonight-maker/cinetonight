@@ -11,7 +11,15 @@ const TMDB_IMG = "https://image.tmdb.org/t/p";
 
 /** Deterministic placeholder (used when TMDB has no image for something). */
 export function img(seed: string, w: number, h: number): string {
-  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${w}/${h}`;
+  // Branded local placeholders instead of picsum.photos: the external
+  // service was slow/blocked for part of our audience (rendering as broken
+  // images), and a random stock photo standing in for a cast face or
+  // episode still reads as a bug anyway. Aspect ratio picks the artwork.
+  void seed;
+  const ratio = w / h;
+  if (ratio > 1.2) return "/placeholder-wide.png";
+  if (ratio >= 0.85) return "/placeholder-person.png";
+  return "/placeholder-poster.png";
 }
 
 export function tmdb(path: string | null | undefined, size: string): string | null {

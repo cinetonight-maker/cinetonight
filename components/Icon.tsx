@@ -35,6 +35,8 @@ const ICONS: Record<string,string> = {
  "tw": "<path d=\"M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z\" fill=\"currentColor\" stroke=\"none\"/>",
  "ig": "<rect width=\"20\" height=\"20\" x=\"2\" y=\"2\" rx=\"5\"/><circle cx=\"12\" cy=\"12\" r=\"4\"/><circle cx=\"17.5\" cy=\"6.5\" r=\"1\" fill=\"currentColor\" stroke=\"none\"/>",
  "tg": "<path d=\"M22 2 11 13\"/><path d=\"M22 2 15 22l-4-9-9-4z\"/>",
+ "tiktok": "<path d=\"M9 12a4 4 0 1 0 4 4V4c.6 1.8 2.4 4 5 4\" fill=\"none\"/>",
+ "telegram": "<path d=\"M22 3 2.5 10.5c-1 .4-1 1.5 0 1.8l4.7 1.5 1.8 5.6c.3.9 1.4 1 1.9.3l2.5-3.1 4.9 3.6c.8.6 1.9.2 2.1-.8L23 4.3c.2-1-.5-1.6-1-1.3z\" fill=\"currentColor\" stroke=\"none\"/>",
  "yt": "<path d=\"M2.5 17a24 24 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49 49 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24 24 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49 49 0 0 1-16.2 0A2 2 0 0 1 2.5 17\"/><polygon points=\"10 15 15 12 10 9\" fill=\"currentColor\" stroke=\"none\"/>"
 };
 

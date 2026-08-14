@@ -37,7 +37,10 @@ export async function POST(request: Request) {
       image_url: body?.imageUrl || null,
       date_label: body?.date ?? new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
       read_label: body?.read ?? "5 min",
-      status: body?.status === "draft" ? "draft" : "published",
+      status: ["draft", "published", "scheduled"].includes(body?.status) ? body.status : "published",
+      meta_title: typeof body?.metaTitle === "string" ? body.metaTitle.slice(0, 70) : "",
+      meta_description: typeof body?.metaDescription === "string" ? body.metaDescription.slice(0, 170) : "",
+      publish_at: body?.publishAt ? new Date(body.publishAt).toISOString() : null,
     }).select().single();
     if (error) throw error;
     return NextResponse.json({ ok: true, post: data });
@@ -62,7 +65,10 @@ export async function PUT(request: Request) {
     if (body.imageUrl !== undefined) patch.image_url = body.imageUrl || null;
     if (typeof body.date === "string") patch.date_label = body.date;
     if (typeof body.read === "string") patch.read_label = body.read;
-    if (body.status === "draft" || body.status === "published") patch.status = body.status;
+    if (["draft", "published", "scheduled"].includes(body.status)) patch.status = body.status;
+    if (typeof body.metaTitle === "string") patch.meta_title = body.metaTitle.slice(0, 70);
+    if (typeof body.metaDescription === "string") patch.meta_description = body.metaDescription.slice(0, 170);
+    if (body.publishAt !== undefined) patch.publish_at = body.publishAt ? new Date(body.publishAt).toISOString() : null;
 
     const { data, error } = await supabaseAdmin().from("blog_posts").update(patch).eq("id", id).select().single();
     if (error) throw error;

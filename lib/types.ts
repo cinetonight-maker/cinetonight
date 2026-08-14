@@ -46,7 +46,12 @@ export interface Blog {
   imageUrl?: string | null;
   /** Present when the post comes from Supabase (needed for dashboard edit/delete). */
   id?: string;
-  status?: "draft" | "published";
+  status?: "draft" | "published" | "scheduled";
+  /** SEO overrides set in the dashboard; page falls back to title/excerpt. */
+  metaTitle?: string;
+  metaDescription?: string;
+  /** When status is "scheduled": the moment the post goes live. */
+  publishAt?: string | null;
 }
 export interface Review { name: string; rating: number; when: string; text: string; up: number; down: number; }
 export interface ContinueItem { id: string; progress: number; note: string; }

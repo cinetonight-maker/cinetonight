@@ -90,13 +90,18 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
   return {
     key: slug ?? `p-${p.providerId}`,
     name,
-    logo: channel?.logoFile ? `/channel-logos/${channel.logoFile}` : undefined,
+    // Curated self-hosted brand logo first; otherwise TMDB ships an official
+    // logo for every provider it lists (p.logoPath) — so no platform ever
+    // renders as a bare letter. Monogram remains only as a last-resort net.
+    logo: channel?.logoFile
+      ? `/channel-logos/${channel.logoFile}`
+      : p.logoPath ? `https://image.tmdb.org/t/p/w92${p.logoPath}` : undefined,
     color: channel?.color ?? "#8b5cf6",
-    monogram: channel?.logoFile ? undefined : name[0],
+    monogram: channel?.logoFile || p.logoPath ? undefined : name[0],
     benefit: isPrime && AMAZON_TAG
       ? "Streaming now — new members get a 30-day free trial"
       : streaming ? "Included with subscription — watch instantly" : "Rent or buy — no subscription needed",
-    cta: isPrime && AMAZON_TAG ? "Start Free Trial" : streaming ? "Watch Now" : "Rent / Buy",
+    cta: isPrime && AMAZON_TAG ? "Start Free Trial" : streaming ? "Watch Now" : "Rent or Buy",
     url: isPrime && AMAZON_TAG
       ? `https://www.amazon.in/amazonprime?tag=${encodeURIComponent(AMAZON_TAG)}`
       : buildUrl(title),

@@ -279,9 +279,9 @@ function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
                     <option value="toprated">Top rated</option>
                     <option value="hollywood">Hollywood</option>
                     <option value="bollywood">Bollywood</option>
-                    <option value="korean">K-Drama / Korean</option>
+                    <option value="korean">K-Drama</option>
                     <option value="anime">Anime</option>
-                    <option value="chinese">C-Drama / Chinese</option>
+                    <option value="chinese">C-Drama</option>
                     <option value="telugu">Telugu (Tollywood)</option>
                   </select>
                 </label>
@@ -458,12 +458,23 @@ function ImagePicker({ url, onChange, label }: { url: string | null | undefined;
 /* ------------------------------- blog ---------------------------------- */
 type BlogRow = {
   id: string; slug: string; title: string; cat: string; excerpt: string; body: string[];
-  image_url: string | null; date_label: string; read_label: string; status: "draft" | "published";
+  image_url: string | null; date_label: string; read_label: string;
+  status: "draft" | "published" | "scheduled";
+  meta_title: string; meta_description: string; publish_at: string | null;
 };
+type CategoryRow = { id: string; name: string };
 const EMPTY_POST: Omit<BlogRow, "id"> = {
-  slug: "", title: "", cat: "Guide", excerpt: "", body: [], image_url: null,
+  slug: "", title: "", cat: "Guides", excerpt: "", body: [], image_url: null,
   date_label: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-  read_label: "5 min", status: "published",
+  read_label: "5 min", status: "draft",
+  meta_title: "", meta_description: "", publish_at: null,
+};
+/** ISO timestamp -> value for <input type="datetime-local"> (local time). */
+const toLocalInput = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
 function BlogTab() {
@@ -473,30 +484,60 @@ function BlogTab() {
   const [editing, setEditing] = useState<string | null>(null); // post id, or "new"
   const [draft, setDraft] = useState(EMPTY_POST);
   const [busy, setBusy] = useState(false);
+  const [cats, setCats] = useState<CategoryRow[]>([]);
+  const [newCat, setNewCat] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { ok, data } = await api<{ posts?: BlogRow[]; error?: string }>("/api/admin/blog");
-    if (ok) { setPosts(data.posts ?? []); setErr(null); } else setErr(data.error ?? "Could not load posts.");
+    const [postsRes, catsRes] = await Promise.all([
+      api<{ posts?: BlogRow[]; error?: string }>("/api/admin/blog"),
+      api<{ categories?: CategoryRow[] }>("/api/admin/categories"),
+    ]);
+    if (postsRes.ok) { setPosts(postsRes.data.posts ?? []); setErr(null); }
+    else setErr(postsRes.data.error ?? "Could not load posts.");
+    if (catsRes.ok) setCats(catsRes.data.categories ?? []);
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  const addCat = async () => {
+    const name = newCat.trim();
+    if (!name) return;
+    const res = await api("/api/admin/categories", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+    if (res.ok) { setNewCat(""); load(); }
+  };
+  const removeCat = async (c: CategoryRow) => {
+    if (!confirm(`Delete category "${c.name}"? Existing posts keep their label.`)) return;
+    await api(`/api/admin/categories?id=${encodeURIComponent(c.id)}`, { method: "DELETE" });
+    load();
+  };
 
   const startNew = () => { setDraft(EMPTY_POST); setEditing("new"); };
   const startEdit = (p: BlogRow) => {
     setDraft({
       slug: p.slug, title: p.title, cat: p.cat, excerpt: p.excerpt, body: p.body ?? [],
       image_url: p.image_url, date_label: p.date_label, read_label: p.read_label, status: p.status,
+      meta_title: p.meta_title ?? "", meta_description: p.meta_description ?? "", publish_at: p.publish_at ?? null,
     });
     setEditing(p.id);
   };
 
   const commit = async () => {
     if (!draft.title.trim()) return;
+    // Category must be one of the managed list (add it in Categories first).
+    if (cats.length && !cats.some((c) => c.name === draft.cat)) {
+      setErr(`"${draft.cat}" is not a category yet. Add it in the Categories panel below, then save.`);
+      return;
+    }
+    if (draft.status === "scheduled" && !draft.publish_at) {
+      setErr("Pick a publish date and time for a scheduled post.");
+      return;
+    }
     setBusy(true);
     const payload = {
       title: draft.title, slug: draft.slug, cat: draft.cat, excerpt: draft.excerpt, body: draft.body,
       imageUrl: draft.image_url, date: draft.date_label, read: draft.read_label, status: draft.status,
+      metaTitle: draft.meta_title, metaDescription: draft.meta_description, publishAt: draft.publish_at,
     };
     const res = editing === "new"
       ? await api("/api/admin/blog", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) })
@@ -528,8 +569,11 @@ function BlogTab() {
             <div className="ad__grid2" style={{ marginTop: 14 }}>
               <label className="ad__field"><span>Title</span>
                 <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="Post title" /></label>
-              <label className="ad__field"><span>Category</span>
-                <input value={draft.cat} onChange={(e) => setDraft({ ...draft, cat: e.target.value })} placeholder="Guide" /></label>
+              <label className="ad__field"><span>Category (pick from your list, type to search)</span>
+                <input list="ct-blog-cats" value={draft.cat} onChange={(e) => setDraft({ ...draft, cat: e.target.value })} placeholder="Guides" />
+                <datalist id="ct-blog-cats">
+                  {cats.map((c) => <option key={c.id} value={c.name} />)}
+                </datalist></label>
               <label className="ad__field"><span>Date</span>
                 <input value={draft.date_label} onChange={(e) => setDraft({ ...draft, date_label: e.target.value })} placeholder="Aug 1, 2024" /></label>
               <label className="ad__field"><span>Read time</span>
@@ -540,13 +584,35 @@ function BlogTab() {
             <label className="ad__field"><span>Body — one paragraph per blank-line-separated block</span>
               <textarea rows={9} value={(draft.body ?? []).join("\n\n")}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean) })} /></label>
-            <label className="ad__field">
-              <span>Status</span>
-              <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
-                <option value="draft">Draft (hidden)</option>
-                <option value="published">Published (live)</option>
-              </select>
-            </label>
+            <div className="ad__grid2">
+              <label className="ad__field">
+                <span>Meta title (search result headline, {`${draft.meta_title.length}`} of 60)</span>
+                <input maxLength={70} value={draft.meta_title} placeholder="Defaults to the post title"
+                  onChange={(e) => setDraft({ ...draft, meta_title: e.target.value })} />
+              </label>
+              <label className="ad__field">
+                <span>Meta description ({`${draft.meta_description.length}`} of 160)</span>
+                <input maxLength={170} value={draft.meta_description} placeholder="Defaults to the excerpt"
+                  onChange={(e) => setDraft({ ...draft, meta_description: e.target.value })} />
+              </label>
+            </div>
+            <div className="ad__grid2">
+              <label className="ad__field">
+                <span>Status</span>
+                <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as BlogRow["status"] })}>
+                  <option value="draft">Draft (hidden)</option>
+                  <option value="published">Published (live now)</option>
+                  <option value="scheduled">Scheduled (goes live automatically)</option>
+                </select>
+              </label>
+              {draft.status === "scheduled" && (
+                <label className="ad__field">
+                  <span>Publish at (your local time)</span>
+                  <input type="datetime-local" value={toLocalInput(draft.publish_at)}
+                    onChange={(e) => setDraft({ ...draft, publish_at: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+                </label>
+              )}
+            </div>
             <div className="ad__actions">
               <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commit}><Icon name="check" size={14} /> Save post</button>
               <button className="ad__btn" onClick={() => setEditing(null)}>Cancel</button>
@@ -559,7 +625,7 @@ function BlogTab() {
             {posts.map((p) => (
               <div className="ad__row" key={p.id}>
                 {p.image_url && <img className="ad__thumb" alt="" src={p.image_url} style={{ width: 46, height: 32 }} />}
-                <span className="ad__cat">{p.status === "draft" ? "draft" : p.cat}</span>
+                <span className="ad__cat">{p.status === "draft" ? "draft" : p.status === "scheduled" ? `scheduled ${p.publish_at ? new Date(p.publish_at).toLocaleString() : ""}` : p.cat}</span>
                 <span className="ad__name">{p.title}</span>
                 <span className="ad__meta">{p.date_label} · {p.read_label}</span>
                 <button className="ad__mini" onClick={() => startEdit(p)}>Edit</button>
@@ -569,6 +635,28 @@ function BlogTab() {
             {!posts.length && <div className="ad__empty">No posts yet.</div>}
           </div>
         )}
+      </section>
+
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Categories <span className="ad__count">{cats.length}</span></h2>
+        </div>
+        <div className="ad__list">
+          {cats.map((c) => (
+            <div className="ad__row" key={c.id}>
+              <span className="ad__name">{c.name}</span>
+              <span className="ad__meta">{posts.filter((p) => p.cat === c.name).length} posts</span>
+              <button className="ad__mini ad__mini--x" onClick={() => removeCat(c)}>✕</button>
+            </div>
+          ))}
+          {!cats.length && <div className="ad__empty">No categories yet. Run supabase/blog_upgrade.sql once, then add some here.</div>}
+        </div>
+        <div className="ad__actions" style={{ marginTop: 10 }}>
+          <input value={newCat} placeholder="New category name" style={{ flex: 1 }}
+            onChange={(e) => setNewCat(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") addCat(); }} />
+          <button className="ad__btn" onClick={addCat}><Icon name="plus" size={14} /> Add</button>
+        </div>
       </section>
     </div>
   );
@@ -1251,7 +1339,7 @@ function SettingsTab() {
         <label className="ad__field"><span>Meta keywords (comma-separated)</span>
           <input value={s.meta_keywords} onChange={(e) => setS({ ...s, meta_keywords: e.target.value })} /></label>
         <div className="ad__grid2">
-          {(["facebook", "twitter", "instagram", "youtube"] as const).map((k) => (
+          {(["facebook", "twitter", "instagram", "youtube", "tiktok", "telegram"] as const).map((k) => (
             <label className="ad__field" key={k}><span style={{ textTransform: "capitalize" }}>{k}</span>
               <input value={s.social?.[k] ?? ""} onChange={(e) => setS({ ...s, social: { ...s.social, [k]: e.target.value } })} placeholder="https://…" /></label>
           ))}

@@ -546,7 +546,7 @@ export async function genreRowTmdb(kind: MovieKind, genre: string, limit = 6): P
  *  UI). Merged across flatrate/free/ads (→ "stream") and rent/buy, deduped
  *  with streaming access winning, so a title both streamable and rentable
  *  on the same platform shows as streamable. */
-export interface WatchProvider { providerId: number; name: string; access: "stream" | "rent" | "buy" }
+export interface WatchProvider { providerId: number; name: string; access: "stream" | "rent" | "buy"; logoPath?: string }
 export async function watchProvidersTmdb(kind: MovieKind, id: string | number, region = "IN"): Promise<WatchProvider[]> {
   const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/watch/providers`);
   const r = d?.results?.[region];
@@ -555,7 +555,7 @@ export async function watchProvidersTmdb(kind: MovieKind, id: string | number, r
   const addAll = (list: any[] | undefined, access: WatchProvider["access"]) => {
     for (const p of list ?? []) {
       if (p?.provider_id && !seen.has(p.provider_id)) {
-        seen.set(p.provider_id, { providerId: p.provider_id, name: p.provider_name ?? "Unknown", access });
+        seen.set(p.provider_id, { providerId: p.provider_id, name: p.provider_name ?? "Unknown", access, logoPath: p.logo_path ?? undefined });
       }
     }
   };
