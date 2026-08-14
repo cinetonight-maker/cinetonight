@@ -3,5 +3,17 @@
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-08-01",
   "compatibility_flags": ["nodejs_compat"],
-  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" }
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+
+  // ISR page cache (see open-next.config.ts). Create the bucket once with:
+  //   npx wrangler r2 bucket create cinetonight-cache
+  "r2_buckets": [
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "cinetonight-cache" }
+  ],
+
+  // Lets the worker call itself to regenerate pages in the background
+  // (required by the memory queue that powers timed revalidation).
+  "services": [
+    { "binding": "WORKER_SELF_REFERENCE", "service": "cinetonight" }
+  ]
 }

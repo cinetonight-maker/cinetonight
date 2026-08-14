@@ -15,7 +15,9 @@ import { headers } from "next/headers";
  *  3. "IN" — the single largest market, as the last-resort default. */
 export async function visitorRegion(): Promise<string> {
   const h = await headers();
-  const raw = h.get("x-vercel-ip-country") ?? process.env.NEXT_PUBLIC_DEFAULT_REGION ?? "IN";
+  // Vercel and Cloudflare each set their own geo header; reading both
+  // keeps the site host-portable.
+  const raw = h.get("x-vercel-ip-country") ?? h.get("cf-ipcountry") ?? process.env.NEXT_PUBLIC_DEFAULT_REGION ?? "IN";
   return /^[A-Z]{2}$/i.test(raw) ? raw.toUpperCase() : "IN";
 }
 
