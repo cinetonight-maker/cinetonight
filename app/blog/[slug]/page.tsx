@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Icon from "@/components/Icon";
+import FollowStrip from "@/components/FollowStrip";
 import { getBlog, getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 import { baseUrl } from "@/lib/site";
@@ -76,6 +77,7 @@ export default async function ArticlePage({ params }: Params) {
         <div className="article__body">
           {(b.body ?? [b.excerpt]).map((p, i) => <p key={i}>{p}</p>)}
         </div>
+        <FollowStrip />
         <div style={{ marginTop: 24 }}>
           <Link className="btn btn--ghost" href="/blog"><Icon name="chevl" size={15} /> Back to Blog</Link>
         </div>

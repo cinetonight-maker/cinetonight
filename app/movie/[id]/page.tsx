@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
-import { getMovies, trendingNow, newestSeries } from "@/lib/data";
+import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { posterLg } from "@/lib/images";
@@ -24,6 +24,11 @@ export const dynamic = "force-dynamic";
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const local = movies.find((m) => m.id === id);
   if (local) return local;
+  // getMovie checks the database row AND the built-in catalogue snapshot —
+  // without this, a curated id missing from the DB (rows deleted, table
+  // reseeded, etc.) 404s even though the id exists in the shipped JSON.
+  const catalogued = await getMovie(id);
+  if (catalogued) return catalogued;
   const parsed = parseTmdbId(id);
   return parsed ? fetchTitle(parsed.kind, parsed.id) : null;
 }

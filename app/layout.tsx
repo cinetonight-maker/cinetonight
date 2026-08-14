@@ -52,7 +52,7 @@ const poppins = localFont({
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSiteSettings();
   const shortName =
-    s.siteTitle.split(/\s+[—–-]\s+/)[0].split(":")[0].trim() || s.siteTitle;
+    s.siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim() || s.siteTitle;
   return {
     // Without this, Next resolves every relative OG/Twitter image URL
     // (including the new opengraph-image.tsx/icon.tsx) against

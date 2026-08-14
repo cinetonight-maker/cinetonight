@@ -215,6 +215,7 @@ const FALLBACK_SETTINGS: SiteSettings = {
     facebook: "https://www.facebook.com/cinetonight1/",
     youtube: "https://www.youtube.com/@cinetonight",
     tiktok: "https://www.tiktok.com/@cine.tonight",
+    instagram: "https://www.instagram.com/cinetonight",
   },
   maintenanceMode: false,
 };
@@ -234,8 +235,10 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
         siteTitle: data.site_title || FALLBACK_SETTINGS.siteTitle,
         siteDescription: data.site_description || FALLBACK_SETTINGS.siteDescription,
         metaKeywords: data.meta_keywords || "",
-        contactEmail: data.contact_email || "",
-        social: data.social && typeof data.social === "object" ? data.social : {},
+        contactEmail: data.contact_email || FALLBACK_SETTINGS.contactEmail,
+        social: data.social && typeof data.social === "object" && Object.values(data.social).some(Boolean)
+          ? data.social
+          : FALLBACK_SETTINGS.social,
         maintenanceMode: !!data.maintenance_mode,
       };
     }

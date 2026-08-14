@@ -18,6 +18,7 @@ export const NAV: { icon: string; label: string; href: string; top?: boolean; bo
   { icon: "playc", label: "Free Movies", href: "/free-movies", top: true, short: "Free" },
   { icon: "article", label: "Blog", href: "/blog", top: true },
   { icon: "bookmark", label: "My List", href: "/my-list", bottom: true },
+  { icon: "sparkle", label: "Follow Us", href: "/follow", top: true, short: "Follow" },
 ];
 
 export default function Sidebar() {

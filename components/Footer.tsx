@@ -65,7 +65,7 @@ export default async function Footer() {
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/about-us">About</Link>
+          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/follow">Follow Us</Link><Link href="/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>
@@ -78,7 +78,7 @@ export default async function Footer() {
         </div>
         {social.length > 0 && (
           <div>
-            <h4>Connect With Us</h4>
+            <h4><Link href="/follow" style={{ color: "inherit" }}>Connect With Us</Link></h4>
             <div className="social">
               {social.map(([n, bg, url]) => (
                 <a key={n} href={url} target="_blank" rel="noopener noreferrer" style={{ background: bg }} aria-label={n}>

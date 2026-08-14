@@ -11,7 +11,7 @@ import { getSiteSettings } from "@/lib/data";
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const s = await getSiteSettings();
   const shortName =
-    s.siteTitle.split(/\s+[—–-]\s+/)[0].split(":")[0].trim() || s.siteTitle;
+    s.siteTitle.split(/\s+[^A-Za-z0-9\s]+\s+/)[0].split(":")[0].trim() || s.siteTitle;
   return {
     name: s.siteTitle,
     short_name: shortName,
