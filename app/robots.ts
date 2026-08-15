@@ -11,6 +11,14 @@ export default function robots(): MetadataRoute.Robots {
       ...["Bytespider", "PetalBot", "AhrefsBot", "SemrushBot", "MJ12bot", "DotBot",
           "DataForSeoBot", "BLEXBot", "ZoominfoBot", "MegaIndex", "serpstatbot"].map(
         (bot) => ({ userAgent: bot, disallow: "/" })),
+      // AI crawlers stay welcome on the content that earns citations
+      // (movies, blog, FAQ, channels) but are kept off the person pages:
+      // an effectively unbounded URL space they were re-crawling tens of
+      // thousands of times a day. A matching edge rule enforces this for
+      // crawlers that ignore robots.txt.
+      ...["ClaudeBot", "anthropic-ai", "GPTBot", "OAI-SearchBot", "ChatGPT-User",
+          "PerplexityBot", "CCBot", "Meta-ExternalAgent", "Amazonbot"].map(
+        (bot) => ({ userAgent: bot, allow: "/", disallow: "/person/" })),
       {
       userAgent: "*",
       allow: "/",

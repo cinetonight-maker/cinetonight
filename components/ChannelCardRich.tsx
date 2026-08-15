@@ -1,11 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import Icon from "./Icon";
 import ChannelCard from "./ChannelCard";
 import { poster } from "@/lib/images";
 import { channelTitlesForRegion, type Channel } from "@/lib/channels";
+import { channelLogoUrl } from "@/lib/channelLogoManifest";
 
 /** The upgraded channel card: real brand logo up top (self-hosted from
  *  public/channel-logos/ — see scripts/fetch-channel-logos.mjs), a fanned
@@ -15,18 +14,11 @@ import { channelTitlesForRegion, type Channel } from "@/lib/channels";
  *  the logo file hasn't been downloaded or live data comes back short, so
  *  the rail never shows a half-empty or broken card. */
 
-/** Server-side check that the logo was actually downloaded — public/ files
- *  ship with the build, so this is a one-time fs stat per render, and it's
- *  what guarantees a missing download degrades to the gradient card
- *  instead of a broken <img>. */
-function logoPath(channel: Channel): string | null {
-  if (!channel.logoFile) return null;
-  const abs = join(process.cwd(), "public", "channel-logos", channel.logoFile);
-  return existsSync(abs) ? `/channel-logos/${channel.logoFile}` : null;
-}
-
 export default async function ChannelCardRich({ channel }: { channel: Channel }) {
-  const logo = logoPath(channel);
+  // Manifest check (not a disk check — see lib/channelLogoManifest.ts):
+  // a listed logoFile missing from the manifest degrades to the gradient
+  // card instead of a broken <img>.
+  const logo = channelLogoUrl(channel.logoFile);
   // Fixed home region (not per-visitor): keeps the homepage statically
   // cacheable. The poster fan is decoration; the channel PAGE stays
   // per-visitor. Uses the channel's home market.

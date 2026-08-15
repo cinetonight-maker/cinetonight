@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -9,6 +7,7 @@ import { tmdbConfigured } from "@/lib/tmdb";
 import { visitorRegion, regionName } from "@/lib/region";
 import { baseUrl } from "@/lib/site";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
+import { channelLogoUrl } from "@/lib/channelLogoManifest";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
@@ -47,11 +46,11 @@ export default async function ChannelPage({ params }: Params) {
   const channel = channelBySlug(slug);
   if (!channel) notFound();
 
-  // Same guard ChannelCardRich uses: a listed logoFile whose asset is
-  // missing from public/channel-logos must fall back to the letter badge,
-  // never a broken image.
-  const logoExists = !!channel.logoFile &&
-    existsSync(join(process.cwd(), "public", "channel-logos", channel.logoFile));
+  // Same guard ChannelCardRich uses: a logoFile missing from the manifest
+  // (lib/channelLogoManifest.ts — not a disk check, the server has no
+  // filesystem on Cloudflare) falls back to the letter badge, never a
+  // broken image.
+  const logoExists = !!channelLogoUrl(channel.logoFile);
 
   const region = await visitorRegion();
   const [movieRes, showRes] = await Promise.all([

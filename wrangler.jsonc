@@ -5,7 +5,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
 
-  // ISR page cache (see open-next.config.ts). Create the bucket once with:
+  // ISR page cache (see open-next.config.ts). Bucket already created with:
   //   npx wrangler r2 bucket create cinetonight-cache
   "r2_buckets": [
     { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "cinetonight-cache" }
