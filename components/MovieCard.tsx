@@ -26,7 +26,7 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
           sizes="(max-width: 760px) 26vw, 172px"
           onError={(e) => { (e.currentTarget as HTMLImageElement).style.opacity = "0"; }}
         />
-        <span className="mcard__rate"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>
+        {movie.rating > 0 ? <span className="mcard__rate"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span> : null}
         {badge ? <span className="mcard__badge">{badge}</span> : null}
         <div className="mcard__pop">
           <div className="mcard__acts mcard__acts--single">
@@ -35,7 +35,7 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
           <div className="mcard__pt">{movie.title}</div>
           <div className="mcard__pm">
             <span>{movie.year || "—"}</span>{movie.genres[0] && <><span>•</span><span>{movie.genres[0]}</span></>}
-            <span className="r"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>
+            {movie.rating > 0 && <span className="r"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>}
           </div>
           <div className="mcard__pd">{movie.desc}</div>
         </div>

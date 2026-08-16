@@ -23,7 +23,7 @@ export default function BigCard({ movie, eyebrow }: { movie: Movie; eyebrow?: st
         />
         <div className="bigcard__scrim" />
         {eyebrow ? <span className="bigcard__eyebrow">{eyebrow}</span> : null}
-        <span className="bigcard__rate"><Icon name="star" size={12} /> {movie.rating.toFixed(1)}</span>
+        {movie.rating > 0 && <span className="bigcard__rate"><Icon name="star" size={12} /> {movie.rating.toFixed(1)}</span>}
         <div className="bigcard__body">
           <div className="bigcard__t">{movie.title}</div>
           <div className="bigcard__m">{[movie.year || null, movie.genres[0] || null].filter(Boolean).join(" · ")}</div>

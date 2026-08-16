@@ -26,7 +26,7 @@ export async function TrendingWidget() {
           <div>
             <div className="trow__t">{m.title}</div>
             <div className="trow__m">{[m.year || null, m.genres[0] || null].filter(Boolean).join(" · ")}</div>
-            <div className="trow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</div>
+            {m.rating > 0 && <div className="trow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</div>}
           </div>
         </Link>
       ))}
@@ -86,7 +86,7 @@ export function PosterWidget({ title, movies, href = "/movies" }: { title: strin
             <div className="srow__t">{m.title}</div>
             <div className="srow__meta">
               <span className="srow__y"><Icon name="cal" size={11} /> {m.year || "—"}</span>
-              <span className="srow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</span>
+              {m.rating > 0 && <span className="srow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</span>}
             </div>
             {m.desc && <p className="srow__x">{m.desc}</p>}
           </div>

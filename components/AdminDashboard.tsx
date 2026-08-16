@@ -7,8 +7,9 @@ import type { Movie, SiteConfig, RowConfig } from "@/lib/types";
 import { poster } from "@/lib/images";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-type Tab = "hero" | "rows" | "blog" | "catalogue" | "classics" | "pages" | "menus" | "media" | "settings" | "comments";
+type Tab = "sync" | "hero" | "rows" | "blog" | "catalogue" | "classics" | "pages" | "menus" | "media" | "settings" | "comments";
 const TABS: [Tab, string, string][] = [
+  ["sync", "Sync Center", "sparkle"],
   ["hero", "Hero Slides", "sparkle"],
   ["rows", "Home Rows", "grid"],
   ["blog", "Blog Posts", "article"],
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
       {loadErr && (tab === "hero" || tab === "rows") && (
         <div className="ad__err">{loadErr}</div>
       )}
+      {tab === "sync" && <SyncTab reload={load} />}
       {tab === "hero" && site && <HeroTab site={site} movies={movies} save={save} />}
       {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
       {tab === "blog" && <BlogTab />}
@@ -123,6 +125,129 @@ export default function AdminDashboard() {
       {tab === "media" && <MediaTab />}
       {tab === "settings" && <SettingsTab />}
       {tab === "comments" && <CommentsTab />}
+    </div>
+  );
+}
+
+/* ---------------------------- sync center -------------------------------- */
+type SyncRun = {
+  id: number; trigger: string; started_at: string; finished_at: string | null; ok: boolean;
+  added: string[]; refreshed: number; hero_slides: string[]; errors: string[];
+};
+type SyncStatus = { heroMode: "auto" | "manual"; catalogueCount: number; runs: SyncRun[] };
+
+function timeAgo(iso: string) {
+  const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.round(s / 60)} minutes ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} hours ago`;
+  return `${Math.round(s / 86400)} days ago`;
+}
+
+function SyncTab({ reload }: { reload: () => void }) {
+  const [st, setSt] = useState<SyncStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const loadStatus = useCallback(async () => {
+    const d = await fetch("/api/admin/sync").then((r) => r.json()).catch(() => null);
+    if (d && !d.error) setSt(d);
+    else setMsg(d?.error ?? "Could not load sync status.");
+  }, []);
+  useEffect(() => { loadStatus(); }, [loadStatus]);
+
+  const runSync = async () => {
+    setBusy(true);
+    setMsg("Syncing with TMDB. This can take up to a minute, leave this tab open.");
+    const res = await fetch("/api/admin/sync", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "run" }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) { setMsg(d.error ?? (Array.isArray(d.errors) && d.errors.length ? d.errors.join("; ") : "Sync failed.")); return; }
+    if (d.skipped) setMsg(`Skipped: ${d.skipped}`);
+    else setMsg(
+      `Done. ${d.added?.length ?? 0} new title${(d.added?.length ?? 0) === 1 ? "" : "s"} added, ` +
+      `${d.refreshed ?? 0} refreshed${d.heroSlides?.length ? ", hero rotated to trending" : ""}. ` +
+      `Visitors see the update within about 5 minutes (page cache).`
+    );
+    loadStatus(); reload();
+  };
+
+  const setHeroMode = async (mode: "auto" | "manual") => {
+    setBusy(true);
+    const res = await fetch("/api/admin/sync", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "heroMode", mode }),
+    });
+    const d = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) { setMsg(d.error ?? "Could not change hero mode. Have you run supabase/sync_upgrade.sql?"); return; }
+    setMsg(mode === "auto"
+      ? "Hero set to Auto: each sync rotates the hero to the top trending titles."
+      : "Hero set to Manual: your picks in the Hero Slides tab stay exactly as you set them.");
+    loadStatus();
+  };
+
+  const lastRun = st?.runs?.[0];
+
+  return (
+    <div className="ad__body ad__body--one">
+      <section className="ad__panel">
+        <div className="ad__panelhead">
+          <h2>Catalogue sync</h2>
+          <button className="ad__btn ad__btn--primary" disabled={busy} onClick={runSync}>
+            <Icon name="sparkle" size={14} /> {busy ? "Syncing…" : "Sync now"}
+          </button>
+        </div>
+        <p className="ad__hint">
+          One click pulls TMDB&apos;s current global trending list, adds anything your catalogue is missing (up to 8 per
+          run), re-pulls the 15 stalest titles so ratings and artwork stay current, and rotates the hero if it is in Auto
+          mode. The daily auto sync runs this exact same engine on a schedule. Nothing is ever deleted by a sync.
+        </p>
+        {msg && <div className="ad__note">{msg}</div>}
+        <div className="ad__note" style={{ marginTop: 10 }}>
+          {st ? <>Catalogue: <b>{st.catalogueCount}</b> titles.&nbsp;
+            {lastRun
+              ? <>Last sync: <b>{timeAgo(lastRun.started_at)}</b> ({lastRun.trigger === "cron" ? "scheduled" : "manual"}, {lastRun.ok ? "ok" : "had errors"}).</>
+              : <>No sync history yet. Run supabase/sync_upgrade.sql once to enable history, then press Sync now.</>}
+          </> : "Loading status…"}
+        </div>
+      </section>
+
+      <section className="ad__panel">
+        <h2>Hero mode</h2>
+        <p className="ad__hint">
+          <b>Auto</b>: every sync re-points the homepage hero at the top trending titles (fresh without lifting a finger).
+          <b> Manual</b>: the hero shows exactly what you picked in the Hero Slides tab, and syncs never touch it.
+        </p>
+        <div className="ad__actions">
+          <button className={`ad__btn${st?.heroMode === "auto" ? " ad__btn--primary" : ""}`} disabled={busy} onClick={() => setHeroMode("auto")}>
+            {st?.heroMode === "auto" ? "✓ " : ""}Auto (trending)
+          </button>
+          <button className={`ad__btn${st?.heroMode === "manual" ? " ad__btn--primary" : ""}`} disabled={busy} onClick={() => setHeroMode("manual")}>
+            {st?.heroMode === "manual" ? "✓ " : ""}Manual (my picks)
+          </button>
+        </div>
+      </section>
+
+      <section className="ad__panel">
+        <h2>Sync history <span className="ad__count">{st?.runs?.length ?? 0}</span></h2>
+        {(!st || st.runs.length === 0) && <div className="ad__empty">No runs recorded yet.</div>}
+        <div className="ad__list">
+          {(st?.runs ?? []).map((r) => (
+            <div className="ad__row" key={r.id}>
+              <span className="ad__name">
+                {r.ok ? "✓" : "⚠"} {timeAgo(r.started_at)} · {r.trigger === "cron" ? "scheduled" : "manual"}
+              </span>
+              <span className="ad__meta">
+                +{(r.added ?? []).length} added · {r.refreshed} refreshed
+                {(r.hero_slides ?? []).length ? " · hero rotated" : ""}
+                {(r.errors ?? []).length ? ` · ${(r.errors ?? []).length} error(s)` : ""}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -151,7 +276,11 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
     <div className="ad__body">
       <section className="ad__panel">
         <h2>Slides <span className="ad__count">{slides.length}</span></h2>
-        <p className="ad__hint">Shown in order. These rotate on the home page.</p>
+        <p className="ad__hint">
+          Shown in order. These rotate on the home page. Heads up: if Hero mode in the Sync Center is set to
+          <b> Auto</b>, the daily sync replaces these with the current trending titles. Switch it to <b>Manual</b> there
+          to keep your picks.
+        </p>
         {slides.length === 0 && <div className="ad__empty">No slides yet — pick titles below.</div>}
         <div className="ad__list">
           {slides.map((id, i) => {

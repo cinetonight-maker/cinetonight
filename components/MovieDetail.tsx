@@ -27,7 +27,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
   const minfo: [string, string][][] = [
     [["Release Year", String(movie.year)], ["Runtime", movie.runtime], ["Language", movie.language], ["Certification", movie.cert]],
     [["Genres", movie.genres.join(", ") || "—"], ["Votes", movie.votes ? movie.votes.toLocaleString("en-US") : "—"], ["Director", movie.director], ["Writers", movie.writers]],
-    [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", `${movie.rating.toFixed(1)} out of 10`], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
+    [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", movie.rating > 0 ? `${movie.rating.toFixed(1)} out of 10` : "Not rated yet"], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
   ];
   const about = [
     movie.desc,
@@ -58,8 +58,8 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
             ))}
           </div>
           <div className="dbar__meta">
-            <span className="dbar__rate"><Icon name="star" size={13} /> {movie.rating.toFixed(1)}</span>
-            <span className="dot">·</span><span>{movie.year}</span>
+            {movie.rating > 0 && <><span className="dbar__rate"><Icon name="star" size={13} /> {movie.rating.toFixed(1)}</span>
+            <span className="dot">·</span></>}<span>{movie.year}</span>
             <span className="dot">·</span><span>{movie.runtime}</span>
             {movie.cert && movie.cert !== "NR" && <><span className="dot">·</span><span className="cert">{movie.cert}</span></>}
           </div>

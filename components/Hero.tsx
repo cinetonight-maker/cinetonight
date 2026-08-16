@@ -113,7 +113,7 @@ export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; i
             paint both see) always renders here since `i` starts at 0. */}
         <h1 className="hero__t">{m.title}</h1>
         <div className="hero__meta">
-          <span className="hero__rate"><Icon name="star" size={12} /> {m.rating.toFixed(1)}</span>
+          {m.rating > 0 && <span className="hero__rate"><Icon name="star" size={12} /> {m.rating.toFixed(1)}</span>}
           {m.year ? <span>{m.year}</span> : null}
           {m.genres[0] ? <span>{m.genres[0]}</span> : null}
         </div>
