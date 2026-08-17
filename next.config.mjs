@@ -41,16 +41,42 @@ const nextConfig = {
       // the same directive at the HTTP-header level, which even non-HTML
       // responses and overly eager crawlers respect. robots.txt disallow +
       // meta noindex + header = every mechanism Google documents.
-      // Cache rendered pages at Vercel's edge for 5 minutes (+ a day of
-      // stale-while-revalidate). Page content is not per-user (watchlist
-      // and session UI are client-side), only lightly per-region, and the
-      // edge caches per-POP which roughly follows region anyway. This is
-      // the difference between every bot hit invoking a serverless
-      // function and the CDN absorbing them — the 1.5M-invocations
-      // incident that nearly paused the project. Vercel-CDN-Cache-Control
-      // affects ONLY the edge cache, never browsers.
+      // Edge-cacheable PUBLIC content routes.
+      //
+      // These carry a real Cache-Control with s-maxage, which is what a CDN
+      // (Cloudflare here) reads, while max-age=0 keeps browsers revalidating
+      // so a visitor never sees a frozen page. This is how the long-tail
+      // routes get absorbed for FREE at the edge instead of being persisted
+      // into the R2 incremental cache, which is what turned into a $70/month
+      // surprise. /person/* is listed first because it is now rendered per
+      // request (see that route's comment) and relies on this entirely.
+      //
+      // The path list is deliberately explicit rather than a broad "everything
+      // except api" pattern: /account, /my-list and /admin must NEVER get a
+      // public cache header, or one signed-in visitor's HTML could be served
+      // to another from a shared cache.
       {
-        source: "/((?!api/|admin).*)",
+        source: "/person/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
+        ],
+      },
+      {
+        source: "/movie/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=43200, stale-while-revalidate=604800" },
+        ],
+      },
+      {
+        source: "/(free-movies|genres|channel|blog|faq|follow)/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
+        ],
+      },
+      // Kept for portability: harmless on Cloudflare, correct if this ever
+      // runs on Vercel again. Affects ONLY an edge cache, never browsers.
+      {
+        source: "/((?!api/|admin|account|my-list).*)",
         headers: [
           { key: "Vercel-CDN-Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=86400" },
         ],

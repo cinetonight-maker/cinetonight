@@ -22,6 +22,14 @@ function isoDate(display: string): string | undefined {
 // instead of a plain object) — has to be awaited before use.
 interface Params { params: Promise<{ slug: string }> }
 
+/** A page that could not be resolved must not be indexed. The route still
+ *  renders the 404 view, but crawlers are told explicitly not to keep or
+ *  re-crawl the URL. This matters twice over here: these ids come from an
+ *  unbounded space (any tmdb-* number), so without it a crawler can mint
+ *  endless indexable URLs, and each one it revisits is work the site pays
+ *  for. See docs/CACHING.md. */
+const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
+
 export async function generateStaticParams() {
   const blogs = await getBlogs();
   return blogs.map((b) => ({ slug: b.slug }));
@@ -34,7 +42,7 @@ export const revalidate = 1800;
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const b = await getBlog(slug);
-  if (!b) return { title: "Not found" };
+  if (!b) return NOT_FOUND_META;
   const url = `${baseUrl()}/blog/${b.slug}`;
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
   return {

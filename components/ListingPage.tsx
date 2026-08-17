@@ -2,6 +2,7 @@ import Listing from "./Listing";
 import BlogSection from "./BlogSection";
 import { GenresWidget, TrendingWidget, NewsWidget } from "./RightRail";
 import { getBrowsePage } from "@/lib/browse";
+import { toCard } from "@/lib/types";
 import type { BrowseSort } from "@/lib/tmdb";
 
 /** Now an async Server Component: it fetches the first page of results
@@ -20,10 +21,14 @@ export default async function ListingPage({
   defaultSort?: BrowseSort; genre?: string;
 }) {
   const initialGenre = genre && genre !== "All" ? genre : "All";
-  const initialData = await getBrowsePage({
+  const raw = await getBrowsePage({
     kind, sort: defaultSort, page: 1,
     genre: initialGenre === "All" ? undefined : initialGenre,
   });
+  // Slim the results before they cross into <Listing> (a client component):
+  // only card fields are rendered, so shipping full Movie objects sent each
+  // title's cast array and half a dozen unused fields to every visitor.
+  const initialData = { ...raw, results: raw.results.map(toCard) };
 
   return (
     <div className="page">

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
-import type { Movie } from "@/lib/types";
+import type { CardMovie } from "@/lib/types";
 import { poster } from "@/lib/images";
 
 export interface MovieCardProps {
-  movie: Movie;
+  movie: CardMovie;
   rank?: number;
   badge?: string;
   progress?: number;

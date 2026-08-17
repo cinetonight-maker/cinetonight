@@ -2,21 +2,26 @@ import Link from "next/link";
 import Hero from "@/components/Hero";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
-import BigCard from "@/components/BigCard";
 import ChannelCardRich from "@/components/ChannelCardRich";
 import ClassicsRow from "@/components/ClassicsRow";
 import BlogSection from "@/components/BlogSection";
 import NewSinceLastVisit from "@/components/NewSinceLastVisit";
 import MoodRoulette from "@/components/MoodRoulette";
 import { PosterWidget, GenresWidget, NewsWidget } from "@/components/RightRail";
-import { getMovies, getSiteConfig, resolveRow, byIds, trendingNow, topRated, recentlyAdded } from "@/lib/data";
+import { getMovies, getSiteConfig, resolveRow, byIds, trendingNow, topRated } from "@/lib/data";
 import { CHANNELS } from "@/lib/channels";
+
+/** Only the platforms most of our audience actually subscribes to get the
+ *  rich card on the homepage. Each rich card makes its own TMDB call for
+ *  its poster fan, so rendering all 17 cost 17 API calls, 17 cached
+ *  objects and a wall of near-identical cards per homepage render. The
+ *  full list stays one click away on the channel pages and in the footer. */
+const HOME_CHANNELS = CHANNELS.slice(0, 8);
 import {
   latestReleasesTmdb, trendingLiveTmdb, topRatedTmdb, hollywoodTmdb, bollywoodTmdb,
-  koreanTmdb, chineseTmdb, animeTmdb, teluguTmdb, tmdbConfigured,
-  nowPlayingTmdb, upcomingTmdb, popularListTmdb, topRatedListTmdb, onTheAirTmdb, genreRowTmdb, languageRowTmdb,
+  koreanTmdb, chineseTmdb, animeTmdb, teluguTmdb, tmdbConfigured, languageRowTmdb, anticipatedTmdb,
 } from "@/lib/tmdb";
-import type { Movie, RowConfig } from "@/lib/types";
+import { toCard, toBigCard, type Movie, type RowConfig } from "@/lib/types";
 
 // Cached (ISR): rendered once, reused for 300s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
@@ -55,42 +60,22 @@ export default async function HomePage() {
   const live = tmdbConfigured;
 
   // Every live section fetched in ONE parallel wave (each call is cached
-  // 6h server-side — see lib/tmdb.ts `get()` — so steady-state renders hit
+  // server-side — see lib/tmdb.ts `get()` — so steady-state renders hit
   // TMDB rarely). Sections whose fetch comes back empty simply don't
   // render, so a TMDB hiccup degrades to a shorter page, never a broken one.
   const [
-    recentMovies, recentShows,
-    nowShowing, top10Movies, upcoming, popularMovies, topRatedMovies,
-    onAir, top10Shows,
-    thrillerMovies, actionMovies, topRatedShows, popularShows,
-    animationMovies, kidsShows, crimeShows,
-    bollywoodMovies, teluguMovies, tamilMovies,
-    indianSerials, pakistaniDramas, kdramas, anime,
+    top10Movies, top10Shows,
+    bollywoodMovies, teluguMovies,
+    indianSerials, anticipated,
     railTrending, railTop,
   ] = await Promise.all([
-    recentlyAdded("movie", 8), recentlyAdded("series", 8),
-    live ? nowPlayingTmdb(10) : noMovies,
-    live ? trendingLiveTmdb("movie", 10) : noMovies,
-    live ? upcomingTmdb(8) : noMovies,
-    live ? popularListTmdb("movie", 10) : noMovies,
-    live ? topRatedListTmdb("movie", 10) : noMovies,
-    live ? onTheAirTmdb(10) : noMovies,
-    live ? trendingLiveTmdb("series", 10) : noMovies,
-    live ? genreRowTmdb("movie", "Thriller", 10) : noMovies,
-    live ? genreRowTmdb("movie", "Action", 10) : noMovies,
-    live ? topRatedListTmdb("series", 10) : noMovies,
-    live ? popularListTmdb("series", 10) : noMovies,
-    live ? genreRowTmdb("movie", "Animation", 10) : noMovies,
-    live ? genreRowTmdb("series", "Kids", 10) : noMovies,
-    live ? genreRowTmdb("series", "Crime", 10) : noMovies,
+    live ? trendingLiveTmdb("movie", 8) : noMovies,
+    live ? trendingLiveTmdb("series", 8) : noMovies,
     // Audience-language rows: what South Asian viewers actually search for.
-    live ? languageRowTmdb("movie", "hi", 10) : noMovies,
-    live ? languageRowTmdb("movie", "te", 10) : noMovies,
-    live ? languageRowTmdb("movie", "ta", 10) : noMovies,
-    live ? languageRowTmdb("series", "hi", 10, "IN") : noMovies,
-    live ? languageRowTmdb("series", "ur", 10, "PK") : noMovies,
-    live ? languageRowTmdb("series", "ko", 10) : noMovies,
-    live ? languageRowTmdb("series", "ja", 10, undefined, "Animation") : noMovies,
+    live ? languageRowTmdb("movie", "hi", 8) : noMovies,
+    live ? languageRowTmdb("movie", "te", 8) : noMovies,
+    live ? languageRowTmdb("series", "hi", 8, "IN") : noMovies,
+    live ? anticipatedTmdb(8) : noMovies,
     live ? trendingLiveTmdb("all", 4) : noMovies,
     live ? topRatedTmdb("all", 4) : noMovies,
   ]);
@@ -121,7 +106,7 @@ export default async function HomePage() {
   ) => items.length > 0 && (
     <Row key={key} title={title} sub={sub} all={opts.all ?? allMovies}>
       {items.map((m, i) => (
-        <MovieCard key={m.id} movie={m} rank={opts.ranked ? i + 1 : undefined} badge={opts.badge} />
+        <MovieCard key={m.id} movie={toCard(m)} rank={opts.ranked ? i + 1 : undefined} badge={opts.badge} />
       ))}
     </Row>
   );
@@ -129,10 +114,16 @@ export default async function HomePage() {
   return (
     <div className="page">
       <NewSinceLastVisit ids={latestIds} titles={latestTitles} />
-      <Hero slides={byIds(site.hero.slides, movies)} intervalMs={site.hero.intervalMs ?? 6000} />
+      <Hero slides={byIds(site.hero.slides, movies).map(toBigCard)} intervalMs={site.hero.intervalMs ?? 6000} />
       <div className="pagerow">
         <div className="pagemain">
-          <MoodRoulette movies={movies} />
+          {/* Slim projection, not the full catalogue: this is a client
+              component, so every field handed to it is serialized into the
+              homepage HTML for every visitor to download. */}
+          <MoodRoulette movies={movies.map((m) => ({
+            id: m.id, title: m.title, year: m.year, genres: m.genres,
+            rating: m.rating, desc: m.desc, posterPath: m.posterPath,
+          }))} />
 
           {/* 1 · Channels — the old Editor's Picks slot (same wide-card
                 rail), now selling platforms instead of individual titles. */}
@@ -141,17 +132,18 @@ export default async function HomePage() {
                 for channels without a logo or live data, so the rail always
                 looks complete. */}
           <Row title="Popular" sub="Movie channels — pick a platform, see what's streaming on it">
-            {CHANNELS.map((c) => <ChannelCardRich key={c.slug} channel={c} />)}
+            {HOME_CHANNELS.map((c) => <ChannelCardRich key={c.slug} channel={c} />)}
           </Row>
 
           {/* 2–3 · Editor-curated: newest catalogue additions, by created-at
                 (never auto-updates — only changes when the editor adds titles). */}
-          {rail("recent-movies", "Recently Added Movies", "Fresh movies hand-picked and added by our editors", recentMovies, { badge: "NEW" })}
-          {rail("recent-shows", "Recently Added Shows", "The latest web series & TV shows added by our editors", recentShows, { badge: "NEW", all: allShows })}
 
           {/* 4–8 · Live movie blocks. */}
-          {rail("now-showing", "Now Showing", "Movies playing in theatres right now", nowShowing)}
-          {rail("top10-movies", "Top 10 Movies in the World Today", "The most-watched movies across the globe, updated daily", top10Movies.slice(0, 10), { ranked: true, all: allTrending })}
+          {rail("top10-movies", "Top 10 Movies in the World Today", "The most-watched movies across the globe, updated daily", top10Movies.slice(0, 8), { ranked: true, all: allTrending })}
+          {/* Big films still ahead: Avengers Doomsday and whatever else the
+              world is most excited about, straight from TMDB popularity for
+              future release dates - no hardcoded list to go stale. */}
+          {rail("anticipated", "Most Anticipated Movies", "The biggest films still to come, ranked by what the world is watching for", anticipated)}
 
           {/* Audience language rows are woven through the page instead of
               stacked at the end: Bollywood right after the Top 10, Telugu
@@ -160,29 +152,12 @@ export default async function HomePage() {
           {rail("bollywood", "Bollywood Movies", "The biggest Hindi films everyone is watching right now", bollywoodMovies)}
 
           {/* 5 · Upcoming keeps the wide "editor's pick" card style. */}
-          {upcoming.length > 0 && (
-            <Row title="Upcoming" sub="Upcoming movies hitting theatres soon — watch the trailers first" all={allMovies}>
-              {upcoming.map((m) => <BigCard key={m.id} movie={m} eyebrow="Coming Soon" />)}
-            </Row>
-          )}
 
           {rail("telugu", "Telugu Movies", "Tollywood blockbusters and pan India hits", teluguMovies)}
-          {rail("popular-movies", "Popular Movies", "Popular movies streaming now, straight from the global charts", popularMovies)}
-          {rail("tamil", "Tamil Movies", "Kollywood favorites, from mass entertainers to gems", tamilMovies)}
-          {rail("toprated-movies", "Top Rated Movies", "The highest-rated movies of all time", topRatedMovies)}
-          {rail("thriller", "Thriller Movies", "Edge of your seat thrillers trending now", thrillerMovies)}
-          {rail("action", "Action Movies", "Big, loud and spectacular action films", actionMovies)}
 
           {/* 9–12 · Live TV blocks. */}
-          {rail("on-air", "On The Air", "New episodes recently aired & airing this week", onAir, { all: allShows })}
-          {rail("top10-shows", "Top 10 TV Shows in the World Today", "The most-watched shows across the globe, updated daily", top10Shows.slice(0, 10), { ranked: true, all: allShows })}
+          {rail("top10-shows", "Top 10 TV Shows in the World Today", "The most-watched shows across the globe, updated daily", top10Shows.slice(0, 8), { ranked: true, all: allShows })}
           {rail("indian-serials", "Indian Drama Serials", "Popular Hindi serials and shows from Indian television", indianSerials, { all: allShows })}
-          {rail("popular-shows", "Popular TV Shows", "The shows everyone is streaming right now", popularShows, { all: allShows })}
-          {rail("pakistani-dramas", "Pakistani Dramas", "Acclaimed dramas from Pakistani television", pakistaniDramas, { all: allShows })}
-          {rail("kdrama", "K-Dramas", "The Korean dramas everyone is talking about", kdramas, { all: allShows })}
-          {rail("toprated-shows", "Top Rated TV Shows", "The highest-rated series of all time", topRatedShows, { all: allShows })}
-          {rail("anime", "Anime", "Top anime series, from new seasons to all time greats", anime, { all: allShows })}
-          {rail("crime-tv", "Crime TV Shows", "Heists, detectives and underworld drama", crimeShows, { all: allShows })}
 
           {/* Free Classics — the only "watch the FULL movie here" shelf on
                 the site: hand-curated public-domain films (see lib/classics). */}
@@ -198,7 +173,7 @@ export default async function HomePage() {
                 {items.map((m, i) => (
                   <MovieCard
                     key={m.id}
-                    movie={m}
+                    movie={toCard(m)}
                     rank={row.style === "ranked" ? i + 1 : undefined}
                     badge={row.style === "badge" ? (row.badge ?? "NEW") : undefined}
                   />
@@ -207,8 +182,6 @@ export default async function HomePage() {
             );
           })}
 
-          {rail("animation", "Animation & Cartoons", "Animated features for every age", animationMovies)}
-          {rail("kids-tv", "Kids TV Shows", "Family friendly shows the kids will love", kidsShows, { all: allShows })}
         </div>
         <aside className="pageaside">
           <PosterWidget title="Trending Now" movies={railTrending.length ? railTrending : trendingNow(movies, 4)} href="/trending" />

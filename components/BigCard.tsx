@@ -3,14 +3,14 @@
 import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
-import type { Movie } from "@/lib/types";
+import type { BigCardMovie } from "@/lib/types";
 import { backdrop } from "@/lib/images";
 
 /** Wide "spotlight" card — a bigger, widescreen alternative to the standard
  *  poster MovieCard, for the handful of places (home spotlight row, search's
  *  trending picks) that want one or two titles to stand out visually rather
  *  than blend into a dense grid. */
-export default function BigCard({ movie, eyebrow }: { movie: Movie; eyebrow?: string }) {
+export default function BigCard({ movie, eyebrow }: { movie: BigCardMovie; eyebrow?: string }) {
   return (
     <Link className="bigcard" href={`/movie/${movie.id}`}>
       <div className="bigcard__img">

@@ -12,7 +12,12 @@ import type { Movie, MovieKind } from "./types";
  *  /web-series, /trending, /latest and every genre filter saw no titles at
  *  all, only the loading grid (client fetch happens after mount). */
 
-const PAGE_SIZE = 20;
+/** Cards rendered per listing page. Kept below TMDB's own 20-per-page so
+ *  each listing response - and therefore each cached page object and every
+ *  visitor's HTML payload - stays smaller. This is a discovery feed, not a
+ *  complete index, so showing the strongest 15 of a page costs the user
+ *  nothing and there are always more pages. */
+const PAGE_SIZE = 15;
 
 export interface BrowseResponse {
   results: Movie[];

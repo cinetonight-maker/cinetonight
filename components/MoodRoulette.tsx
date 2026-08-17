@@ -6,7 +6,7 @@ import Image from "next/image";
 import Icon from "./Icon";
 import WatchlistButton from "./WatchlistButton";
 import { poster } from "@/lib/images";
-import { MOODS, moviesForMood, type Mood } from "@/lib/moods";
+import { MOODS, moviesForMood, type Mood, type MoodMovie } from "@/lib/moods";
 import type { Movie } from "@/lib/types";
 
 type Step = "moods" | "spinning" | "result";
@@ -14,17 +14,17 @@ type Step = "moods" | "spinning" | "result";
 const SPIN_MS = 900;
 const FLICKER_MS = 90;
 
-export default function MoodRoulette({ movies }: { movies: Movie[] }) {
+export default function MoodRoulette({ movies }: { movies: MoodMovie[] }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("moods");
   const [mood, setMood] = useState<Mood | null>(null);
-  const [result, setResult] = useState<Movie | null>(null);
-  const [flicker, setFlicker] = useState<Movie | null>(null);
+  const [result, setResult] = useState<MoodMovie | null>(null);
+  const [flicker, setFlicker] = useState<MoodMovie | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Live TMDB pools, cached per mood for the session — first spin fetches,
   // "Spin Again" is instant.
-  const livePoolRef = useRef<Record<string, Movie[]>>({});
+  const livePoolRef = useRef<Record<string, MoodMovie[]>>({});
   const spinSeq = useRef(0);
 
   const clearTimers = () => {
@@ -43,7 +43,7 @@ export default function MoodRoulette({ movies }: { movies: Movie[] }) {
   /** Live, popular, well-rated TMDB titles for this mood — falling back to
    *  the local catalogue pool if the API has nothing (TMDB down/unset), so
    *  the wheel always has something to land on. */
-  async function poolFor(m: Mood): Promise<Movie[]> {
+  async function poolFor(m: Mood): Promise<MoodMovie[]> {
     const cached = livePoolRef.current[m.id];
     if (cached?.length) return cached;
     try {
@@ -158,7 +158,7 @@ export default function MoodRoulette({ movies }: { movies: Movie[] }) {
                     <div className="rmodal__rmeta">
                       <span>{shown.year || "—"}</span>
                       {shown.genres[0] && <><span>·</span><span>{shown.genres[0]}</span></>}
-                      <span className="r"><Icon name="star" size={12} /> {shown.rating.toFixed(1)}</span>
+                      {shown.rating > 0 && <span className="r"><Icon name="star" size={12} /> {shown.rating.toFixed(1)}</span>}
                     </div>
                     <p className="rmodal__rdesc">{shown.desc}</p>
                     <div className="rmodal__ractions">

@@ -8,6 +8,7 @@ import { visitorRegion, regionName } from "@/lib/region";
 import { baseUrl } from "@/lib/site";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 import { channelLogoUrl } from "@/lib/channelLogoManifest";
+import { toCard } from "@/lib/types";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
@@ -121,7 +122,7 @@ export default async function ChannelPage({ params }: Params) {
             </div>
           </div>
           <div className="grid">
-            {movies.map((m) => <MovieCard key={m.id} movie={m} />)}
+            {movies.map((m) => <MovieCard key={m.id} movie={toCard(m)} />)}
           </div>
         </section>
       )}
@@ -135,7 +136,7 @@ export default async function ChannelPage({ params }: Params) {
             </div>
           </div>
           <div className="grid">
-            {shows.map((m) => <MovieCard key={m.id} movie={m} />)}
+            {shows.map((m) => <MovieCard key={m.id} movie={toCard(m)} />)}
           </div>
         </section>
       )}

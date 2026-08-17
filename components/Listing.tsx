@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Icon from "./Icon";
 import MovieCard from "./MovieCard";
-import type { Movie } from "@/lib/types";
+import type { CardMovie } from "@/lib/types";
 
 type Sort = "trending" | "rating" | "year" | "az";
 
@@ -15,7 +15,7 @@ const GENRES = [
   "Mystery", "Romance", "Sci-Fi", "Thriller", "War",
 ];
 
-interface BrowseResponse { results: Movie[]; page: number; totalPages: number; source: "tmdb" | "local" }
+interface BrowseResponse { results: CardMovie[]; page: number; totalPages: number; source: "tmdb" | "local" }
 
 const SORT_LABEL: Record<Sort, string> = { trending: "Trending", rating: "Top Rated", year: "Newest", az: "A–Z" };
 

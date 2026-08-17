@@ -13,6 +13,9 @@ import type { SeasonInfo, EpisodeInfo } from "@/lib/tmdb";
  *  episode's own trailer/teaser when TMDB has one, else the season's, else
  *  the show's — resolved server-side in one call). Episode lists are
  *  cached per season in-memory so switching back is instant. */
+/** Episodes revealed per batch, and per "Load more" tap. */
+const EPISODE_BATCH = 5;
+
 export default function EpisodePicker({
   tvId, showTitle, seasons, fallbackTrailerKey = null,
 }: {
@@ -26,10 +29,16 @@ export default function EpisodePicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [playingEp, setPlayingEp] = useState<number | null>(null);
+  /** Episodes are revealed in batches rather than all at once: a 24-episode
+   *  season rendered in full is a wall of images and markup on a phone, and
+   *  every still is a network request. Five is enough to see what the season
+   *  looks like, and "Load more" is one tap away. */
+  const [shownCount, setShownCount] = useState(EPISODE_BATCH);
   const cacheRef = useRef<Record<number, EpisodeInfo[]>>({});
   const reqRef = useRef(0);
 
   useEffect(() => {
+    setShownCount(EPISODE_BATCH); // a new season starts from the first batch
     const cached = cacheRef.current[season];
     if (cached) { setEpisodes(cached); setLoading(false); setError(false); return; }
     const mine = ++reqRef.current;
@@ -94,7 +103,7 @@ export default function EpisodePicker({
 
       {!loading && !error && episodes.length > 0 && (
         <div className="eplist">
-          {episodes.map((ep) => (
+          {episodes.slice(0, shownCount).map((ep) => (
             <button
               key={ep.episode}
               type="button"
@@ -125,6 +134,21 @@ export default function EpisodePicker({
               <span className="epc__go"><Icon name="chevr" size={16} /></span>
             </button>
           ))}
+        </div>
+      )}
+
+      {!loading && !error && episodes.length > shownCount && (
+        <div className="eplist__more">
+          <button
+            type="button"
+            className="eplist__morebtn"
+            onClick={() => setShownCount((n) => n + EPISODE_BATCH)}
+          >
+            Load more episodes
+            <span className="eplist__morecount">
+              {Math.min(EPISODE_BATCH, episodes.length - shownCount)} more of {episodes.length}
+            </span>
+          </button>
         </div>
       )}
     </section>

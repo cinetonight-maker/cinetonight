@@ -14,6 +14,14 @@ import type { Movie } from "@/lib/types";
 // instead of a plain object) — has to be awaited before use.
 interface Params { params: Promise<{ id: string }> }
 
+/** A page that could not be resolved must not be indexed. The route still
+ *  renders the 404 view, but crawlers are told explicitly not to keep or
+ *  re-crawl the URL. This matters twice over here: these ids come from an
+ *  unbounded space (any tmdb-* number), so without it a crawler can mint
+ *  endless indexable URLs, and each one it revisits is work the site pays
+ *  for. See docs/CACHING.md. */
+const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
+
 /** Curated catalogue titles are prebuilt; anything else renders on demand. */
 export async function generateStaticParams() {
   const movies = await getMovies();
@@ -41,7 +49,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const movies = await getMovies();
   const m = await resolve(id, movies);
-  if (!m) return { title: "Not found" };
+  if (!m) return NOT_FOUND_META;
   // "Cast, Trailer & Where to Watch" targets the exact long-tail phrasing
   // people actually type into Google for a specific title, instead of just
   // the bare movie name (which ranks against IMDb/Wikipedia and every other

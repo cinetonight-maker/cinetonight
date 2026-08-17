@@ -35,6 +35,50 @@ export function parsePersonTmdbId(slug: string): string | null {
   return m ? m[1] : null;
 }
 
+/* ---------------------------------------------------------------------------
+ * Caching policy for TMDB responses.
+ *
+ * WHY THIS IS TIERED RATHER THAN ONE FLAT NUMBER: every distinct TMDB URL we
+ * fetch with `next: { revalidate }` becomes ONE persisted entry in Next's data
+ * cache, which on Cloudflare lives in the R2 incremental-cache bucket. Each
+ * time its TTL lapses and the URL is requested again, that entry is REWRITTEN
+ * - an R2 Class A (write) operation, the most expensive unit in this stack.
+ * A single flat 6h TTL meant every URL we had ever touched was rewritten up
+ * to 4x a day, forever, for data that mostly never changes (a 2013 film's
+ * cast list is history; today's trending list is not).
+ *
+ * So TTL now follows how volatile the data actually is. Longer TTL on stable
+ * data is a straight cost win with no freshness cost to the visitor.
+ * ------------------------------------------------------------------------- */
+const TTL = {
+  /** Title/person detail, credits, images: effectively immutable history. */
+  stable: 60 * 60 * 72, // 3 days
+  /** Discover/genre/language lists and watch providers: shift slowly. */
+  steady: 60 * 60 * 24, // 1 day
+  /** Trending, now playing, on the air, popular, upcoming: genuinely daily. */
+  fresh: 60 * 60 * 6, // 6 hours
+  /** Free-text search: many one-off keys, so keep them short-lived. */
+  search: 60 * 60, // 1 hour
+} as const;
+
+function ttlFor(path: string): number {
+  if (path.startsWith("/search/")) return TTL.search;
+  if (/^\/(trending|movie\/now_playing|movie\/upcoming|movie\/popular|tv\/popular|tv\/on_the_air|tv\/airing_today)/.test(path)) {
+    return TTL.fresh;
+  }
+  if (path.startsWith("/discover/") || path.includes("/watch/providers")) return TTL.steady;
+  return TTL.stable; // /movie/{id}, /tv/{id}, /person/{id}, credits, images
+}
+
+/** Per-isolate request memo. Collapses identical TMDB calls made inside the
+ *  same render (and by consecutive requests on the same warm isolate) into
+ *  one network call and one cache lookup - saving both CPU and R2 READ
+ *  operations. Deliberately small and short-lived: a hot-path optimisation,
+ *  never a source of truth, and it never persists anywhere. */
+const memo = new Map<string, { at: number; data: unknown }>();
+const MEMO_MS = 60_000;
+const MEMO_MAX = 300;
+
 async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T | null> {
   if (!tmdbConfigured) return null;
   const url = new URL(API + path);
@@ -42,13 +86,27 @@ async function get<T>(path: string, params: Record<string, string | number | und
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
   }
+
+  // Memo key deliberately excludes the credential, so nothing sensitive is
+  // held in memory or ever logged.
+  const memoKey = path + "?" + new URLSearchParams(
+    Object.entries(params)
+      .filter(([, v]) => v !== undefined && v !== "")
+      .map(([k, v]) => [k, String(v)] as [string, string]),
+  ).toString();
+  const hit = memo.get(memoKey);
+  if (hit && Date.now() - hit.at < MEMO_MS) return hit.data as T;
+
   try {
     const res = await fetch(url, {
       headers: TOKEN ? { Authorization: `Bearer ${TOKEN}`, accept: "application/json" } : undefined,
-      next: { revalidate: 60 * 60 * 6 }, // cache 6h
+      next: { revalidate: ttlFor(path) },
     });
     if (!res.ok) return null;
-    return (await res.json()) as T;
+    const data = (await res.json()) as T;
+    if (memo.size >= MEMO_MAX) memo.clear(); // cheap bound, no LRU bookkeeping
+    memo.set(memoKey, { at: Date.now(), data });
+    return data;
   } catch {
     return null;
   }
@@ -485,6 +543,37 @@ export const nowPlayingTmdb = (limit = 6) => officialList("movie", "/movie/now_p
  *  last few days, so filter to strictly-future release dates: an "Upcoming"
  *  row showing already-released titles reads as broken. Two pages fetched
  *  because filtering can thin page 1 below the requested limit. */
+/** "Most Anticipated" — the biggest films still ahead of us.
+ *
+ *  Deliberately NOT TMDB's /movie/upcoming, which only covers the next few
+ *  weeks of theatrical scheduling and so misses the titles people are
+ *  actually excited about months out (Avengers: Doomsday, for one). This
+ *  asks discover for everything releasing from today onward, ranked by
+ *  TMDB popularity, which surfaces the genuinely anticipated blockbusters
+ *  and keeps doing so automatically as the calendar moves - no hardcoded
+ *  title list to go stale. One API call plus the shared genre map. */
+export async function anticipatedTmdb(limit = 6): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const [d, genres] = await Promise.all([
+    get<any>("/discover/movie", {
+      "primary_release_date.gte": today,
+      sort_by: "popularity.desc",
+      include_adult: "false",
+      with_release_type: "2|3",
+      page: 1,
+    }),
+    genreMap("movie"),
+  ]);
+  const seen = new Set<number>();
+  return ((d?.results ?? []) as any[])
+    .filter((h) => h.poster_path && String(h.release_date || "") > today)
+    .filter((h) => (seen.has(h.id) ? false : (seen.add(h.id), true)))
+    .map((h) => fromDiscoverHit(h, "movie", genres))
+    .filter(Boolean)
+    .slice(0, limit) as Movie[];
+}
+
 export async function upcomingTmdb(limit = 6): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
   const today = new Date().toISOString().slice(0, 10);
@@ -774,7 +863,7 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
   // fallback uses PAGE_SIZE = 20). Without this, merging a movie page + a
   // tv page here silently doubled "all" pages to up to 40 results, so
   // pagination behaved differently depending on which filter was active.
-  const BROWSE_PAGE_SIZE = 20;
+  const BROWSE_PAGE_SIZE = 15;
   return { results: merged.slice(0, BROWSE_PAGE_SIZE), page, totalPages: Math.min(m.totalPages, t.totalPages) };
 }
 

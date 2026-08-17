@@ -94,3 +94,28 @@ export interface SiteConfig {
   continueWatching: ContinueItem[];
   blog: Blog[];
 }
+
+/** The only fields a poster card actually renders.
+ *
+ *  MovieCard (and BigCard) are CLIENT components, so every property handed
+ *  to them is serialized into the page's HTML and downloaded by every
+ *  visitor. Passing full `Movie` objects shipped each title's entire cast
+ *  array, plus runtime, cert, language, director, writers, votes, trailer
+ *  key and both image paths - roughly two thirds of the bytes - to render a
+ *  poster, a title and one meta line. With ~100 cards on the homepage that
+ *  was the single largest payload on the site.
+ *
+ *  Project with `toCard()` at the server/client boundary. */
+export type CardMovie = Pick<Movie, "id" | "title" | "year" | "genres" | "rating" | "desc" | "posterPath">;
+
+export const toCard = (m: Movie | CardMovie): CardMovie => ({
+  id: m.id, title: m.title, year: m.year, genres: m.genres,
+  rating: m.rating, desc: m.desc, posterPath: m.posterPath,
+});
+
+/** BigCard renders a wide backdrop, so it needs that one extra path on top
+ *  of the card fields. Kept separate from CardMovie so the ~100 poster cards
+ *  on a page do not each carry a backdrop URL they never render. */
+export type BigCardMovie = CardMovie & Pick<Movie, "backdropPath">;
+
+export const toBigCard = (m: Movie): BigCardMovie => ({ ...toCard(m), backdropPath: m.backdropPath });

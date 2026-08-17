@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBrowsePage } from "@/lib/browse";
 import type { BrowseSort } from "@/lib/tmdb";
-import type { MovieKind } from "@/lib/types";
+import { toCard, type MovieKind } from "@/lib/types";
 import { clientKey, isRateLimited } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
@@ -35,5 +35,8 @@ export async function GET(request: Request) {
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
 
   const data = await getBrowsePage({ kind, sort, genre, page });
-  return NextResponse.json(data);
+  // Card fields only: <Listing> renders posters and one meta line, so
+  // returning full Movie objects sent every title's cast array and a
+  // half-dozen unused fields over the wire on every filter or page click.
+  return NextResponse.json({ ...data, results: data.results.map(toCard) });
 }

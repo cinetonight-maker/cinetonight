@@ -3,23 +3,42 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Row from "@/components/Row";
 import MovieCard from "@/components/MovieCard";
-import { getMovies, peopleOf, getPerson, personId, creditsOf } from "@/lib/data";
+import { getMovies, getPerson, creditsOf } from "@/lib/data";
 import { profile } from "@/lib/images";
 import { parsePersonTmdbId, fetchPerson, searchPersonTmdb, tmdbConfigured } from "@/lib/tmdb";
-import type { CastCredit, Movie } from "@/lib/types";
+import { toCard, type CastCredit, type Movie } from "@/lib/types";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
 interface Params { params: Promise<{ id: string }> }
 
-export async function generateStaticParams() {
-  const movies = await getMovies();
-  return peopleOf(movies).map((p) => ({ id: personId(p.name) }));
-}
-export const dynamicParams = true;
-// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
-// background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 86400;
+/** A page that could not be resolved must not be indexed. The route still
+ *  renders the 404 view, but crawlers are told explicitly not to keep or
+ *  re-crawl the URL. This matters twice over here: these ids come from an
+ *  unbounded space (any tmdb-* number), so without it a crawler can mint
+ *  endless indexable URLs, and each one it revisits is work the site pays
+ *  for. See docs/CACHING.md. */
+const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
+
+// Rendered per request, NOT persisted in the ISR cache.
+//
+// WHY (this route was the single biggest infrastructure cost on the site):
+// the id accepts any "tmdb-p-<id>" value, so the URL space here is the whole
+// of TMDB's person database (millions of entries). Every movie page links ~10
+// cast members, and every person page links their whole filmography, which
+// links more cast - a self-expanding graph. With ISR on, each of those URLs a
+// crawler invented became a PERMANENT object in the R2 incremental cache, and
+// the bucket grew to 2.79M objects / 211 GB in a fortnight, with ~1M R2 write
+// operations a day.
+//
+// force-dynamic keeps these pages fully server-rendered (Googlebot still gets
+// complete HTML, metadata and links, so indexing is unaffected) but writes
+// NOTHING to R2. Repeat traffic is absorbed by the Cloudflare CDN cache
+// instead, which is free. Person pages are also low-value for search next to
+// title pages, so trading persistence for zero storage is the right call
+// here - unlike /movie/[id], which keeps ISR precisely because it is the
+// money page.
+export const dynamic = "force-dynamic";
 
 /** Local catalogue first (cast links from local titles use this), then TMDB
  *  for ids like "tmdb-p-1234" — cast members who only appear on titles
@@ -71,7 +90,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const resolved = await resolvePerson(id, movies);
   return resolved
     ? { title: resolved.person.name, description: `Films and series featuring ${resolved.person.name}.` }
-    : { title: "Not found" };
+    : NOT_FOUND_META;
 }
 
 export default async function PersonPage({ params }: Params) {
@@ -105,7 +124,7 @@ export default async function PersonPage({ params }: Params) {
       </div>
       {credits.length > 0 && (
         <Row title="Known For">
-          {credits.map((m) => <MovieCard key={m.id} movie={m} />)}
+          {credits.map((m) => <MovieCard key={m.id} movie={toCard(m)} />)}
         </Row>
       )}
     </div>

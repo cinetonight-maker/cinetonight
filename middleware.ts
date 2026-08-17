@@ -112,6 +112,12 @@ export const config = {
   // the standard @supabase/ssr "run on every request" matcher, so session
   // refresh (job 1 above) actually covers the whole site, not just /admin.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon|opengraph-image|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Excluded, on top of static assets and generated image routes: the
+    // public read-only API endpoints. They never read a Supabase session
+    // (watch availability, search, browse, title lookup, trailers, mood are
+    // all anonymous), so running session-refresh in front of them was pure
+    // Worker CPU on the site's highest-volume routes. /api/admin/** and
+    // /api/comments still pass through, because that is where the gate lives.
+    "/((?!_next/static|_next/image|favicon.ico|icon|opengraph-image|manifest.webmanifest|api/(?:watch|search|browse|title|tv|trailer|mood)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

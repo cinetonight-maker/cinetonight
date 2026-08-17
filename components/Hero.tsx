@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
-import type { Movie } from "@/lib/types";
+import type { BigCardMovie } from "@/lib/types";
 import { posterLg, backdrop } from "@/lib/images";
 
 /** Auto-rotating hero. Slides are chosen in /admin (content/site.json → hero.slides).
@@ -27,7 +27,7 @@ import { posterLg, backdrop } from "@/lib/images";
  *  "ADDED" on every change, "REMOVED" never). That's what showed as the
  *  previous movie's poster still visible underneath the current one. Each
  *  keyed element here now has its own distinct key. */
-export default function Hero({ slides, intervalMs = 6000 }: { slides: Movie[]; intervalMs?: number }) {
+export default function Hero({ slides, intervalMs = 6000 }: { slides: BigCardMovie[]; intervalMs?: number }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);

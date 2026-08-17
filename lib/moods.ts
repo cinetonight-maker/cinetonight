@@ -67,13 +67,21 @@ export const MOODS: Mood[] = [
  *  catalogues would otherwise make every spin land on the same 1-2 titles. */
 const MIN_POOL = 3;
 
-const hasExcluded = (m: Movie, mood: Mood) =>
+const hasExcluded = (m: Pick<Movie, "genres">, mood: Mood) =>
   (mood.exclude ?? []).some((g) => m.genres.includes(g));
-const overlaps = (m: Movie, mood: Mood) =>
+const overlaps = (m: Pick<Movie, "genres">, mood: Mood) =>
   m.genres.some((g) => mood.genres.includes(g));
 
 /** Movies matching a mood — tiered as documented above. */
-export function moviesForMood(mood: Mood, movies: Movie[]): Movie[] {
+/** The only fields mood filtering and the roulette card actually need.
+ *  Deliberately narrow: MoodRoulette is a CLIENT component, so whatever
+ *  shape is handed to it is serialized into the homepage HTML and
+ *  downloaded by every visitor. Passing full Movie objects shipped each
+ *  title's entire cast array, synopsis and every unused field to the
+ *  browser for no reason. */
+export type MoodMovie = Pick<Movie, "id" | "title" | "year" | "genres" | "rating" | "desc" | "posterPath">;
+
+export function moviesForMood<T extends Pick<Movie, "genres">>(mood: Mood, movies: T[]): T[] {
   if (!mood.genres.length) return movies; // "Surprise Me" — true random
 
   const primary = movies.filter(

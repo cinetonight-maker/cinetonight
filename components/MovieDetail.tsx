@@ -6,7 +6,7 @@ import TicketStub from "./TicketStub";
 import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
 import MovieCard from "./MovieCard";
-import type { Movie } from "@/lib/types";
+import { toCard, type Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
@@ -134,7 +134,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
             </div>
           </div>
           <div className="grid">
-            {suggestions.map((s) => <MovieCard key={s.id} movie={s} />)}
+            {suggestions.map((s) => <MovieCard key={s.id} movie={toCard(s)} />)}
           </div>
         </section>
       )}
