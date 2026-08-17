@@ -7,7 +7,7 @@ import { baseUrl } from "@/lib/site";
 
 // Cached (ISR): rendered once, reused for 3600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 // "Legally" is the keyword that separates this page's SERP from the piracy
 // swamp — searchers who type it are exactly the visitors we want, and

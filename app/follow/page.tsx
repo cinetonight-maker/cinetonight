@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 // Cached (ISR): rendered once, reused for 3600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 /** What each platform gives a follower — the reason to tap Follow, not
  *  just a wall of icons. Only platforms with a saved URL render. Logos are

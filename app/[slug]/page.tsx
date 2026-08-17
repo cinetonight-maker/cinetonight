@@ -6,7 +6,7 @@ import { baseUrl } from "@/lib/site";
 
 // Cached (ISR): rendered once, reused for 600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 600;
+export const revalidate = 86400;
 
 marked.setOptions({ breaks: true });
 

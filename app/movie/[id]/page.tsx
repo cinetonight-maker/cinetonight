@@ -22,7 +22,7 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 // Cached (ISR): rendered once, reused for 600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 600;
+export const revalidate = 43200;
 
 /** Local catalogue first, then TMDB for ids like "tmdb-m-1234". */
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {

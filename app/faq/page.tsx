@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   alternates: { canonical: `${baseUrl()}/faq` },
   openGraph: { title: TITLE, description: DESCRIPTION, type: "website", url: `${baseUrl()}/faq` },
 };
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 /** Every answer is written snippet-first: a direct answer in the opening
  *  sentence, 40 to 60 words total, because that is what Google lifts into

@@ -19,7 +19,7 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 // Cached (ISR): rendered once, reused for 3600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 /** Local catalogue first (cast links from local titles use this), then TMDB
  *  for ids like "tmdb-p-1234" — cast members who only appear on titles

@@ -29,7 +29,7 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 // Cached (ISR): rendered once, reused for 300s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 300;
+export const revalidate = 1800;
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;

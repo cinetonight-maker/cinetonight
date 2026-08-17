@@ -11,7 +11,7 @@ interface Params { params: Promise<{ slug: string }> }
 
 // Cached (ISR): rendered once, reused for 3600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 3600;
+export const revalidate = 86400;
 export async function generateStaticParams() {
   return (await getClassics()).map((c) => ({ slug: c.slug }));
 }

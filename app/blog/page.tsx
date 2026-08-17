@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 // Cached (ISR): rendered once, reused for 300s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 300;
+export const revalidate = 600;
 
 export default async function BlogPage() {
   const blogs = await getBlogs();
