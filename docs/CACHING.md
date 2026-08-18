@@ -66,7 +66,7 @@ Current values (see each route file):
 | --- | --- | --- |
 | `/` | ISR | 15 min |
 | `/blog`, `/blog/[slug]` | ISR | 10 / 30 min |
-| `/movie/[id]` | ISR | 12 h |
+| `/movie/[id]` | ISR | 3 days (matches its data TTL) |
 | `/person/[id]` | dynamic | CDN only, 24 h s-maxage |
 | `/free-movies`, `/genres`, `/faq`, `/follow`, `/[slug]` | ISR | 24 h |
 | `/search`, `/my-list`, `/account`, `/api/*`, `/admin` | dynamic | never |
@@ -105,10 +105,59 @@ deploys, pages nobody visits any more - stop accumulating. Do not set it much
 shorter: deleting entries that are still in use forces regeneration, which
 costs *more* writes than the storage saved.
 
+## Revalidation de-duplication (round 2)
+
+The first fix cut R2 writes from ~972k/day to ~253k/day, but the remaining
+writes had a multiplier we had missed: the memory queue de-duplicated
+regeneration **per isolate**. Cloudflare runs hundreds of locations, each with
+its own isolate, and each independently noticed the same page was stale and
+regenerated it. One expired page became many identical R2 writes.
+
+`open-next.config.ts` now uses `queueCache(doQueue)`:
+
+- `doQueue` routes every revalidation through a single Durable Object, so a
+  stale page regenerates **once globally**.
+- `queueCache` adds a 5-second regional cache in front of it, so repeat
+  triggers inside one region are dropped before they reach the DO - which also
+  keeps DO requests inside the included allowance.
+
+This needs the `NEXT_CACHE_DO_QUEUE` binding and the `DOQueueHandler`
+migration in `wrangler.jsonc`. Do not remove them.
+
+## Browse depth
+
+`MAX_BROWSE_PAGE = 5` in `lib/tmdb.ts` is the public browse limit, enforced
+**server-side** in `getBrowsePage()` - not just hidden in the UI. Every
+(kind, sort, genre, page) combination is its own TMDB request and its own
+persisted cache entry, so 50 pages multiplied the cache surface tenfold for
+pages almost nobody reached.
+
+The catalogue itself is untouched: search queries TMDB directly, and every
+title page works by direct URL whether or not it appears in a browse page.
+**Small browse surface, large searchable catalogue.**
+
+## Unbounded key spaces
+
+Free-text search passes `{ noStore: true }` to `get()`, so arbitrary queries
+never become persisted R2 objects. Any future feature with an unbounded key
+space (user input, arbitrary filters) must do the same.
+
 ## Monitoring
 
 Cloudflare → R2 → `cinetonight-cache` → Metrics. The number to watch is
-**Class A operations per day**. Healthy is low tens of thousands. If it climbs
-back into the hundreds of thousands, something new is writing per request:
-check for a newly added short `revalidate`, a new unbounded dynamic route, or
-a fetch whose URL varies per request.
+**Class A operations per day**. Operational thresholds:
+
+| Band | Class A / day | Action |
+| --- | --- | --- |
+| Green | under 30k | healthy |
+| Yellow | 30k-75k | review what shipped recently |
+| Orange | 75k-150k | investigate promptly |
+| Red | over 150k | treat as a cost incident |
+
+If it climbs back up, something new is writing per request: look for a newly
+added short `revalidate`, a new unbounded dynamic route, or a fetch whose URL
+varies per request.
+
+Judge a change only on a CLEAN window. A "last 24 hours" view straight after a
+deploy mixes old and new behaviour - record the deploy time and compare at 6h
+and 24h past it.

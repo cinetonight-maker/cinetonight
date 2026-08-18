@@ -1,5 +1,5 @@
 import "server-only";
-import { browsePage, tmdbConfigured, type BrowseSort } from "./tmdb";
+import { browsePage, tmdbConfigured, MAX_BROWSE_PAGE, type BrowseSort } from "./tmdb";
 import { getMovies } from "./data";
 import type { Movie, MovieKind } from "./types";
 
@@ -18,6 +18,14 @@ import type { Movie, MovieKind } from "./types";
  *  complete index, so showing the strongest 15 of a page costs the user
  *  nothing and there are always more pages. */
 const PAGE_SIZE = 15;
+
+/** Is this page number inside the supported public browse range? Used by
+ *  routes to answer unsupported depths correctly instead of silently
+ *  serving different content than the URL asked for. */
+export const isBrowsePageSupported = (page: number) =>
+  Number.isFinite(page) && page >= 1 && page <= MAX_BROWSE_PAGE;
+
+export { MAX_BROWSE_PAGE };
 
 export interface BrowseResponse {
   results: Movie[];
@@ -45,7 +53,13 @@ function localFallback(movies: Movie[], kind: MovieKind | "all", sort: BrowseSor
 }
 
 export async function getBrowsePage(params: { kind: MovieKind | "all"; sort: BrowseSort; genre?: string; page?: number }): Promise<BrowseResponse> {
-  const page = Math.max(1, params.page ?? 1);
+  // SERVER-SIDE browse-depth enforcement. Hiding deep page links in the UI is
+  // not enough: a crawler or a hand-typed /movies?page=37 would still run the
+  // full TMDB fetch and mint cache entries for a page nobody can navigate to.
+  // Clamping HERE means every caller - the listing pages and /api/browse alike
+  // - stops before any expensive work. Callers that need to distinguish "too
+  // deep" from "valid" use isBrowsePageSupported() below.
+  const page = Math.min(Math.max(1, params.page ?? 1), MAX_BROWSE_PAGE);
   const live = await browsePage({ ...params, page });
   if (live && live.results.length) return { ...live, source: "tmdb" };
 

@@ -30,7 +30,11 @@ export async function generateStaticParams() {
 export const dynamicParams = true;
 // Cached (ISR): rendered once, reused for 600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 43200;
+// Aligned with the TMDB data TTL (3 days, see lib/tmdb.ts): regenerating a
+// page more often than its underlying data can change costs an R2 write and
+// produces byte-identical output. Title, synopsis, cast and trailer are
+// history; live availability is a client island that is never cached here.
+export const revalidate = 259200;
 
 /** Local catalogue first, then TMDB for ids like "tmdb-m-1234". */
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {

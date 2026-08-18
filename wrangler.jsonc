@@ -11,9 +11,20 @@
     { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "cinetonight-cache" }
   ],
 
-  // Lets the worker call itself to regenerate pages in the background
-  // (required by the memory queue that powers timed revalidation).
+  // Lets the worker call itself to regenerate pages in the background.
   "services": [
     { "binding": "WORKER_SELF_REFERENCE", "service": "cinetonight" }
+  ],
+
+  // Revalidation queue (see open-next.config.ts). A single Durable Object
+  // de-duplicates regeneration globally, so one stale page produces ONE
+  // rebuild and ONE R2 write instead of one per Cloudflare location.
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }
   ]
 }

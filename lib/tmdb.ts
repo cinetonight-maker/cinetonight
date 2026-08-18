@@ -79,7 +79,11 @@ const memo = new Map<string, { at: number; data: unknown }>();
 const MEMO_MS = 60_000;
 const MEMO_MAX = 300;
 
-async function get<T>(path: string, params: Record<string, string | number | undefined> = {}): Promise<T | null> {
+async function get<T>(
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+  opts: { noStore?: boolean } = {},
+): Promise<T | null> {
   if (!tmdbConfigured) return null;
   const url = new URL(API + path);
   if (KEY) url.searchParams.set("api_key", KEY);
@@ -100,7 +104,9 @@ async function get<T>(path: string, params: Record<string, string | number | und
   try {
     const res = await fetch(url, {
       headers: TOKEN ? { Authorization: `Bearer ${TOKEN}`, accept: "application/json" } : undefined,
-      next: { revalidate: ttlFor(path) },
+      // noStore keeps the response OUT of the persisted data cache entirely
+      // (used for unbounded key spaces like free-text search).
+      ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: ttlFor(path) } }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as T;
@@ -162,7 +168,12 @@ function fromSearchHit(hit: any): Movie | null {
 export async function searchTmdb(query: string, limit = 24): Promise<Movie[]> {
   const q = query.trim();
   if (!q) return [];
-  const data = await get<any>("/search/multi", { query: q, include_adult: "false", page: 1 });
+  // noStore: arbitrary user queries are an unbounded key space, and every
+  // distinct one used to become its own PERSISTED entry in the R2 cache -
+  // permanent storage inventory for a string somebody typed once. The
+  // in-isolate memo in get() still collapses repeats within a minute, and
+  // /api/search is dynamic anyway, so nothing is lost but the R2 objects.
+  const data = await get<any>("/search/multi", { query: q, include_adult: "false", page: 1 }, { noStore: true });
   if (!data?.results) return [];
   return data.results
     .filter((r: any) => r.media_type === "movie" || r.media_type === "tv")
@@ -813,7 +824,20 @@ const SORT_MAP: Record<BrowseSort, { movie: string; tv: string }> = {
   az: { movie: "original_title.asc", tv: "name.asc" },
 };
 const MIN_VOTES: Record<BrowseSort, number> = { trending: 20, rating: 200, year: 1, az: 0 };
-const MAX_PAGES = 50; // TMDB technically allows more; this is already "enough" pages to page through
+/** Maximum PUBLIC browse depth, in pages, for every listing route.
+ *
+ *  Was 50. Each (kind, sort, genre, page) combination is its own TMDB request
+ *  and therefore its own persisted cache entry, so 50 pages multiplied the
+ *  cache surface tenfold for pages almost nobody reaches - while giving
+ *  crawlers an enormous, effectively pointless corridor to walk.
+ *
+ *  At 15 titles per page this still exposes ~75 titles per listing, per
+ *  genre, per sort. The FULL catalogue stays reachable: search hits TMDB
+ *  directly, and every title page works by direct URL whether or not it
+ *  appears in a browse page. Small browse surface, large searchable
+ *  catalogue. */
+export const MAX_BROWSE_PAGE = 5;
+const MAX_PAGES = MAX_BROWSE_PAGE;
 
 async function discoverPage(kind: MovieKind, sort: BrowseSort, genre: string | undefined, page: number): Promise<{ results: Movie[]; totalPages: number }> {
   // Same fix as trendingLiveTmdb above: the real /trending endpoint, not a
