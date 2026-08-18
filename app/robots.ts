@@ -7,6 +7,11 @@ import { baseUrl } from "@/lib/site";
 // - 85k hits in one observed day - and every hit wakes the server).
 const COMMON_DISALLOW = [
   "/admin", "/api/", "/account", "/my-list", "/signin", "/signup", "/_next/image",
+  // Internal search results: force-dynamic SSR with an unbounded ?q= space,
+  // so every crawled query is a full render plus a live TMDB call - and
+  // Google explicitly does not want internal search pages indexed anyway
+  // ("search results in search results"). Real visitors are unaffected.
+  "/search",
 ];
 
 export default function robots(): MetadataRoute.Robots {

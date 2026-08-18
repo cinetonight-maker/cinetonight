@@ -29,8 +29,19 @@ const key = process.env.SUPABASE_SECRET_KEY;
 if (!url || !key) { console.error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local'); process.exit(1); }
 const sb = createClient(url, key, { auth: { persistSession: false } });
 
-/** A row is removed if its title contains any of these (case-insensitive). */
-const REMOVE_MATCHING = ['c-drama', 'cdrama', 'chinese', 'anime', 'k-drama', 'kdrama', 'korean'];
+/** A row is removed if its title contains any of these (case-insensitive).
+ *
+ *  Two groups here. The first were asked for directly. The second DUPLICATE
+ *  rails that already exist in code (app/page.tsx): the homepage was showing
+ *  Bollywood twice and Telugu twice, and every duplicate row costs its own
+ *  TMDB call on every render as well as making the page repeat itself. */
+const REMOVE_MATCHING = [
+  // asked for
+  'c-drama', 'cdrama', 'chinese', 'anime', 'k-drama', 'kdrama', 'korean',
+  // duplicates of the coded rails
+  'latest movies', 'latest web series', 'trending this week',
+  'hollywood', 'bollywood', 'telugu',
+];
 
 const { data, error } = await sb.from('home_config').select('rows').eq('id', 1).maybeSingle();
 if (error) { console.error('Could not read home_config:', error.message); process.exit(1); }

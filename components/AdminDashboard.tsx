@@ -7,11 +7,14 @@ import type { Movie, SiteConfig, RowConfig } from "@/lib/types";
 import { poster } from "@/lib/images";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
-type Tab = "sync" | "hero" | "rows" | "blog" | "catalogue" | "classics" | "pages" | "menus" | "media" | "settings" | "comments";
+type Tab = "sync" | "hero" | "blog" | "catalogue" | "classics" | "pages" | "menus" | "media" | "settings" | "comments";
 const TABS: [Tab, string, string][] = [
   ["sync", "Sync Center", "sparkle"],
-  ["hero", "Hero Slides", "sparkle"],
-  ["rows", "Home Rows", "grid"],
+  ["hero", "Hero Picks", "sparkle"],
+  // "Home Rows" tab removed with the Aug 2026 homepage redesign: the homepage
+  // is a decision engine now and renders no configurable catalogue rows, so
+  // the tab controlled nothing. The rows API and data stay (harmless, and a
+  // future "choose Explore tabs" feature could reuse them).
   ["blog", "Blog Posts", "article"],
   ["catalogue", "Catalogue", "film"],
   ["classics", "Free Movies", "playc"],
@@ -111,12 +114,11 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {loadErr && (tab === "hero" || tab === "rows") && (
+      {loadErr && tab === "hero" && (
         <div className="ad__err">{loadErr}</div>
       )}
       {tab === "sync" && <SyncTab reload={load} />}
       {tab === "hero" && site && <HeroTab site={site} movies={movies} save={save} />}
-      {tab === "rows" && site && <RowsTab site={site} movies={movies} save={save} />}
       {tab === "blog" && <BlogTab />}
       {tab === "catalogue" && <CatalogueTab movies={movies} reload={load} />}
       {tab === "classics" && <ClassicsTab />}
@@ -275,9 +277,11 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
   return (
     <div className="ad__body">
       <section className="ad__panel">
-        <h2>Slides <span className="ad__count">{slides.length}</span></h2>
+        <h2>Hero picks <span className="ad__count">{slides.length}</span></h2>
         <p className="ad__hint">
-          Shown in order. These rotate on the home page. Heads up: if Hero mode in the Sync Center is set to
+          The redesigned homepage has no rotating carousel any more — your <b>first three picks here</b> become
+          the big poster artwork in the hero, in this order. Fewer than three picks (or picks without poster art)
+          and the site falls back to the current trending titles. Heads up: if Hero mode in the Sync Center is set to
           <b> Auto</b>, the daily sync replaces these with the current trending titles. Switch it to <b>Manual</b> there
           to keep your picks.
         </p>
@@ -297,15 +301,10 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
             );
           })}
         </div>
-        <label className="ad__field" style={{ marginTop: 18 }}>
-          <span>Rotation speed (seconds)</span>
-          <input type="number" min={2} max={30}
-            value={Math.round((site.hero?.intervalMs ?? 6000) / 1000)}
-            onChange={(e) => {
-              const ms = Math.max(2, Number(e.target.value)) * 1000;
-              save((base) => ({ hero: { ...base.hero, intervalMs: ms } }));
-            }} />
-        </label>
+        {/* "Rotation speed" control removed with the homepage redesign: the
+            hero no longer rotates, so the setting controlled nothing. The
+            intervalMs field stays in the data model (harmless, and old rows
+            still carry it) - only the dead UI is gone. */}
       </section>
 
       <section className="ad__panel">
@@ -324,141 +323,6 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
   );
 }
 
-/* ------------------------------- rows ---------------------------------- */
-function RowsTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; save: (patch: HomePatch) => void }) {
-  const rows = site.rows ?? [];
-  // Rows/continue-watching entries are addressed by id here (not array index),
-  // so a patch still lands on the right item even if the freshly-fetched
-  // server order/length differs slightly from what this tab last rendered.
-  const update = (id: string, patch: Partial<RowConfig>) => {
-    save((base) => {
-      const cur = base.rows ?? [];
-      const idx = cur.findIndex((r) => r.id === id);
-      if (idx < 0) return {};
-      const next = cur.slice(); next[idx] = { ...next[idx], ...patch };
-      return { rows: next };
-    });
-  };
-  const moveRow = (id: string, dir: -1 | 1) => {
-    save((base) => {
-      const cur = base.rows ?? [];
-      const i = cur.findIndex((r) => r.id === id);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= cur.length) return {};
-      const next = cur.slice(); [next[i], next[j]] = [next[j], next[i]];
-      return { rows: next };
-    });
-  };
-  const addRow = () => save((base) => ({
-    rows: [...(base.rows ?? []), { id: `row-${Date.now()}`, title: "New Row", mode: "auto", rule: { kind: "all", sort: "year", limit: 6 }, style: "plain" }],
-  }));
-  const removeRow = (id: string) => save((base) => ({ rows: (base.rows ?? []).filter((r) => r.id !== id) }));
-
-
-  return (
-    <div className="ad__body ad__body--one">
-      <section className="ad__panel">
-        <div className="ad__panelhead">
-          <h2>Home rows <span className="ad__count">{rows.length}</span></h2>
-          <button className="ad__btn" onClick={addRow}><Icon name="plus" size={14} /> Add row</button>
-        </div>
-        <p className="ad__hint">
-          <b>Live</b> pulls straight from TMDB in real time — no sync needed, always current (falls back to Auto if TMDB
-          is unreachable). <b>Auto</b> keeps a row up to date by rule from your saved catalogue. <b>Manual</b> lets you
-          hand-pick and order titles.
-        </p>
-
-        {rows.map((row, i) => (
-          <div className="ad__card" key={row.id}>
-            <div className="ad__cardhead">
-              <input className="ad__title" value={row.title} onChange={(e) => update(row.id, { title: e.target.value })} />
-              <button className="ad__mini" onClick={() => moveRow(row.id, -1)} disabled={i === 0}>↑</button>
-              <button className="ad__mini" onClick={() => moveRow(row.id, 1)} disabled={i === rows.length - 1}>↓</button>
-              <button className="ad__mini ad__mini--x" onClick={() => removeRow(row.id)}>✕</button>
-            </div>
-
-            <div className="ad__controls">
-              <label className="ad__field">
-                <span>Mode</span>
-                <select value={row.mode} onChange={(e) => update(row.id, { mode: e.target.value as RowConfig["mode"] })}>
-                  <option value="auto">Auto (by rule)</option>
-                  <option value="live">Live (from TMDB)</option>
-                  <option value="manual">Manual (hand-picked)</option>
-                </select>
-              </label>
-
-              {row.mode === "live" && (
-                <label className="ad__field">
-                  <span>Source</span>
-                  <select value={row.live ?? "trending"} onChange={(e) => update(row.id, { live: e.target.value as RowConfig["live"] })}>
-                    <option value="trending">Trending now</option>
-                    <option value="latest">Latest releases</option>
-                    <option value="toprated">Top rated</option>
-                    <option value="hollywood">Hollywood</option>
-                    <option value="bollywood">Bollywood</option>
-                    <option value="korean">K-Drama</option>
-                    <option value="anime">Anime</option>
-                    <option value="chinese">C-Drama</option>
-                    <option value="telugu">Telugu (Tollywood)</option>
-                  </select>
-                </label>
-              )}
-
-              {row.mode === "auto" || row.mode === "live" ? (
-                <>
-                  <label className="ad__field">
-                    <span>Type</span>
-                    <select value={row.rule?.kind ?? "all"} onChange={(e) => update(row.id, { rule: { ...row.rule, kind: e.target.value as "all" | "movie" | "series" } })}>
-                      <option value="all">All</option><option value="movie">Movies</option><option value="series">Web Series</option>
-                    </select>
-                  </label>
-                  {row.mode === "auto" && (
-                    <label className="ad__field">
-                      <span>Sort by</span>
-                      <select value={row.rule?.sort ?? "year"} onChange={(e) => update(row.id, { rule: { ...row.rule, sort: e.target.value as "year" | "rating" | "votes" | "az" } })}>
-                        <option value="year">Newest first</option><option value="rating">Highest rated</option>
-                        <option value="votes">Most popular</option><option value="az">A–Z</option>
-                      </select>
-                    </label>
-                  )}
-                  <label className="ad__field">
-                    <span>Show</span>
-                    <input type="number" min={1} max={20} value={row.rule?.limit ?? 6}
-                      onChange={(e) => update(row.id, { rule: { ...row.rule, limit: Number(e.target.value) } })} />
-                  </label>
-                </>
-              ) : null}
-
-              <label className="ad__field">
-                <span>Style</span>
-                <select value={row.style ?? "plain"} onChange={(e) => update(row.id, { style: e.target.value as RowConfig["style"] })}>
-                  <option value="plain">Plain</option><option value="ranked">Numbered</option><option value="badge">NEW badge</option>
-                </select>
-              </label>
-            </div>
-
-            {row.mode === "manual" && (
-              <div className="ad__picker ad__picker--sm">
-                {movies.map((m) => {
-                  const on = (row.items ?? []).includes(m.id);
-                  return (
-                    <button key={m.id} className={`ad__pick${on ? " on" : ""}`}
-                      onClick={() => update(row.id, { items: on ? (row.items ?? []).filter((x) => x !== m.id) : [...(row.items ?? []), m.id] })}>
-                      <img alt="" src={poster(m)} />
-                      <span>{m.title}</span>
-                      {on && <em><Icon name="check" size={13} /></em>}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </section>
-
-    </div>
-  );
-}
 
 /* --------------------------- shared: media picker ------------------------ */
 /** Upload a file to the Media Library. Returns the public URL on success, or
@@ -542,6 +406,19 @@ function ImagePicker({ url, onChange, label }: { url: string | null | undefined;
 }
 
 /* ------------------------------- blog ---------------------------------- */
+/** What the SITE currently does with this post - matches lib/data.ts, which
+ *  shows status=published OR (status=scheduled AND publish_at <= now). */
+function effectiveBlogStatus(p: { status: string; publish_at: string | null; cat: string }): string {
+  if (p.status === "draft") return "draft";
+  if (p.status === "scheduled") {
+    if (p.publish_at && new Date(p.publish_at).getTime() <= Date.now()) {
+      return `live · was scheduled ${new Date(p.publish_at).toLocaleString()}`;
+    }
+    return `scheduled ${p.publish_at ? new Date(p.publish_at).toLocaleString() : "(no date!)"}`;
+  }
+  return p.cat;
+}
+
 type BlogRow = {
   id: string; slug: string; title: string; cat: string; excerpt: string; body: string[];
   image_url: string | null; date_label: string; read_label: string;
@@ -711,7 +588,12 @@ function BlogTab() {
             {posts.map((p) => (
               <div className="ad__row" key={p.id}>
                 {p.image_url && <img className="ad__thumb" alt="" src={p.image_url} style={{ width: 46, height: 32 }} />}
-                <span className="ad__cat">{p.status === "draft" ? "draft" : p.status === "scheduled" ? `scheduled ${p.publish_at ? new Date(p.publish_at).toLocaleString() : ""}` : p.cat}</span>
+                {/* EFFECTIVE status, not the stored string. The site treats a
+                    scheduled post whose time has passed as live (lib/data.ts
+                    filters on publish_at <= now), so the dashboard must say
+                    the same - a post that is already on the site labelled
+                    "scheduled" reads like it never went out. */}
+                <span className="ad__cat">{effectiveBlogStatus(p)}</span>
                 <span className="ad__name">{p.title}</span>
                 <span className="ad__meta">{p.date_label} · {p.read_label}</span>
                 <button className="ad__mini" onClick={() => startEdit(p)}>Edit</button>

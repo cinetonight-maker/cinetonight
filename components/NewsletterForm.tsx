@@ -34,24 +34,32 @@ export default function NewsletterForm() {
   }
 
   if (state === "done") {
-    return <p style={{ color: "#c8f0d8", fontSize: 12.5 }}>{message}</p>;
+    return <p className="nlform__ok">{message}</p>;
   }
 
+  // The classes matter: this form renders in two very different containers
+  // (the purple .news sidebar widget and the homepage .nlcta banner), so it
+  // carries its own styling instead of relying on parent descendant selectors
+  // - that reliance is exactly why it rendered as bare browser widgets on the
+  // redesigned homepage.
   return (
-    <form onSubmit={onSubmit}>
-      <input
-        type="email"
-        placeholder="you@email.com"
-        aria-label="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-        disabled={state === "busy"}
-      />
-      <button type="submit" disabled={state === "busy"}>
-        {state === "busy" ? "Subscribing…" : "Subscribe"}
-      </button>
-      {state === "error" && <p style={{ color: "#f0a8a8", fontSize: 12, marginTop: 6 }}>{message}</p>}
+    <form className="nlform" onSubmit={onSubmit}>
+      <div className="nlform__row">
+        <input
+          className="nlform__input"
+          type="email"
+          placeholder="you@email.com"
+          aria-label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          disabled={state === "busy"}
+        />
+        <button className="nlform__btn" type="submit" disabled={state === "busy"}>
+          {state === "busy" ? "Subscribing…" : "Subscribe"}
+        </button>
+      </div>
+      {state === "error" && <p className="nlform__err">{message}</p>}
     </form>
   );
 }

@@ -71,7 +71,7 @@ export default async function Footer() {
         <div>
           <h4>Support</h4>
           <Link href="/faq">FAQ</Link>
-          <Link href="/signin">Sign In</Link>
+          <Link prefetch={false} href="/signin">Sign In</Link>
           {support.filter(([label]) => label.toLowerCase() !== "faq").map(([label, url]) => <a key={label} href={url}>{label}</a>)}
         </div>
         <div>

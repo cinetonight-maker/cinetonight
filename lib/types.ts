@@ -119,3 +119,12 @@ export const toCard = (m: Movie | CardMovie): CardMovie => ({
 export type BigCardMovie = CardMovie & Pick<Movie, "backdropPath">;
 
 export const toBigCard = (m: Movie): BigCardMovie => ({ ...toCard(m), backdropPath: m.backdropPath });
+
+/** A Movie trimmed for client islands that render ONE title at a time.
+ *
+ *  Keeps the full Movie shape - TicketStub and WhereToWatch both take a Movie -
+ *  but drops `cast`, which is by far the heaviest field and is never read on
+ *  the homepage. Without this the homepage shipped twelve full cast lists into
+ *  the RSC payload (the seed pick plus its "Another pick" pool) for markup that
+ *  never displays a single actor. */
+export const toPick = (m: Movie): Movie => ({ ...m, cast: [] });

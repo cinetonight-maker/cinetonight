@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
@@ -147,13 +145,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PlayerModal />
           </MaintenanceGate>
         </AuthProvider>
-        {/* Free, zero-config traffic analytics. This only actually starts
-            recording once the site is deployed on Vercel AND "Analytics" is
-            turned on for the project in the Vercel dashboard (Project →
-            Analytics → Enable) — that one-click toggle can't be done from
-            code, but the tracking snippet is now wired up and ready the
-            moment you flip it. */}
-        <Analytics />
+        {/* Vercel <Analytics /> and <SpeedInsights /> were removed when the
+            site moved to Cloudflare Workers: their scripts only exist on
+            Vercel's platform, so here every single pageview fired two
+            requests to /_vercel/... that 404'd THROUGH THE WORKER - two
+            billable Worker invocations per visit for nothing, plus console
+            errors on every page. GA4 below is the analytics stack. */}
         {/* Google Analytics 4 — activates only when NEXT_PUBLIC_GA_ID is
             set (e.g. G-XXXXXXXXXX). GA4 complements Vercel Analytics with
             audience insight (countries, devices, acquisition channels,
@@ -171,12 +168,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </Script>
           </>
         )}
-        {/* Real-user Core Web Vitals (LCP, CLS, INP) per page, broken down
-            by route — same zero-config pattern as Analytics above. Also
-            only starts recording once "Speed Insights" is switched on for
-            the project in the Vercel dashboard (Project → Speed Insights →
-            Enable); the collection snippet is wired up and ready now. */}
-        <SpeedInsights />
       </body>
     </html>
   );

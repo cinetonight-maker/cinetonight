@@ -10,7 +10,15 @@ const RATE_LIMIT_MAX = 5;
 
 /** Public: list approved comments for a title. GET /api/comments?movieId=... */
 export async function GET(request: Request) {
-  const movieId = new URL(request.url).searchParams.get("movieId");
+  // The POST limiter (5/min) protects writes; reads were unlimited, which
+  // let anything spray ?movieId=<junk> into direct Supabase queries. 60/min
+  // is far above what a real visitor generates. The admin client here does
+  // NOT cache (route handlers fetch no-store), so this is quota protection
+  // for Supabase, not an R2 concern.
+  if (isRateLimited(clientKey(request), "comments-read", { windowMs: RATE_LIMIT_WINDOW_MS, max: 60 })) {
+    return NextResponse.json({ error: "Too many requests." }, { status: 429 });
+  }
+  const movieId = (new URL(request.url).searchParams.get("movieId") ?? "").slice(0, 120);
   if (!movieId) return NextResponse.json({ error: "Missing movieId." }, { status: 400 });
   try {
     const { data, error } = await supabaseAdmin()
@@ -18,7 +26,8 @@ export async function GET(request: Request) {
       .select("id, name, body, rating, created_at")
       .eq("movie_id", movieId)
       .eq("status", "approved")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(100);
     if (error) throw error;
     return NextResponse.json({ comments: data ?? [] });
   } catch (e) {

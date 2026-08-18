@@ -61,7 +61,11 @@ export default function Header() {
         <Icon name="bell" size={18} />
         {count > 0 ? <span className="wl-badge">{count}</span> : null}
       </Link>
-      <Link className="hicon" href={user ? "/account" : "/signin"} aria-label={user ? "My Account" : "Sign In"}>
+      {/* prefetch=false ON PURPOSE: prefetching /signin pulls the whole
+          supabase-js SDK chunk (~250 KB) into every visitor's session even
+          though almost nobody clicks this. The rare visitor who does waits
+          one extra round trip. See lib/auth.tsx for the lazy-auth design. */}
+      <Link prefetch={false} className="hicon" href={user ? "/account" : "/signin"} aria-label={user ? "My Account" : "Sign In"}>
         {user ? (
           <span className="hicon__initial" aria-hidden="true">
             {(user.user_metadata?.full_name || user.email || "?").trim().charAt(0).toUpperCase()}

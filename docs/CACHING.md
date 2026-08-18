@@ -161,3 +161,49 @@ varies per request.
 Judge a change only on a CLEAN window. A "last 24 hours" view straight after a
 deploy mixes old and new behaviour - record the deploy time and compare at 6h
 and 24h past it.
+
+---
+
+## The 60-second ceiling (found 18 Aug 2026)
+
+`lib/supabase/public.ts` wrapped every anonymous Supabase read in
+`fetch(..., { next: { revalidate: 60 } })`. That looked local, but it was not.
+
+Next sets a route's effective revalidate to the **minimum** of its segment
+`export const revalidate` and every `fetch()` inside it. The root layout calls
+`getSiteSettings()` through that client, so **every page on the site inherited a
+60-second revalidate**, silently overriding every longer TTL we had configured:
+
+| Route | Configured | Actually was |
+|---|---|---|
+| `/` | 900s | 60s |
+| `/movie/[id]` | 259200s (3 days) | 60s |
+| `/free-movies/*`, `/genres`, `/faq`, … | ISR | 60s |
+
+Every expiry is a re-render, and every re-render is an R2 **Class A write**. At
+60 seconds, a crawler walking the site kept the entire route table rewriting
+once a minute. This was almost certainly a large share of the Class A volume
+that survived the round-1 and round-2 fixes.
+
+The value is now **1800s (30 minutes)**. Effective revalidate after the change:
+`/` 15m, `/blog` 10m, everything else 30m.
+
+### How to check this yourself
+
+Run `npm run build` and read the **Revalidate** column of the route table. If a
+route shows a shorter time than its `export const revalidate`, something inside
+it is fetching with a shorter window. That column is the source of truth — the
+export is only a request.
+
+### Why there is no `revalidateTag()`
+
+On Cloudflare, `revalidateTag()` needs an OpenNext **tag cache** (D1, or a
+sharded Durable Object). That is more infrastructure and more spend than the
+freshness problem justifies. A deploy invalidates everything instantly anyway,
+because the cache key includes `OPEN_NEXT_BUILD_ID`.
+
+### Consequence to accept
+
+Admin edits (site settings, nav, published pages, blog posts) appear within
+30 minutes rather than 1. If that ever becomes unacceptable, the fix is a tag
+cache — not lowering this number back down.

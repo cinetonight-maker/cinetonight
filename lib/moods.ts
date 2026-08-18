@@ -22,12 +22,16 @@ export interface Mood {
   genres: string[];
   /** Genres that instantly disqualify a title for this mood, regardless of overlap. */
   exclude?: string[];
+  /** "all" = a title must carry EVERY listed genre (TMDB AND). Use for moods
+   *  with a tight identity: Heartbreak means romantic dramas, and with the
+   *  default ANY-match it degenerated into "any popular romance or drama". */
+  match?: "all" | "any";
 }
 
 export const MOODS: Mood[] = [
   {
     id: "heartbreak", label: "Heartbreak", emoji: "\u{1F494}",
-    genres: ["Romance", "Drama"],
+    genres: ["Romance", "Drama"], match: "all",
     exclude: ["Action", "Action & Adventure", "Horror", "Thriller", "Crime", "War", "Science Fiction", "Sci-Fi"],
   },
   {

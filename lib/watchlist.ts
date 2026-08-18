@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "./auth";
-import { supabaseBrowser } from "./supabase/client";
+// Dynamic import only - a static import here would drag the whole supabase-js
+// browser SDK into every page's first-load JS (this hook renders on the
+// homepage and every movie card). Signed-out visitors use localStorage and
+// never download the SDK at all; see lib/auth.tsx for the same pattern.
+const sb = () => import("./supabase/client").then((m) => m.supabaseBrowser());
 
 const KEY = "cinetonight:watchlist";
 const EVENT = "cinetonight:wl-change";
@@ -50,8 +54,8 @@ export function useWatchlist() {
     // Signed in: merge any local items into the account once, then load
     // from Supabase from now on.
     let cancelled = false;
-    const supabase = supabaseBrowser();
     (async () => {
+      const supabase = await sb();
       const local = readLocal();
       if (local.length) {
         const { error: mergeError } = await supabase
@@ -90,12 +94,15 @@ export function useWatchlist() {
       // never happened (the previous version fired these writes and never
       // checked the result at all).
       setIds((prev) => (added ? [...prev, id] : prev.filter((x) => x !== id)));
-      const supabase = supabaseBrowser();
-      const write = added
-        ? supabase.from("watchlist").upsert({ user_id: user.id, movie_id: id }, { onConflict: "user_id,movie_id" })
-        : supabase.from("watchlist").delete().eq("user_id", user.id).eq("movie_id", id);
-      write.then(({ error }) => {
-        if (!error) return;
+      sb().then((supabase) => {
+        const write = added
+          ? supabase.from("watchlist").upsert({ user_id: user.id, movie_id: id }, { onConflict: "user_id,movie_id" })
+          : supabase.from("watchlist").delete().eq("user_id", user.id).eq("movie_id", id);
+        return write.then(({ error }) => {
+          if (error) throw error;
+        });
+      }).catch(() => {
+        // Roll back the optimistic update on ANY failure (import or write).
         setIds((prev) => (added ? prev.filter((x) => x !== id) : (prev.includes(id) ? prev : [...prev, id])));
       });
       return added;

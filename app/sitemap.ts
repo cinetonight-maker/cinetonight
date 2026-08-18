@@ -56,7 +56,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [movies, blogs, tmdbMovies] = await Promise.all([getMovies(), getBlogs(), tmdbSitemapMovies()]);
   const genres = genresOf(movies);
   const people = peopleOf(movies);
-  const now = new Date();
+
+  // NO `lastModified: new Date()` anywhere in this file any more. Stamping
+  // every URL with "modified this second" on every crawl told Google the
+  // ENTIRE site had just changed, every time it looked - an open invitation
+  // to re-crawl thousands of SSR pages aggressively, which is server renders
+  // and R2 writes, i.e. money. It is also a lie, and Google is documented to
+  // ignore lastmod from sites that lie about it. So: pages we cannot date
+  // honestly carry no lastModified at all (omitting it is valid), and blog
+  // posts - the one thing we CAN date - use their real publish time.
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { path: "", priority: 1 },
@@ -67,12 +75,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/latest", priority: 0.7 },
     { path: "/genres", priority: 0.6 },
     { path: "/blog", priority: 0.6 },
-  ].map(({ path, priority }) => ({ url: `${base}${path}`, lastModified: now, changeFrequency: "daily" as const, priority }));
+  ].map(({ path, priority }) => ({ url: `${base}${path}`, changeFrequency: "daily" as const, priority }));
 
   // Channel pages ("what's streaming on Netflix/Prime/JioHotstar/..." )
   // refresh from live TMDB data on every visit, so daily is honest.
   const channelRoutes: MetadataRoute.Sitemap = CHANNELS.map((c) => ({
-    url: `${base}/channel/${c.slug}`, lastModified: now, changeFrequency: "daily" as const, priority: 0.7,
+    url: `${base}/channel/${c.slug}`, changeFrequency: "daily" as const, priority: 0.7,
   }));
 
   // Published custom pages (About, Contact, Privacy, Terms, ...) at their
@@ -83,7 +91,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (sb) {
       const { data } = await sb.from("pages").select("slug").eq("status", "published");
       pageRoutes = (data ?? []).map((r) => ({
-        url: `${base}/${r.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
+        url: `${base}/${r.slug}`, changeFrequency: "monthly" as const, priority: 0.4,
       }));
     }
   } catch { /* pages table missing — skip */ }
@@ -91,16 +99,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Free Classics — the landing page plus every published watch page.
   const classicsList = await getClassics();
   const classicsRoutes: MetadataRoute.Sitemap = [
-    { url: `${base}/free-movies`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.7 },
-    { url: `${base}/follow`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4 },
-    { url: `${base}/faq`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.5 },
+    { url: `${base}/free-movies`, changeFrequency: "weekly" as const, priority: 0.7 },
+    { url: `${base}/follow`, changeFrequency: "monthly" as const, priority: 0.4 },
+    { url: `${base}/faq`, changeFrequency: "monthly" as const, priority: 0.5 },
     ...classicsList.map((c) => ({
-      url: `${base}/free-movies/${c.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.6,
+      url: `${base}/free-movies/${c.slug}`, changeFrequency: "monthly" as const, priority: 0.6,
     })),
   ];
 
   const movieRoutes: MetadataRoute.Sitemap = movies.map((m) => ({
-    url: `${base}/movie/${m.id}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8,
+    url: `${base}/movie/${m.id}`, changeFrequency: "weekly" as const, priority: 0.8,
   }));
 
   // Live TMDB titles — same pages the "Related"/"Featured" rails and
@@ -109,21 +117,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // thousands of SSR pages. Crawlers still DISCOVER the rest through
   // on-page links at their own pace; the sitemap now curates the core.
   const tmdbMovieRoutes: MetadataRoute.Sitemap = tmdbMovies.slice(0, 150).map((m) => ({
-    url: `${base}/movie/${m.id}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.6,
+    url: `${base}/movie/${m.id}`, changeFrequency: "weekly" as const, priority: 0.6,
   }));
 
+  // The one honest date we hold: a post's publish time.
   const blogRoutes: MetadataRoute.Sitemap = blogs.map((b) => ({
-    url: `${base}/blog/${b.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.6,
+    url: `${base}/blog/${b.slug}`,
+    ...(b.publishAt ? { lastModified: new Date(b.publishAt) } : {}),
+    changeFrequency: "monthly" as const, priority: 0.6,
   }));
 
   const genreRoutes: MetadataRoute.Sitemap = genres.map((g) => ({
-    url: `${base}/movies?genre=${encodeURIComponent(g)}`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.5,
+    url: `${base}/movies?genre=${encodeURIComponent(g)}`, changeFrequency: "weekly" as const, priority: 0.5,
   }));
 
   // Actor/cast pages — every person with at least one credit in the
   // curated catalogue (mirrors generateStaticParams in app/person/[id]).
   const personRoutes: MetadataRoute.Sitemap = people.slice(0, 50).map((p) => ({
-    url: `${base}/person/${personId(p.name)}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.4,
+    url: `${base}/person/${personId(p.name)}`, changeFrequency: "monthly" as const, priority: 0.4,
   }));
 
   return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];

@@ -697,6 +697,50 @@ export async function watchProvidersTmdb(kind: MovieKind, id: string | number, r
   return [...seen.values()];
 }
 
+/** Providers with a REGION FALLBACK chain.
+ *
+ *  TMDB's /watch/providers response carries EVERY country in one payload
+ *  (one API call, one cache entry), so falling back costs nothing extra.
+ *  Why fall back at all: the old behaviour looked up ONLY the visitor's
+ *  country and returned nothing when that country had no data - which is
+ *  why "Where to Watch" so often showed just the search links even for
+ *  titles that are clearly streaming somewhere. Order tried:
+ *  visitor's country -> IN (primary audience) -> US -> GB -> the first
+ *  country in the payload with any providers. The region actually used is
+ *  returned so the UI can label it honestly ("Where to Watch in India")
+ *  instead of pretending it's local. */
+export async function watchProvidersWithFallback(
+  kind: MovieKind, id: string | number, preferred: string
+): Promise<{ providers: WatchProvider[]; region: string }> {
+  const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/watch/providers`);
+  const results = d?.results ?? {};
+  const toProviders = (r: any): WatchProvider[] => {
+    if (!r) return [];
+    const seen = new Map<number, WatchProvider>();
+    const addAll = (list: any[] | undefined, access: WatchProvider["access"]) => {
+      for (const p of list ?? []) {
+        if (p?.provider_id && !seen.has(p.provider_id)) {
+          seen.set(p.provider_id, { providerId: p.provider_id, name: p.provider_name ?? "Unknown", access, logoPath: p.logo_path ?? undefined });
+        }
+      }
+    };
+    addAll(r.flatrate, "stream"); addAll(r.free, "stream"); addAll(r.ads, "stream");
+    addAll(r.rent, "rent"); addAll(r.buy, "buy");
+    return [...seen.values()];
+  };
+  const chain = [...new Set([preferred, "IN", "US", "GB"])];
+  for (const region of chain) {
+    const providers = toProviders(results[region]);
+    if (providers.length) return { providers, region };
+  }
+  // Last resort: any country that has data (alphabetical, deterministic).
+  for (const region of Object.keys(results).sort()) {
+    const providers = toProviders(results[region]);
+    if (providers.length) return { providers, region };
+  }
+  return { providers: [], region: preferred };
+}
+
 /** Live candidate pool for the Mood Roulette — popular, well-rated,
  *  CURRENT titles matching a mood's genre recipe, straight from TMDB
  *  (movies + shows merged), instead of only whatever happens to be in the
@@ -704,35 +748,128 @@ export async function watchProvidersTmdb(kind: MovieKind, id: string | number, r
  *  differ); includes are OR'd (TMDB pipe syntax), excludes hard-filter via
  *  without_genres. The vote floor keeps picks credible — a roulette that
  *  lands on a 12-vote obscurity feels broken, not serendipitous. */
-export async function moodPoolTmdb(genres: string[], excludes: string[], limit = 20): Promise<Movie[]> {
+/** Extra constraints the homepage Quick Picks apply on top of a mood.
+ *  Deliberately a CLOSED set of options (see lib/quickPicks.ts): the
+ *  combinations are bounded, so the discover URLs they produce stay a small,
+ *  reusable set of cache entries rather than an open key space. */
+export interface MoodPoolOptions {
+  /** Minutes. Maps to TMDB's with_runtime.lte. */
+  maxRuntime?: number;
+  /** 0-10. Raises the floor above the default 6. */
+  minRating?: number;
+  /** Restrict to one kind instead of blending movies and series. */
+  kind?: MovieKind;
+  /** Vote-count ceiling, mapped to TMDB's vote_count.lte. This exists because
+   *  the Hidden Gem Quick Pick tells the visitor the title is "outside the
+   *  most popular titles" - a claim we are only allowed to print if we
+   *  actually filter on it. */
+  maxVotes?: number;
+  /** Require ALL of the mood's genres (TMDB comma syntax) instead of ANY
+   *  (pipe). Set per-mood in lib/moods.ts - Heartbreak needs Romance AND
+   *  Drama; with OR it degenerated into "any popular drama", which is why
+   *  the mood's picks kept feeling unrelated to the mood. */
+  matchAll?: boolean;
+}
+
+/** Merge per-kind result lists FAIRLY - alternating movie, series, movie...
+ *
+ *  This replaces sorting the combined pool by vote count, which had a bias
+ *  with a visible symptom: films collect far more TMDB votes than series
+ *  ever do, so a votes-sorted top-20 was effectively all movies and users
+ *  rightly complained that mood picks "never show web series". Each list
+ *  stays votes-sorted WITHIN itself; the interleave just stops one kind
+ *  from starving the other. */
+function interleave<T>(lists: T[][], limit: number): T[] {
+  const out: T[] = [];
+  for (let i = 0; out.length < limit; i++) {
+    let took = false;
+    for (const list of lists) {
+      if (i < list.length && out.length < limit) { out.push(list[i]); took = true; }
+    }
+    if (!took) break;
+  }
+  return out;
+}
+
+export async function moodPoolTmdb(
+  genres: string[],
+  excludes: string[],
+  limit = 20,
+  opts: MoodPoolOptions = {},
+): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
   const today = new Date().toISOString().slice(0, 10);
+  const kinds: MovieKind[] = opts.kind ? [opts.kind] : ["movie", "series"];
   const lists = await Promise.all(
-    (["movie", "series"] as MovieKind[]).map(async (k) => {
+    kinds.map(async (k) => {
       const isTv = k === "series";
       const [genreIds, excludeIds, map] = await Promise.all([
         Promise.all(genres.map((g) => genreIdFor(k, g))),
         Promise.all(excludes.map((g) => genreIdFor(k, g))),
         genreMap(k),
       ]);
-      const withGenres = genreIds.filter(Boolean).join("|");
+      const withGenres = genreIds.filter(Boolean).join(opts.matchAll ? "," : "|");
       if (!withGenres) return [] as Movie[];
       const params: Record<string, string | number> = {
         sort_by: "popularity.desc",
         include_adult: "false",
         with_genres: withGenres,
         "vote_count.gte": 100,
-        "vote_average.gte": 6,
+        "vote_average.gte": opts.minRating ?? 6,
         page: 1,
       };
+      if (opts.maxRuntime) params["with_runtime.lte"] = opts.maxRuntime;
+      if (opts.maxVotes) params["vote_count.lte"] = opts.maxVotes;
       const withoutGenres = excludeIds.filter(Boolean).join("|");
       if (withoutGenres) params.without_genres = withoutGenres;
       params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
       const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
-      return ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, map)).filter(Boolean) as Movie[];
+      const mapped = ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, map)).filter(Boolean) as Movie[];
+      return mapped.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
     })
   );
-  return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+  return interleave(lists, limit);
+}
+
+/** Constrained discovery with NO genre filter.
+ *
+ *  WHY THIS EXISTS (it fixes a real bug, do not fold it back into
+ *  trendingLiveTmdb): several Quick Picks - "Under 90 Minutes", "Highly
+ *  Rated", "Hidden Gem" - are pure numeric constraints with no mood attached,
+ *  so they map to the genre-less "surprise" mood. /api/mood used to answer
+ *  those with the plain trending list, which applies NONE of those filters.
+ *  The result was a section that promised "a film under 90 minutes" and then
+ *  showed a three-hour epic, and a "why this fits" line stating a criterion
+ *  that had never been applied.
+ *
+ *  Same closed-set discipline as moodPoolTmdb: every value reaching here is
+ *  clamped by the route, so these queries stay a small reusable set of cache
+ *  entries. */
+export async function discoverPoolTmdb(limit = 20, opts: MoodPoolOptions = {}): Promise<Movie[]> {
+  if (!tmdbConfigured) return [];
+  const today = new Date().toISOString().slice(0, 10);
+  const kinds: MovieKind[] = opts.kind ? [opts.kind] : ["movie", "series"];
+  const lists = await Promise.all(
+    kinds.map(async (k) => {
+      const isTv = k === "series";
+      const map = await genreMap(k);
+      const params: Record<string, string | number> = {
+        sort_by: "popularity.desc",
+        include_adult: "false",
+        "vote_count.gte": 100,
+        "vote_average.gte": opts.minRating ?? 6,
+        page: 1,
+      };
+      if (opts.maxRuntime) params["with_runtime.lte"] = opts.maxRuntime;
+      if (opts.maxVotes) params["vote_count.lte"] = opts.maxVotes;
+      params[isTv ? "first_air_date.lte" : "primary_release_date.lte"] = today;
+      const d = await get<any>(isTv ? "/discover/tv" : "/discover/movie", params);
+      const mapped = ((d?.results ?? []) as any[]).map((hit) => fromDiscoverHit(hit, k, map)).filter(Boolean) as Movie[];
+      return mapped.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
+    })
+  );
+  // Fair movie/series mix - see interleave()'s comment.
+  return interleave(lists, limit);
 }
 
 /** Titles currently streaming on one platform (Netflix, Prime Video,

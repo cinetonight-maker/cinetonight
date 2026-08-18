@@ -227,6 +227,13 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .w2w__row:hover{transform:translateY(-2px)}
 .w2w__logo{flex:none;width:110px;height:34px;display:grid;place-items:center;overflow:hidden}
 .w2w__logo img{width:100%;height:100%;object-fit:contain;border-radius:7px}
+/* TMDB provider art is a SQUARE app icon; letting it fill the 110px wide
+   wordmark box stretched/letterboxed it (the "HBO logo doesn't fit" bug).
+   Square art gets a square box instead. */
+.w2w__logo--sq{width:34px}
+.w2w__logo--sq img{border-radius:8px}
+.w2w__fallback{margin:-4px 0 10px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);
+  border-left:3px solid #f0abfc;background:var(--card2);color:var(--muted);font-size:12px;line-height:1.5}
 .w2w__body{min-width:0;display:flex;flex-direction:column;gap:2px}
 .w2w__name{font-weight:600;font-size:14.5px}
 .w2w__benefit{color:var(--muted);font-size:12.5px}
@@ -1005,3 +1012,256 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .eplist__morebtn:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
 .eplist__morecount{font-weight:400;font-size:12.5px;color:var(--muted)}
 @media(max-width:480px){.eplist__morebtn{width:100%;justify-content:center}}
+
+/* =====================================================================
+   HOMEPAGE — decision engine (2026 redesign)
+   Sections in DOM order: hero -> quick picks -> moods -> tonight's pick
+   -> trending rail (existing .sec/.rail) -> streaming services -> explore
+   tabs -> classics -> guides -> my list -> newsletter.
+
+   Two aliases first: --panel/--text were referenced by a few older blocks
+   (.faqitem, .w2w__*) but never defined, so those rules silently fell back
+   to transparent/inherit. Defining them here fixes that without touching
+   the original declarations.
+   ===================================================================== */
+:root{--panel:var(--card);--text:var(--txt)}
+
+/* ---------- hero ---------- */
+.hhero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:28px;align-items:center;
+  margin:-6px -6px 34px;padding:44px 34px 40px;border-radius:22px;overflow:hidden;
+  border:1px solid var(--line);background:radial-gradient(120% 140% at 12% 0%,#1b1430 0%,var(--bg2) 55%,var(--bg) 100%)}
+.hhero__glow{position:absolute;top:-160px;left:-90px;width:520px;height:520px;border-radius:50%;
+  background:radial-gradient(circle,var(--glow) 0%,transparent 68%);filter:blur(28px);pointer-events:none}
+.hhero__copy{position:relative;z-index:2;min-width:0;max-width:640px}
+.hhero__h{font-size:clamp(30px,4.6vw,46px);line-height:1.12;font-weight:700;letter-spacing:-.5px}
+.hhero__hl{background:linear-gradient(92deg,var(--purple2),#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hhero__sub{margin-top:14px;color:#c6c1d6;font-size:15px;line-height:1.6;max-width:52ch}
+.hhero__cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.hhero__btn{display:inline-flex;align-items:center;gap:9px;padding:13px 22px;border-radius:12px;
+  border:1px solid var(--line);background:var(--card);color:var(--txt);font-weight:600;font-size:14.5px;
+  cursor:pointer;transition:border-color .16s,background .16s,transform .16s}
+.hhero__btn:hover{border-color:var(--purple2);background:var(--card2);transform:translateY(-1px)}
+.hhero__btn--primary{background:linear-gradient(96deg,var(--purple-d),var(--purple2));border-color:transparent;
+  color:#fff;box-shadow:0 10px 26px rgba(124,58,237,.34)}
+.hhero__btn--primary:hover{background:linear-gradient(96deg,var(--purple2),#c084fc);border-color:transparent}
+.hhero__btn:focus-visible{outline:2px solid var(--purple2);outline-offset:3px}
+.hhero__search{margin-top:22px;max-width:520px}
+.hhero__search .pagesearch,.hhero__search .searchbox--page{max-width:520px}
+.hhero__links{margin-top:16px;color:var(--muted);font-size:12.5px}
+.hhero__links a{color:var(--purple2);font-weight:600}
+.hhero__links a:hover{color:#fff}
+
+/* poster fan — decorative, aria-hidden, and it degrades to nothing on small
+   screens rather than pushing the actual decision UI below the fold. */
+.hhero__art{position:relative;z-index:2;height:300px}
+.hhero__poster{position:absolute;width:170px;aspect-ratio:2/3;border-radius:14px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.09);box-shadow:0 18px 44px rgba(0,0,0,.55);background:var(--card)}
+.hhero__poster>img{object-fit:cover}
+.hhero__poster--0{left:0;top:34px;transform:rotate(-7deg) scale(.9);opacity:.75}
+.hhero__poster--1{left:112px;top:0;z-index:3;transform:scale(1.06)}
+.hhero__poster--2{left:236px;top:34px;transform:rotate(7deg) scale(.9);opacity:.75}
+.hhero__badge{position:absolute;z-index:4;left:118px;bottom:-6px;display:inline-flex;align-items:center;gap:6px;
+  padding:6px 12px;border-radius:999px;background:rgba(10,10,18,.9);border:1px solid var(--line);
+  color:var(--purple2);font-size:11px;font-weight:600;white-space:nowrap}
+
+/* ---------- quick picks ---------- */
+.pstudio__sec{margin-bottom:30px}
+/* Fixed four-across on desktop: there are exactly eight Quick Picks, so this
+   is two even rows instead of six-plus-two with an orphan. */
+.qpicks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.qpick{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
+  padding:15px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);
+  color:var(--txt);text-align:left;cursor:pointer;font:inherit;transition:border-color .16s,background .16s,transform .16s}
+.qpick:hover{border-color:color-mix(in srgb,var(--purple2) 55%,var(--line));background:var(--card2);transform:translateY(-2px)}
+.qpick:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
+.qpick.on{border-color:var(--purple2);background:color-mix(in srgb,var(--purple2) 13%,var(--card))}
+.qpick__ic{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;margin-bottom:8px;
+  background:color-mix(in srgb,var(--purple2) 16%,transparent);color:var(--purple2)}
+.qpick.on .qpick__ic{background:var(--purple);color:#fff}
+.qpick__t{font-weight:600;font-size:14px}
+.qpick__s{font-size:11.5px;color:var(--muted);line-height:1.4}
+.qpick__check{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:20px;height:20px;
+  border-radius:50%;background:var(--purple);color:#fff}
+
+/* ---------- moods ---------- */
+.moodgrid{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:10px}
+.moodtile{position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;padding:16px 10px;
+  border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--txt);cursor:pointer;
+  font:inherit;transition:border-color .16s,background .16s,transform .16s}
+.moodtile:hover{border-color:color-mix(in srgb,var(--purple2) 55%,var(--line));background:var(--card2);transform:translateY(-2px)}
+.moodtile:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
+.moodtile.on{border-color:var(--purple2);background:color-mix(in srgb,var(--purple2) 15%,var(--card))}
+.moodtile__emoji{font-size:24px;line-height:1}
+.moodtile__label{font-size:12.5px;font-weight:600;text-align:center}
+.moodtile__on{position:absolute;top:8px;right:8px;display:grid;place-items:center;width:19px;height:19px;
+  border-radius:50%;background:var(--purple);color:#fff}
+
+/* ---------- tonight's pick ---------- */
+.pstudio__tools{display:flex;align-items:center;gap:10px;flex:none}
+.kindtoggle{display:flex;gap:0;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--card)}
+.kindtoggle__btn{padding:7px 13px;border:none;background:none;color:var(--muted);font:inherit;font-size:12px;
+  font-weight:600;cursor:pointer;transition:color .15s,background .15s}
+.kindtoggle__btn:hover{color:var(--txt)}
+.kindtoggle__btn.on{background:var(--purple);color:#fff}
+.kindtoggle__btn:focus-visible{outline:2px solid var(--purple2);outline-offset:-2px}
+.pstudio__again{white-space:nowrap}
+.pstudio__again:disabled{opacity:.5;cursor:not-allowed}
+.pstudio__stale{margin-bottom:12px;padding:11px 14px;border-radius:11px;border:1px solid var(--line);
+  border-left:3px solid #f0abfc;background:var(--card);color:var(--muted);font-size:12.5px}
+.pstudio__stale a{color:var(--purple2);font-weight:600}
+.pcard{display:grid;grid-template-columns:200px minmax(0,1fr) 320px;gap:22px;align-items:start;
+  padding:20px;border-radius:20px;border:1px solid var(--line);
+  background:linear-gradient(150deg,color-mix(in srgb,var(--purple2) 9%,var(--card)),var(--card))}
+.pcard--loading,.pcard--empty{display:block;padding:34px 20px;text-align:center;color:var(--muted);font-size:14px}
+.pcard--empty a,.pcard--loading a{color:var(--purple2);font-weight:600}
+.pcard__poster{position:relative;display:block;aspect-ratio:2/3;border-radius:14px;overflow:hidden;
+  border:1px solid var(--line);background:var(--bg2);box-shadow:0 10px 28px rgba(0,0,0,.45)}
+.pcard__poster>img{object-fit:cover}
+.pcard__body{min-width:0}
+.pcard__title{font-size:24px;font-weight:700;line-height:1.2}
+.pcard__title a:hover{color:var(--purple2)}
+.pcard__meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:9px;color:var(--muted);font-size:12.5px}
+.pcard__meta>span:not(:last-child)::after{content:"·";margin-left:8px;color:var(--muted2)}
+.pcard__rate{display:inline-flex;align-items:center;gap:4px;color:#ffcf4d;font-weight:600}
+.pcard__rate::after{content:none !important}
+.pcard__desc{margin-top:12px;color:#c6c1d6;font-size:13.5px;line-height:1.65;
+  display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+/* "Why this fits" is generated only from the filters the visitor actually
+   chose (see lib/quickPicks.ts). It states facts, never praise. */
+.pcard__why{margin-top:16px;padding:13px 15px;border-radius:12px;border:1px solid var(--line);
+  border-left:3px solid var(--purple2);background:color-mix(in srgb,var(--purple2) 8%,transparent)}
+.pcard__whyh{display:block;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--purple2)}
+.pcard__why p{margin-top:5px;font-size:13px;line-height:1.6;color:#d5d1e0}
+.pcard__watch{margin-top:16px}
+.pcard__side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.pcard__trailer{display:block;width:100%;padding:0;border:none;background:none;color:inherit;cursor:pointer;font:inherit}
+.pcard__still{position:relative;display:block;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;
+  border:1px solid var(--line);background:var(--bg2)}
+.pcard__still>img{object-fit:cover}
+.pcard__playbtn{position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(10,10,18,.72);border:2px solid rgba(255,255,255,.8);color:#fff;
+  transition:transform .18s,background .18s}
+.pcard__trailer:hover .pcard__playbtn{transform:scale(1.08);background:var(--purple)}
+.pcard__trailer:focus-visible .pcard__still{outline:2px solid var(--purple2);outline-offset:2px}
+.pcard__trailerlabel{display:block;margin-top:7px;font-size:12px;font-weight:600;color:var(--muted);text-align:center}
+.pcard__acts{display:flex;gap:9px;align-items:stretch}
+.pcard__btn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;
+  border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--txt);
+  font-weight:600;font-size:13.5px;cursor:pointer;transition:border-color .16s,background .16s}
+.pcard__btn:hover{border-color:var(--purple2)}
+.pcard__btn--primary{background:var(--purple);border-color:transparent;color:#fff}
+.pcard__btn--primary:hover{background:var(--purple2);border-color:transparent}
+
+/* ---------- streaming services (zero fetches) ---------- */
+/* Layout matches the approved reference (temp stream/channel.png): logo
+   CENTERED ON TOP, name centered below, roomy dark card. */
+.svcrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;list-style:none}
+.svc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:20px 12px 15px;border-radius:14px;
+  border:1px solid var(--line);background:var(--card);transition:background .16s,transform .16s,border-color .16s}
+.svc:hover{background:var(--card2);transform:translateY(-2px)}
+.svc:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
+.svc__logo{height:36px;width:auto;max-width:82%;object-fit:contain;flex:none}
+.svc__badge{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:9px;
+  background:var(--card2);font-weight:700;font-size:17px}
+.svc__name{font-size:12.5px;font-weight:600;text-align:center;max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- explore tabs ---------- */
+.egrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;align-items:start}
+.egrid .mcard{flex:none;width:auto;min-width:0}
+.etabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.etab{padding:8px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);
+  color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.etab:hover{color:var(--txt);border-color:color-mix(in srgb,var(--purple2) 50%,var(--line))}
+.etab.on{background:var(--purple);border-color:transparent;color:#fff}
+.etab:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
+.etabs__empty{grid-column:1/-1;padding:26px 0;color:var(--muted);font-size:13.5px}
+.etabs__empty a{color:var(--purple2);font-weight:600}
+
+/* ---------- my list preview (client-read, so the HTML stays shared) ---------- */
+.mlp{margin-bottom:34px;padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:var(--card)}
+.mlp--empty{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.mlp__head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.mlp__h{display:flex;align-items:center;gap:8px;font-size:15.5px;font-weight:600}
+.mlp__sub{color:var(--muted);font-size:12.5px;margin-top:4px;line-height:1.55}
+.mlp__sub a{color:var(--purple2);font-weight:600}
+.mlp__cta{flex:none;padding:10px 18px;border-radius:11px;background:var(--purple);color:#fff;font-size:13px;font-weight:600}
+.mlp__cta:hover{background:var(--purple2)}
+.mlp__row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;list-style:none}
+.mlp__item{display:flex;align-items:center;gap:11px;padding:8px;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg2);color:var(--muted);transition:border-color .15s,background .15s}
+.mlp__item:hover{border-color:var(--purple2);background:var(--card2)}
+.mlp__poster{position:relative;flex:none;width:42px;height:63px;border-radius:7px;overflow:hidden;background:var(--card2)}
+.mlp__poster>img{object-fit:cover}
+.mlp__meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mlp__t{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mlp__y{font-size:11.5px;color:var(--muted)}
+
+/* ---------- newsletter ---------- */
+.nlcta{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  margin-bottom:20px;padding:26px 28px;border-radius:20px;border:1px solid var(--line);
+  background:radial-gradient(110% 160% at 100% 0%,#1d1533 0%,var(--card) 62%)}
+.nlcta__copy{min-width:0;max-width:52ch}
+.nlcta__h{font-size:20px;font-weight:700}
+.nlcta__sub{margin-top:7px;color:var(--muted);font-size:13px;line-height:1.6}
+
+/* newsletter form - self-styled so it looks right in BOTH containers it
+   renders in (.news sidebar widget and the .nlcta homepage banner). */
+.nlform{flex:1 1 340px;max-width:420px;min-width:0}
+.news .nlform{max-width:none}
+.nlform__row{display:flex;gap:8px}
+.news .nlform__row{flex-direction:column;gap:9px}
+.nlform__input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:11px;
+  padding:12px 15px;color:var(--txt);font-size:13.5px;outline:none;transition:border-color .15s}
+.nlform__input::placeholder{color:var(--muted2)}
+.nlform__input:focus{border-color:var(--purple2)}
+.news .nlform__input{background:rgba(0,0,0,.3);border-color:rgba(255,255,255,.15)}
+.nlform__btn{flex:none;padding:12px 22px;border:none;border-radius:11px;background:var(--purple);
+  color:#fff;font-weight:600;font-size:13.5px;cursor:pointer;transition:background .15s}
+.nlform__btn:hover{background:var(--purple2)}
+.nlform__btn:disabled{opacity:.6;cursor:wait}
+.nlform__btn:focus-visible{outline:2px solid var(--purple2);outline-offset:2px}
+.news .nlform__btn{background:#fff;color:#111}
+.nlform__ok{color:#c8f0d8;font-size:12.5px}
+.nlform__err{color:#f0a8a8;font-size:12px;margin-top:6px}
+
+/* ---------- responsive ---------- */
+@media(max-width:1240px){
+  .qpicks{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .moodgrid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .egrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:1100px){
+  .hhero{grid-template-columns:minmax(0,1fr);padding:36px 26px 32px}
+  .hhero__art{display:none}
+  .pcard{grid-template-columns:160px minmax(0,1fr);gap:18px}
+  .pcard__side{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:flex-start}
+  .pcard__trailer{flex:1 1 260px}
+  .pcard__acts{flex:1 1 240px;align-items:center}
+}
+@media(max-width:760px){
+  .hhero{margin:-2px -2px 26px;padding:30px 20px 26px;border-radius:18px}
+  .hhero__sub{font-size:14px}
+  .hhero__btn{flex:1 1 100%;justify-content:center}
+  .qpicks{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .moodgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pstudio__tools{flex-wrap:wrap;justify-content:flex-end}
+  .pcard{grid-template-columns:minmax(0,1fr);padding:16px}
+  .pcard__poster{max-width:170px}
+  .pcard__title{font-size:20px}
+  .pcard__side{flex-direction:column}
+  .pcard__acts,.pcard__trailer{flex:1 1 auto;width:100%}
+  .egrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .svcrow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .svc{padding:16px 10px 12px}
+  .svc__logo{height:30px}
+  .mlp__row{grid-template-columns:minmax(0,1fr)}
+  .nlcta{padding:22px 20px}
+  .nlform{flex:1 1 100%;max-width:none}
+  .nlform__row{flex-direction:column}
+}
+@media(prefers-reduced-motion:reduce){
+  .hhero__btn,.qpick,.moodtile,.svc,.pcard__playbtn{transition:none}
+  .hhero__btn:hover,.qpick:hover,.moodtile:hover,.svc:hover{transform:none}
+}

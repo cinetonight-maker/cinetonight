@@ -4,11 +4,31 @@ import Icon from "./Icon";
 import { getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 
-export default async function BlogSection({ count = 3 }: { count?: number }) {
+/** Blog teaser row.
+ *
+ *  `title` and `sub` are optional so a caller can reframe the block for its own
+ *  context (the homepage presents these as decision guides rather than "blog
+ *  posts"). Both default to the original wording, so every existing caller
+ *  renders exactly as before. */
+export default async function BlogSection({
+  count = 3,
+  title = "From the Blog",
+  sub,
+}: {
+  count?: number;
+  title?: string;
+  sub?: string;
+}) {
   const blogs = await getBlogs();
   return (
     <section className="sec">
-      <div className="sec__head"><h2>From the Blog</h2><Link className="sec__all" href="/blog">All Posts</Link></div>
+      <div className="sec__head">
+        <div className="sec__titles">
+          <h2>{title}</h2>
+          {sub && <p className="sec__sub">{sub}</p>}
+        </div>
+        <Link className="sec__all" href="/blog">All Posts</Link>
+      </div>
       <div className="blog-grid">
         {blogs.slice(0, count).map((b) => (
           <Link className="blogc" href={`/blog/${b.slug}`} key={b.slug}>

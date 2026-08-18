@@ -12,13 +12,17 @@ import { toCard, type CastCredit, type Movie } from "@/lib/types";
 // instead of a plain object) — has to be awaited before use.
 interface Params { params: Promise<{ id: string }> }
 
-/** A page that could not be resolved must not be indexed. The route still
- *  renders the 404 view, but crawlers are told explicitly not to keep or
- *  re-crawl the URL. This matters twice over here: these ids come from an
- *  unbounded space (any tmdb-* number), so without it a crawler can mint
- *  endless indexable URLs, and each one it revisits is work the site pays
- *  for. See docs/CACHING.md. */
+/** Metadata for a page whose record could not be resolved.
+ *
+ *  NOTE (unresolved): notFound() renders the 404 view but the response still
+ *  carries HTTP 200 - a soft 404. Verified locally that Next's own unmatched
+ *  route 404s correctly while notFound() does not, and that a loading.tsx
+ *  boundary is NOT the cause. Until the status is fixed, these directives are
+ *  what stop crawlers keeping and re-fetching invented ids, which matters here
+ *  because the id space is unbounded (any tmdb-* number). Check the deployed
+ *  Worker before assuming it is broken in production too. */
 const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
+
 
 // Rendered per request, NOT persisted in the ISR cache.
 //

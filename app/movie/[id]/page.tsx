@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import MovieCard from "@/components/MovieCard";
 import MovieDetail from "@/components/MovieDetail";
@@ -14,13 +14,17 @@ import type { Movie } from "@/lib/types";
 // instead of a plain object) — has to be awaited before use.
 interface Params { params: Promise<{ id: string }> }
 
-/** A page that could not be resolved must not be indexed. The route still
- *  renders the 404 view, but crawlers are told explicitly not to keep or
- *  re-crawl the URL. This matters twice over here: these ids come from an
- *  unbounded space (any tmdb-* number), so without it a crawler can mint
- *  endless indexable URLs, and each one it revisits is work the site pays
- *  for. See docs/CACHING.md. */
+/** Metadata for a page whose record could not be resolved.
+ *
+ *  NOTE (unresolved): notFound() renders the 404 view but the response still
+ *  carries HTTP 200 - a soft 404. Verified locally that Next's own unmatched
+ *  route 404s correctly while notFound() does not, and that a loading.tsx
+ *  boundary is NOT the cause. Until the status is fixed, these directives are
+ *  what stop crawlers keeping and re-fetching invented ids, which matters here
+ *  because the id space is unbounded (any tmdb-* number). Check the deployed
+ *  Worker before assuming it is broken in production too. */
 const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
+
 
 /** Curated catalogue titles are prebuilt; anything else renders on demand. */
 export async function generateStaticParams() {
@@ -83,6 +87,16 @@ export default async function MoviePage({ params }: Params) {
   const movies = await getMovies();
   const m = await resolve(id, movies);
   if (!m) notFound();
+
+  // ONE URL PER TITLE. The id parser accepts any trailing slug, so
+  // /movie/tmdb-m-1061474, /movie/tmdb-m-1061474-superman and
+  // /movie/tmdb-m-1061474-anything-at-all all resolved to the same film with
+  // a 200. That is duplicate content for Google, and worse for us: each
+  // variant was its own cache object, so anyone could mint unlimited cache
+  // inventory for a single movie. A canonical tag alone does not stop that -
+  // this sends non-canonical variants to the real URL permanently, which also
+  // consolidates any ranking the older bare-id links picked up.
+  if (m.id !== id) permanentRedirect(`/movie/${m.id}`);
 
   // Related: genuine TMDB recommendations for fetched titles. "Featured" is a
   // live trending/latest fill-in either way, falling back to the local

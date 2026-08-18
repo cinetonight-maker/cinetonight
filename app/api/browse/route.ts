@@ -38,5 +38,11 @@ export async function GET(request: Request) {
   // Card fields only: <Listing> renders posters and one meta line, so
   // returning full Movie objects sent every title's cast array and a
   // half-dozen unused fields over the wire on every filter or page click.
-  return NextResponse.json({ ...data, results: data.results.map(toCard) });
+  // Edge-cacheable: page is clamped to MAX_BROWSE_PAGE and genre resolves
+  // against a fixed map, so the meaningful URL space is small. Repeat tab
+  // clicks and pagination across all visitors hit Cloudflare's edge, not the
+  // Worker. Success responses only.
+  const res = NextResponse.json({ ...data, results: data.results.map(toCard) });
+  res.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+  return res;
 }

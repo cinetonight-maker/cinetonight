@@ -36,7 +36,7 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
     );
   }
 
-  const { rows, live, countryName, affiliate, searchLinks } = data;
+  const { rows, live, countryName, affiliate, searchLinks, fallbackRegion } = data;
 
   if (!live) {
     return (
@@ -66,6 +66,12 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
       <div className="w2w__head">
         Where to Watch in <span className="w2w__country">{countryName}</span>
       </div>
+      {fallbackRegion && (
+        <p className="w2w__fallback">
+          Not confirmed for your country yet — showing where it streams in {countryName}.
+          Availability in your region may differ.
+        </p>
+      )}
       <div className="w2w__rows">
         {rows.map((o) => (
           <a
@@ -76,7 +82,7 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
             rel="noopener noreferrer nofollow sponsored"
             style={{ borderColor: `color-mix(in srgb, ${o.color} 30%, var(--line))` }}
           >
-            <span className="w2w__logo">
+            <span className={`w2w__logo${o.squareLogo ? " w2w__logo--sq" : ""}`}>
               {o.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- tiny brand image
                 <img src={o.logo} alt={`${o.name} logo`} loading="lazy" />

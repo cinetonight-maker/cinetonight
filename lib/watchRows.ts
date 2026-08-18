@@ -1,6 +1,6 @@
 import "server-only";
 import { channelBySlug, type Channel } from "@/lib/channels";
-import { watchProvidersTmdb, parseTmdbId, tmdbConfigured, type WatchProvider } from "@/lib/tmdb";
+import { watchProvidersWithFallback, parseTmdbId, tmdbConfigured, type WatchProvider } from "@/lib/tmdb";
 import { regionName } from "@/lib/region";
 import type { MovieKind } from "@/lib/types";
 
@@ -68,6 +68,8 @@ export interface Row {
   key: string;
   name: string;
   logo?: string;
+  /** Square app-icon art (TMDB) rather than a wide wordmark (curated). */
+  squareLogo?: boolean;
   color: string;
   monogram?: string;
   benefit: string;
@@ -80,10 +82,20 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
   const name = channel?.name ?? p.name;
   const buildUrl = (slug && SEARCH_URLS[slug]) || fallbackSearch(name);
   const streaming = p.access === "stream";
-  const isPrime = slug === "prime-video";
+  // The free-trial affiliate treatment applies ONLY when the title actually
+  // STREAMS on Prime. TMDB reports the Amazon rent/buy store on almost every
+  // film, and it folds into this same row - so without the `streaming` guard
+  // nearly every movie on the site showed a "Start Free Trial" Prime strip
+  // for a title Prime doesn't even include with the subscription.
+  const isPrime = slug === "prime-video" && streaming;
   return {
     key: slug ?? `p-${p.providerId}`,
     name,
+    // TMDB provider art is SQUARE app-icon style; our curated files are wide
+    // wordmarks. The strip needs to know which shape it is rendering - a
+    // square icon stretched into the wide logo box is what made unknown
+    // platforms (HBO Max etc.) look broken.
+    squareLogo: !channel?.logoFile && !!p.logoPath,
     // Curated self-hosted brand logo first; otherwise TMDB ships an official
     // logo for every provider it lists (p.logoPath) — so no platform ever
     // renders as a bare letter. Monogram remains only as a last-resort net.
@@ -92,13 +104,16 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
       : p.logoPath ? `https://image.tmdb.org/t/p/w92${p.logoPath}` : undefined,
     color: channel?.color ?? "#8b5cf6",
     monogram: channel?.logoFile || p.logoPath ? undefined : name[0],
+    // The CTA is always about WATCHING the title - never a signup pitch.
+    // The 30-day trial is mentioned in the benefit line only, and the button
+    // links to the title itself, because a "Start Free Trial" button that
+    // lands on Amazon's signup page instead of the movie reads as an ad and
+    // costs the panel its trust.
     benefit: isPrime && AMAZON_TAG
-      ? "Streaming now, and new members get a 30-day free trial"
+      ? "Included with Prime - new members get a 30-day free trial"
       : streaming ? "Included with subscription, watch instantly" : "Rent or buy, no subscription needed",
-    cta: isPrime && AMAZON_TAG ? "Start Free Trial" : streaming ? "Watch Now" : "Rent or Buy",
-    url: isPrime && AMAZON_TAG
-      ? `https://www.amazon.in/amazonprime?tag=${encodeURIComponent(AMAZON_TAG)}`
-      : buildUrl(title),
+    cta: streaming ? "Watch Now" : "Rent or Buy",
+    url: buildUrl(title),
   };
 }
 
@@ -110,6 +125,9 @@ export interface WatchPayload {
   region: string;
   countryName: string;
   affiliate: boolean;
+  /** True when the rows come from a DIFFERENT country than the visitor's
+   *  own (their country had no confirmed data). The UI must say so. */
+  fallbackRegion?: boolean;
   searchLinks: { label: string; url: string; note: string }[];
 }
 
@@ -121,9 +139,20 @@ export async function buildWatch(
   const tmdbRef = parsed?.id ?? (tmdbId != null ? String(tmdbId) : null);
   const k = parsed?.kind ?? kind;
 
+  // Region FALLBACK, not a hard lookup: the visitor's country first, then
+  // IN -> US -> GB -> any country with data. The old hard lookup returned
+  // nothing whenever the visitor's exact country had no rows, which is why
+  // this panel so often showed only the YouTube/web search links. The region
+  // that actually supplied the rows comes back with them, so the heading
+  // stays honest about WHERE the title is confirmed streaming.
   let providers: WatchProvider[] = [];
+  let usedRegion = region;
   if (tmdbRef && tmdbConfigured) {
-    try { providers = await watchProvidersTmdb(k, tmdbRef, region); } catch { providers = []; }
+    try {
+      const r = await watchProvidersWithFallback(k, tmdbRef, region);
+      providers = r.providers;
+      if (providers.length) usedRegion = r.region;
+    } catch { providers = []; }
   }
 
   const bySlug = new Map<string, WatchProvider>();
@@ -151,9 +180,14 @@ export async function buildWatch(
   // whole value is trust. Unconfirmed titles get honest SEARCH links
   // instead (YouTube first: Pakistani and many regional dramas stream
   // free on their channels' official YouTube uploads).
-  const rows = live ? [...knownRows, ...unknownRows].slice(0, 6) : [];
+  // MAX THREE rows, best first. knownRows is already sorted stream -> rent
+  // -> buy, so the top three are the most useful ways to actually watch;
+  // a six-row wall of half-relevant store links was decision fatigue, which
+  // is the exact thing this site exists to remove.
+  const rows = live ? [...knownRows, ...unknownRows].slice(0, 3) : [];
   return {
-    rows, live, region, countryName: regionName(region), affiliate: !!AMAZON_TAG,
+    rows, live, region: usedRegion, countryName: regionName(usedRegion), affiliate: !!AMAZON_TAG,
+    fallbackRegion: usedRegion !== region,
     searchLinks: live ? [] : [
       { label: "Search on YouTube", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " episode 1")}`, note: "Many dramas stream free on official channels" },
       { label: "Search the web", url: `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} online`)}`, note: "Find where it officially streams" },

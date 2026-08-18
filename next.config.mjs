@@ -73,6 +73,46 @@ const nextConfig = {
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
         ],
       },
+      // sitemap.xml and rss.xml are force-dynamic (they read Supabase and
+      // TMDB) and are exactly what bots poll hardest. Without an edge cache
+      // header every Googlebot/Bingbot poll was a full server render. An
+      // hour of edge caching makes the poll storm hit Cloudflare's cache
+      // instead of the Worker, and a sitemap that is an hour stale is
+      // irrelevant at this site's publishing pace.
+      // The browse pages are force-dynamic (they read searchParams), so
+      // every hit - and bots hit them constantly - was a full Worker render.
+      // Their query space is now clamped (page <= 5, fixed sorts), so the
+      // set of distinct URLs is small and safe to edge-cache. This header
+      // lets Cloudflare's edge absorb repeat visits; note the edge cache is
+      // free, unlike the R2 incremental cache these pages deliberately skip.
+      {
+        source: "/(movies|tv-shows|web-series|trending|latest)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
+        ],
+      },
+      // Self-hosted static art (channel logos, placeholder posters, brand
+      // icons) never changes without a redeploy - let browsers keep it for a
+      // month instead of re-asking on every visit. Not "immutable" because
+      // logo files DO get replaced under the same name occasionally.
+      {
+        source: "/(channel-logos|social-logos)/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=2592000, s-maxage=2592000" },
+        ],
+      },
+      {
+        source: "/(placeholder-poster.png|placeholder-wide.png|placeholder-person.png|logo-512.png|logo.svg)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=604800, s-maxage=2592000" },
+        ],
+      },
+      {
+        source: "/(sitemap.xml|rss.xml|robots.txt)",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
+        ],
+      },
       // Kept for portability: harmless on Cloudflare, correct if this ever
       // runs on Vercel again. Affects ONLY an edge cache, never browsers.
       {

@@ -1,12 +1,18 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { marked } from "marked";
 import { supabasePublic } from "@/lib/supabase/public";
 import { baseUrl } from "@/lib/site";
 
-// Cached (ISR): rendered once, reused for 600s, then refreshed in the
-// background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 86400;
+// force-dynamic ON PURPOSE - this used to be ISR, and that was a spray hole.
+// This catch-all matches EVERY root-level path no other route claims, so any
+// bot (or anyone malicious) hitting /random-junk-1, /random-junk-2, ... was
+// minting a fresh R2 page-cache entry per URL, forever, at Class A write
+// prices. These pages (about, privacy, contact...) get little traffic, so
+// rendering per-request costs near nothing - and the slug LIST below is one
+// stable cached query, so a spray never even reaches the database.
+export const dynamic = "force-dynamic";
 
 marked.setOptions({ breaks: true });
 
@@ -15,9 +21,24 @@ marked.setOptions({ breaks: true });
  *  static routes precedence, so this catch-all only sees paths no real
  *  route claimed; unknown slugs 404. /p/<slug> permanently redirects here
  *  (see app/p/[slug]/page.tsx) so old links and indexed URLs keep working. */
-async function getPage(slug: string) {
+/** Published slugs, as ONE stable query URL - so it lives in the data cache
+ *  as a single reusable entry no matter what garbage path gets requested.
+ *  Never query per-slug before checking this list: a per-slug query embeds
+ *  the attacker-controlled slug in the fetch URL, and every unique URL is a
+ *  fresh data-cache write. */
+const publishedSlugs = cache(async (): Promise<Set<string>> => {
+  const supabase = supabasePublic();
+  if (!supabase) return new Set();
+  const { data } = await supabase.from("pages").select("slug").eq("status", "published");
+  return new Set((data ?? []).map((r: { slug: string }) => r.slug));
+});
+
+const getPage = cache(async (slug: string) => {
   const supabase = supabasePublic();
   if (!supabase) return null;
+  // Membership first - unknown slugs stop HERE, at the shared cached list,
+  // and never generate a per-slug query URL.
+  if (!(await publishedSlugs()).has(slug)) return null;
   const { data } = await supabase
     .from("pages")
     .select("title, content, status")
@@ -25,7 +46,7 @@ async function getPage(slug: string) {
     .eq("status", "published")
     .maybeSingle();
   return data;
-}
+});
 
 /** Strip markdown syntax down to a plain-text meta description — these
  *  pages (legal pages, etc.) previously had no description at all, which

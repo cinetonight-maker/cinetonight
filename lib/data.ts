@@ -172,17 +172,34 @@ export const getSiteConfig = cache(async (): Promise<Omit<SiteConfig, "blog">> =
 // same way without breaking that.
 const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label, read_label, status, publish_at, created_at";
 
+/** Is this row visible on the site right now?
+ *
+ *  Evaluated in JS, NOT in the Supabase query - and that distinction is a
+ *  caching bug fix, not a style choice. The old queries embedded
+ *  `publish_at.lte.<new Date().toISOString()>` in the request, which put a
+ *  MILLISECOND-precision timestamp in the fetch URL. The data cache keys on
+ *  the URL, so every single render produced a brand-new key: a guaranteed
+ *  cache miss plus a brand-new R2 Class A write, forever, with the old
+ *  entries left behind as orphans. Exactly the class of leak described in
+ *  docs/CACHING.md. Keeping the URL stable ("give me published + scheduled")
+ *  and doing the time comparison here costs a few filtered rows and makes
+ *  the query cacheable - and scheduled posts still go live at the exact
+ *  minute, on the next ISR render after their time passes. */
+const isLiveNow = (row: { status?: string; publish_at?: string | null }) =>
+  row.status === "published" ||
+  (row.status === "scheduled" && !!row.publish_at && new Date(row.publish_at).getTime() <= Date.now());
+
 export const getBlogs = cache(async (): Promise<Blog[]> => {
   const sb = supabasePublic();
   if (sb) {
     const { data, error } = await sb
       .from("blog_posts")
       .select(BLOG_LIST_COLUMNS)
-      .or(`status.eq.published,and(status.eq.scheduled,publish_at.lte.${new Date().toISOString()})`)
+      .in("status", ["published", "scheduled"])
       .order("created_at", { ascending: false });
     // Same reasoning as getMovies(): an empty table before migration
     // shouldn't render a blank blog section.
-    if (!error && data && data.length > 0) return data.map(blogFromRow);
+    if (!error && data && data.length > 0) return data.filter(isLiveNow).map(blogFromRow);
   }
   return FALLBACK_SITE.blog ?? [];
 });
@@ -190,10 +207,18 @@ export const getBlogs = cache(async (): Promise<Blog[]> => {
 export const getBlog = cache(async (slug: string): Promise<Blog | null> => {
   const sb = supabasePublic();
   if (sb) {
+    // Membership check against the LIST first (one stable, cached query URL).
+    // Without it, every /blog/<junk> a crawler or attacker requested embedded
+    // that junk slug in a per-slug Supabase query URL - and every unique
+    // fetch URL is its own data-cache entry, i.e. an R2 write per spray hit.
+    // Real slugs (the only ones that reach the per-slug query below) are a
+    // small bounded set, so the cache keys stay bounded too.
+    const known = (await getBlogs()).some((b) => b.slug === slug);
+    if (!known) return null;
     const { data, error } = await sb.from("blog_posts").select("*").eq("slug", slug)
-      .or(`status.eq.published,and(status.eq.scheduled,publish_at.lte.${new Date().toISOString()})`)
+      .in("status", ["published", "scheduled"])
       .maybeSingle();
-    if (!error && data) return blogFromRow(data);
+    if (!error && data) return isLiveNow(data) ? blogFromRow(data) : null;
     if (!error) return null;
   }
   return (FALLBACK_SITE.blog ?? []).find((b) => b.slug === slug) ?? null;
