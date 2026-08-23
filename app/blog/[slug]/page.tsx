@@ -6,6 +6,7 @@ import Icon from "@/components/Icon";
 import CommentsSection from "@/components/CommentsSection";
 import FollowStrip from "@/components/FollowStrip";
 import { getBlog, getBlogs } from "@/lib/data";
+import { faqPairs } from "@/lib/blogSeo";
 import { img } from "@/lib/images";
 import { baseUrl } from "@/lib/site";
 import { redirectOrNotFound } from "@/lib/redirectMap";
@@ -115,9 +116,45 @@ export default async function ArticlePage({ params }: Params) {
     description: b.excerpt || markdownToText(b.body).slice(0, 158),
     image,
     datePublished: isoDate(b.date),
+    // Freshness. Google reads dateModified when deciding how recently a page
+    // was genuinely revised, so it must reflect a real edit — it comes from the
+    // row's own updated_at, never from "now", which would claim every crawl was
+    // an update and is the kind of lie that gets lastmod signals ignored.
+    ...(b.updatedAt ? { dateModified: isoDate(b.updatedAt) } : {}),
     author: { "@type": "Organization", name: "CineTonight Editorial" },
+    // Required for an Article rich result. Without a publisher carrying a logo
+    // the markup is valid but ineligible.
+    publisher: {
+      "@type": "Organization",
+      name: "CineTonight",
+      logo: { "@type": "ImageObject", url: `${baseUrl()}/logo-512.png` },
+    },
     mainEntityOfPage: `${baseUrl()}/blog/${b.slug}`,
   };
+
+  /* FAQ markup, built from the article's own FAQ section.
+   *
+   * This is the single highest-value piece of structured data on the site:
+   * Google's AI summaries and the answer engines quote FAQ entries close to
+   * verbatim, but only where FAQPage says that is what they are. Authors write
+   * the questions as headings and get the schema for free.
+   *
+   * Emitted only when the article really has an FAQ — an empty FAQPage would
+   * be a claim about the page that is not true. */
+  // Legacy rows still hold the body as an array of paragraphs; joining is what
+  // lib/markdown.ts does for the same reason, so both shapes are handled here.
+  const faq = faqPairs(Array.isArray(b.body) ? b.body.join("\n\n") : b.body ?? "");
+  const faqJsonLd = faq.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faq.map((f) => ({
+          "@type": "Question",
+          name: f.question,
+          acceptedAnswer: { "@type": "Answer", text: f.answer },
+        })),
+      }
+    : null;
 
   return (
     <div className="page">
@@ -128,6 +165,10 @@ export default async function ArticlePage({ params }: Params) {
       />
       {/* eslint-disable-next-line react/no-danger -- static JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
+      {faqJsonLd && (
+        // eslint-disable-next-line react/no-danger -- built from the post body above, not user input
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }} />
+      )}
       <div className="article">
         <span className="article__cat">{b.cat}</span>
         <h1 className="article__t">{b.title}</h1>

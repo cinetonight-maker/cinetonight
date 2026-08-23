@@ -58,6 +58,9 @@ function blogFromRow(r: any): Blog {
     metaTitle: r.meta_title || undefined,
     metaDescription: r.meta_description || undefined,
     publishAt: r.publish_at ?? null,
+    // Real revision time, for JSON-LD dateModified. Never "now" — a freshness
+    // signal that fires on every crawl is a lie Google learns to ignore.
+    updatedAt: r.updated_at ?? null,
     focusKeyword: r.focus_keyword || undefined,
     secondaryKeywords: Array.isArray(r.secondary_keywords) ? r.secondary_keywords : [],
     canonicalUrl: r.canonical_url || null,

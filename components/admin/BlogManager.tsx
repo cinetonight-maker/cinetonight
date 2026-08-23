@@ -146,6 +146,13 @@ export default function BlogManager() {
     [saved, draft],
   );
 
+  /** Titles of the other live posts. Recomputed only when the post list or the
+   *  post being edited changes, not on every keystroke. */
+  const siblingTitles = useMemo(
+    () => posts.filter((p) => p.id !== editing).map((p) => p.title),
+    [posts, editing],
+  );
+
   /** The publish checklist — every house rule a machine can check, recomputed
    *  as you type. Pure and synchronous (lib/blogSeo.ts): no network, no cost. */
   const checks = useMemo(() => seoChecklist({
@@ -163,7 +170,11 @@ export default function BlogManager() {
     ogImage: draft.og_image,
     cat: draft.cat,
     noindex: draft.noindex,
-  }), [draft]);
+    // Every OTHER post's title, so the checklist can warn about a duplicate
+    // while it is still a draft. Excludes the post being edited, which would
+    // otherwise always match itself.
+    siblingTitles: siblingTitles,
+  }), [draft, siblingTitles]);
 
   /* ---- autosave: draft_body only. Cannot touch a published article. ----- */
   const draftRef = useRef(draft);

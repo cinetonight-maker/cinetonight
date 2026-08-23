@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   headingsOf, headingIssues, firstParagraph, wordCountOf, internalLinksOf,
   seoChecklist, checklistSummary, countByStatus, contains, slugContains,
+  bodyHeadings, looksTruncated, competingTitles, titleOverlap, faqPairs,
 } from "../lib/blogSeo.ts";
 import { readFileSync } from "node:fs";
 
@@ -23,21 +24,22 @@ test("a '#' inside a code fence is not a heading", () => {
 });
 
 test("a correct article has no heading issues", () => {
-  assert.deepEqual(headingIssues("# Title\n\nIntro.\n\n## A\n\ntext\n\n### A.1\n\ntext\n\n## B\n\ntext"), []);
+  // No H1: the page template renders the title as the page's H1 already.
+  assert.deepEqual(headingIssues("Intro.\n\n## A\n\ntext\n\n### A.1\n\ntext\n\n## B\n\ntext"), []);
 });
 
-test("missing, duplicate and skipped heading levels are all caught", () => {
-  assert.match(headingIssues("## Only an H2").join(" "), /No H1/);
-  assert.match(headingIssues("# A\n\n# B\n\n## C").join(" "), /2 H1 headings/);
-  assert.match(headingIssues("# A\n\n### Skipped").join(" "), /jumps from H1 to H3/);
-  assert.match(headingIssues("## First\n\n# Late H1").join(" "), /first heading is not the H1/);
-  assert.match(headingIssues("# Alone").join(" "), /No H2 sections/);
+test("heading problems are all caught", () => {
+  assert.match(headingIssues("# A\n\n## B").join(" "), /renders it twice/);
+  assert.match(headingIssues("# A\n\n# B\n\n## C").join(" "), /2 H1 headings in the body/);
+  assert.match(headingIssues("## A\n\n#### Skipped").join(" "), /jumps from H2 to H4/);
+  assert.match(headingIssues("### Starts too deep").join(" "), /should open at H2/);
+  assert.match(headingIssues("Prose with no headings at all.").join(" "), /No H2 sections/);
 });
 
 /* ---- text helpers ------------------------------------------------------- */
 
 test("the opening paragraph skips headings, lists and quotes", () => {
-  assert.equal(firstParagraph("# Title\n\n## Sub\n\n- a bullet\n\n> a quote\n\nThe real opening."), "The real opening.");
+  assert.equal(firstParagraph("## Sub\n\n- a bullet\n\n> a quote\n\nThe real opening."), "The real opening.");
 });
 
 test("word count ignores headings and code", () => {
@@ -62,7 +64,7 @@ const GOOD = {
   title: "Can't Decide What To Watch Tonight? Movies For Every Mood",
   slug: "cant-decide-what-to-watch-tonight",
   body: [
-    "# Can't Decide What To Watch Tonight? Movies For Every Mood",
+    // No H1: the article page renders the title as the page H1 itself.
     "Can't decide what to watch tonight? Start with how you feel instead of scrolling.",
     "## Movies To Watch When You Can't Decide What To Watch Tonight",
     "Browse [Discover](/discover) or the [movies](/movies) hub.",
@@ -100,7 +102,7 @@ test("each keyword placement is reported independently", () => {
 });
 
 test("thin articles and missing internal links are flagged", () => {
-  const thin = seoChecklist({ ...GOOD, body: "# T\n\nshort.\n\n## S\n\ntext" });
+  const thin = seoChecklist({ ...GOOD, body: "short.\n\n## S\n\ntext" });
   assert.equal(find(thin, "length").status, "fail");
   assert.equal(find(thin, "internal-links").status, "fail");
 });
@@ -131,7 +133,7 @@ test("a missing alt is only raised when there is an image to describe", () => {
 
 test("every check carries a hint whenever it is not passing", () => {
   // A checklist row that says "fix this" without saying how is useless.
-  const messy = seoChecklist({ ...GOOD, body: "## no h1", focusKeyword: "", imageUrl: null, cat: "" });
+  const messy = seoChecklist({ ...GOOD, body: "# a stray h1", focusKeyword: "", imageUrl: null, cat: "" });
   for (const c of messy.filter((x) => x.status !== "ok")) {
     assert.ok(c.hint.trim().length > 0, `${c.id} has no hint`);
   }
@@ -188,4 +190,111 @@ test("getBlogs actually carries the flags the sitemap filters on", () => {
   // ...with a fallback, because naming a column that does not exist fails the
   // whole query and would blank the blog on an install without blog_seo.sql.
   assert.match(src, /if \(error\) \(\{ data, error \} = await list\(BLOG_LIST_COLUMNS\)\)/);
+});
+
+/* ============================================================================
+ * Added after the 23 Aug 2026 blog audit. Every case below is a real post that
+ * passed the checklist as it stood. See docs/BLOG-AUDIT.md.
+ * ========================================================================= */
+
+test("an FAQ heading alone is not article structure", () => {
+  // /blog/avengers-doomsday-release-date-india shipped exactly like this.
+  const body = "Text.\n\n## Frequently asked questions\n\n### When?\n\nDecember.\n";
+  assert.equal(bodyHeadings(body).length, 0);
+  assert.equal(find(seoChecklist({ title: "T", slug: "t", body, focusKeyword: "t" }), "sections").status, "fail");
+});
+
+test("a differently-worded FAQ heading is still not structure", () => {
+  const body = "Text.\n\n## Dune 3 Frequently Asked Questions\n\n### What?\n\nA film.\n";
+  assert.equal(bodyHeadings(body).length, 0);
+});
+
+test("real sections count, and two of them pass", () => {
+  const body = "Text.\n\n## When is it out\n\nSoon.\n\n## Who is in it\n\nPeople.\n\n## Frequently asked questions\n\n### Q\n\nA.\n";
+  assert.deepEqual(bodyHeadings(body).map((h) => h.text), ["When is it out", "Who is in it"]);
+  assert.equal(find(seoChecklist({ title: "T", slug: "t", body, focusKeyword: "t" }), "sections").status, "ok");
+});
+
+test("a meta description sliced mid-word is caught", () => {
+  // The exact failure that shipped on three posts: 158 chars, no sentence end.
+  const cut = "Skip the 35 film rewatch. These 10 movies and shows are all you need before Avengers Doomsday, with why each one matters and where to check streaming availabi";
+  assert.equal(looksTruncated(cut), true);
+});
+
+test("a complete description is not flagged, however long", () => {
+  const whole = "What should I watch tonight? Use this five minute method to go from endless scrolling to pressing play, starting with your mood instead of the genre.";
+  assert.equal(looksTruncated(whole), false);
+  assert.equal(find(seoChecklist({ title: "T", slug: "t", body: "## A\n\nx\n\n## B\n\ny\n", metaDescription: whole, focusKeyword: "t" }), "desc-complete").status, "ok");
+});
+
+test("a short description is never called truncated", () => {
+  assert.equal(looksTruncated("Short and deliberate"), false);
+});
+
+test("an identical title is flagged as competing", () => {
+  const t = "What Should I Watch Tonight? How to Decide in 5 Minutes";
+  assert.deepEqual(competingTitles(t, [t]), [t]);
+  const c = find(seoChecklist({ title: t, slug: "x", body: "## A\n\nx\n\n## B\n\ny\n", focusKeyword: "t", siblingTitles: [t] }), "unique-title");
+  assert.equal(c.status, "warn");
+  assert.match(c.hint, /split the ranking/);
+});
+
+test("posts that merely share common words are NOT flagged", () => {
+  // These two really are different articles and must never warn.
+  const a = "15 Best Date Night Movies for Couples: What to Watch Tonight";
+  const b = "What Should I Watch Tonight? How to Decide in 5 Minutes";
+  assert.deepEqual(competingTitles(a, [b]), []);
+});
+
+test("the duplicate check stays silent when no siblings are supplied", () => {
+  const checks = seoChecklist({ title: "T", slug: "t", body: "## A\n\nx\n\n## B\n\ny\n", focusKeyword: "t" });
+  assert.equal(find(checks, "unique-title"), undefined);
+});
+
+/* ---- FAQ extraction, which feeds FAQPage schema on the article page ------ */
+
+test("FAQ questions and answers are pulled out of the FAQ section", () => {
+  const body = [
+    "Intro.", "",
+    "## A real section", "", "Not a question.", "",
+    "### A subsection heading", "", "This must NOT become an FAQ entry.", "",
+    "## Frequently asked questions", "",
+    "### Do I need to watch everything?", "", "No. Five titles cover it.", "",
+    "### How long does it take?", "", "About twelve hours for the [core](/blog/x).", "",
+    "## Read next", "", "- [Something](/blog/y)", "",
+  ].join("\n");
+  const pairs = faqPairs(body);
+  assert.equal(pairs.length, 2);
+  assert.equal(pairs[0].question, "Do I need to watch everything?");
+  assert.equal(pairs[0].answer, "No. Five titles cover it.");
+  // Markdown link syntax must not leak into JSON-LD.
+  assert.equal(pairs[1].answer, "About twelve hours for the core.");
+});
+
+test("an H3 outside the FAQ block is never treated as a question", () => {
+  const body = "## Section\n\n### Not a question\n\nProse.\n";
+  assert.deepEqual(faqPairs(body), []);
+});
+
+test("a differently-worded FAQ heading still yields pairs", () => {
+  const body = "## Dune 3 Frequently Asked Questions\n\n### When?\n\nDecember.\n";
+  assert.equal(faqPairs(body).length, 1);
+});
+
+test("no FAQ section means no pairs, so no empty schema is emitted", () => {
+  assert.deepEqual(faqPairs("## Only a section\n\nText.\n"), []);
+});
+
+/* ---- the body must NOT carry an H1 -------------------------------------- */
+
+test("an H1 in the body is a defect, because the page already renders one", () => {
+  // This is the bug the old rule caused: app/blog/[slug]/page.tsx renders the
+  // title as the page H1, so a `# ` line showed the heading twice on screen.
+  const issues = headingIssues("# My Title\n\n## A section\n\nText.\n");
+  assert.equal(issues.length, 1);
+  assert.match(issues[0], /renders it twice/);
+});
+
+test("a body starting at H2 is correct", () => {
+  assert.deepEqual(headingIssues("## A section\n\nText.\n\n## Another\n\nMore.\n"), []);
 });

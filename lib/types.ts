@@ -70,6 +70,10 @@ export interface Blog {
   /** SEO overrides set in the dashboard; page falls back to title/excerpt. */
   metaTitle?: string;
   metaDescription?: string;
+  /** Last real edit, taken from the row's own updated_at. Feeds JSON-LD
+   *  dateModified. Never "now": a freshness signal that fires on every crawl
+   *  is a lie, and Google is documented to ignore sites that tell it. */
+  updatedAt?: string | null;
   /** When status is "scheduled": the moment the post goes live. */
   publishAt?: string | null;
   /* ---- SEO fields (supabase/blog_seo.sql). All optional: the site behaves

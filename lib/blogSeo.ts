@@ -42,6 +42,10 @@ export interface BlogSeoInput {
   ogImage?: string | null;
   cat?: string | null;
   noindex?: boolean;
+  /** Titles of every OTHER live post, so a duplicate is caught before it is
+   *  published rather than after it has split a keyword in two. Optional:
+   *  omit it and the duplicate check simply does not run. */
+  siblingTitles?: string[];
 }
 
 /* ---------------------------------------------------------------------------
@@ -66,17 +70,36 @@ export function headingsOf(markdown: string): Heading[] {
 }
 
 /**
- * House rule, straight from the guidelines: exactly one H1, H2 for main
- * sections, H3 only for deeper subsections — so a level may never be skipped.
+ * House rule: the BODY CONTAINS NO H1.
+ *
+ * CORRECTED 23 Aug 2026, after this check caused the bug it was meant to
+ * prevent. app/blog/[slug]/page.tsx already renders the post title as the
+ * page's `<h1 className="article__t">`, so an H1 in the markdown is a SECOND
+ * one — and because both come from the same title, the heading appeared
+ * visibly twice, one under the other, on every article written to the old
+ * rule. Verified on the live site before changing this.
+ *
+ * The body therefore starts at H2, and H3 only for deeper subsections, with no
+ * level skipped.
  */
 export function headingIssues(markdown: string): string[] {
   const hs = headingsOf(markdown);
   const issues: string[] = [];
   const h1s = hs.filter((h) => h.level === 1);
 
-  if (h1s.length === 0) issues.push("No H1. Start the article with a single `# ` heading.");
-  if (h1s.length > 1) issues.push(`${h1s.length} H1 headings. Keep exactly one and demote the rest to H2.`);
-  if (hs.length && hs[0].level !== 1) issues.push("The first heading is not the H1. The H1 should open the article.");
+  if (h1s.length) {
+    issues.push(
+      `${h1s.length === 1 ? "An H1 in the body" : `${h1s.length} H1 headings in the body`}. ` +
+      "The page already shows the title as its H1, so this renders it twice. " +
+      "Delete the `# ` line and start the article at `## `.",
+    );
+  }
+  // Only worth saying when there is no H1 to explain it. An article that opens
+  // with an H1 already has one clear instruction; a second line about levels
+  // would just be the same problem described twice.
+  if (!h1s.length && hs.length && hs[0].level !== 2) {
+    issues.push("The article should open at H2. Its first heading is not one.");
+  }
   if (!hs.some((h) => h.level === 2)) issues.push("No H2 sections. Break the article into H2 sections.");
 
   let previous = 0;
@@ -139,6 +162,124 @@ export function wordCountOf(markdown: string): number {
   return (text.match(/\b[\p{L}\p{N}'-]+\b/gu) ?? []).length;
 }
 
+/* ---------------------------------------------------------------------------
+ * Added after the 23 Aug 2026 blog audit (docs/BLOG-AUDIT.md), which found six
+ * live posts with NO section headings, three meta descriptions cut off
+ * mid-word, and two posts sharing one title. All three passed the checklist as
+ * it stood. Each rule below exists because something real got through.
+ * ------------------------------------------------------------------------ */
+
+/** Headings the template appends or that every post carries regardless of what
+ *  the article says. They are not evidence that the article has structure. */
+const BOILERPLATE_HEADING = /^(faqs?|read next|comments?)$|frequently asked questions?/i;
+
+/** The H2s that represent actual sections of the article.
+ *
+ *  WHY THIS IS SEPARATE FROM headingIssues(): that check asks "is the heading
+ *  hierarchy valid", and a lone "Frequently asked questions" satisfies it. Six
+ *  posts scored green on structure while having none — an article called "The
+ *  10 Essentials" with no heading for any of the ten. Valid hierarchy and
+ *  actual structure are different questions, so they get different checks. */
+export function bodyHeadings(markdown: string): Heading[] {
+  return headingsOf(markdown)
+    .filter((h) => h.level === 2 && !BOILERPLATE_HEADING.test(h.text.trim()));
+}
+
+/** Does this meta description look like it was sliced rather than written?
+ *
+ *  The three that shipped all failed identically: 158 characters, ending
+ *  mid-word ("...streaming availabi"). A description near the cap that does
+ *  not end on a sentence is nearly always a cut, not a choice. */
+export function looksTruncated(desc: string | null | undefined): boolean {
+  const s = (desc ?? "").trim();
+  return s.length >= 150 && !/[.!?…”"')\]]$/.test(s);
+}
+
+/** How much two titles overlap, 0 to 1, comparing meaningful words only.
+ *  Short words carry no topic signal and would inflate every comparison. */
+export function titleOverlap(a: string, b: string): number {
+  const words = (s: string) =>
+    new Set(
+      s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((w) => w.length > 2),
+    );
+  const A = words(a);
+  const B = words(b);
+  if (!A.size || !B.size) return 0;
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared++;
+  return shared / (A.size + B.size - shared);
+}
+
+/** Sibling titles close enough to this one to compete for the same query.
+ *  0.6 is deliberately loose: two posts do not need identical titles to split
+ *  a keyword, and a false warning costs a glance while a real duplicate costs
+ *  a ranking. */
+export function competingTitles(title: string, siblings: string[] | undefined): string[] {
+  if (!title?.trim() || !siblings?.length) return [];
+  return siblings.filter((s) => s?.trim() && titleOverlap(title, s) >= 0.6);
+}
+
+/** A question and its answer, pulled out of the article's FAQ section.
+ *
+ *  WHY: Google and the AI answer engines lift FAQ content almost verbatim, but
+ *  only when it is marked up as FAQPage. Writing the questions as headings is
+ *  not enough on its own — the structured data has to say what they are. This
+ *  turns prose an author already wrote into that markup, so nobody has to
+ *  maintain the schema by hand or remember it exists. */
+export interface FaqPair { question: string; answer: string }
+
+/**
+ * Every question under the article's FAQ heading, with the prose beneath it.
+ *
+ * Scoped to the FAQ section deliberately: an H3 elsewhere in the article is a
+ * subsection, not a question, and marking one up as an FAQ entry would be a
+ * false claim about the page. Stops at the next H2 for the same reason.
+ */
+export function faqPairs(markdown: string): FaqPair[] {
+  const lines = (markdown || "").split(/\r?\n/);
+  const out: FaqPair[] = [];
+  let inFaq = false;
+  let inFence = false;
+  let question = "";
+  let answer: string[] = [];
+
+  const flush = () => {
+    const text = answer.join(" ").trim();
+    if (question && text) out.push({ question, answer: text });
+    question = "";
+    answer = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (/^(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) { if (inFaq && question) answer.push(line); continue; }
+
+    const h2 = /^##\s+(.*\S)\s*$/.exec(line);
+    if (h2) {
+      flush();
+      // Entering the FAQ block, or leaving it for an unrelated section.
+      inFaq = BOILERPLATE_HEADING.test(h2[1].trim()) && !/^(read next|comments?)$/i.test(h2[1].trim());
+      continue;
+    }
+    if (!inFaq) continue;
+
+    const h3 = /^###\s+(.*\S)\s*$/.exec(line);
+    if (h3) { flush(); question = h3[1].trim(); continue; }
+
+    // Strip the markdown that would otherwise leak into a JSON-LD string.
+    if (question && line) {
+      answer.push(
+        line.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+            .replace(/[*_`]/g, "")
+            .trim(),
+      );
+    }
+  }
+  flush();
+  return out;
+}
+
 /** Internal links (`](/...)`) found in the body, deduped, in order. */
 export function internalLinksOf(markdown: string): string[] {
   const out: string[] = [];
@@ -177,6 +318,13 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
   add("headings", "Heading structure",
     structural.length ? "fail" : "ok",
     structural.join(" "));
+
+  // Structure the article actually has, as opposed to a valid hierarchy.
+  const sections = bodyHeadings(post.body);
+  add("sections", `Article sections — ${sections.length}`,
+    sections.length >= 2 ? "ok" : sections.length === 1 ? "warn" : "fail",
+    sections.length >= 2 ? ""
+      : "Break the article into H2 sections. An FAQ heading on its own is not structure — readers cannot scan the piece and Google cannot see what it covers.");
 
   const words = wordCountOf(post.body);
   add("length", `Length — ${words} words`,
@@ -219,6 +367,10 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
       : dLen < 120 ? "Under 120 characters wastes space Google would have given you."
       : "Over 160 characters is usually truncated.");
 
+  add("desc-complete", "Meta description ends cleanly",
+    looksTruncated(effectiveDesc) ? "warn" : "ok",
+    "This looks cut off rather than written to length. Finish the sentence — a description that stops mid-word makes the whole result look broken.");
+
   /* ---- artwork ---- */
   add("image", "Featured image",
     post.imageUrl ? "ok" : "warn",
@@ -236,6 +388,16 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
   add("internal-links", `Internal links — ${links.length}`,
     links.length >= 2 ? "ok" : links.length === 1 ? "warn" : "fail",
     links.length >= 2 ? "" : "Link to at least two relevant CineTonight pages, e.g. /discover, /movies, /free-movies.");
+
+  /* ---- does this post already exist? ---- */
+  const competing = competingTitles(effectiveTitle, post.siblingTitles);
+  if (post.siblingTitles?.length) {
+    add("unique-title", "No competing post",
+      competing.length ? "warn" : "ok",
+      competing.length
+        ? `Very close to ${competing.length === 1 ? "an existing post" : `${competing.length} existing posts`}: ${competing.map((t) => `"${t}"`).join(", ")}. Two posts on one topic split the ranking between them — Google picks one and buries the other. Merge them, or make each answer a clearly different question.`
+        : "");
+  }
 
   /* ---- URL policy ---- */
   add("slug-evergreen", "Evergreen URL",
