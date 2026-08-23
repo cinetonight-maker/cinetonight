@@ -17,7 +17,21 @@ import type { Movie } from "@/lib/types";
  *  The posters are passed in from the page's ONE shared trending fetch - the
  *  hero makes no request of its own, and nothing here varies per request, so
  *  the whole section caches as part of the page. */
-export default function HomeHero({ posters }: { posters: Movie[] }) {
+/** `title` and `sub` come from the dashboard (lib/homepageConfig). They always
+ *  arrive non-empty — normalizeConfig falls back to the shipped wording — so
+ *  the site's H1 can never render blank. */
+/** The shipped H1 highlights its last two words in purple. Keeping that with
+ *  editable copy means splitting on the final two words rather than hard-coding
+ *  them — so a rewritten headline still gets the same emphasis. */
+function highlightTail(text: string) {
+  const words = text.trim().split(/\s+/);
+  if (words.length < 3) return <span className="hhero__hl">{text}</span>;
+  const head = words.slice(0, -2).join(" ");
+  const tail = words.slice(-2).join(" ");
+  return <>{head} <span className="hhero__hl">{tail}</span></>;
+}
+
+export default function HomeHero({ posters, title, sub }: { posters: Movie[]; title?: string; sub?: string }) {
   const art = posters.slice(0, 3);
 
   return (
@@ -26,11 +40,12 @@ export default function HomeHero({ posters }: { posters: Movie[] }) {
 
       <div className="hhero__copy">
         <h1 id="hhero-h" className="hhero__h">
-          What should you <span className="hhero__hl">watch tonight?</span>
+          {title
+            ? highlightTail(title)
+            : <>What should you <span className="hhero__hl">watch tonight?</span></>}
         </h1>
         <p className="hhero__sub">
-          Tell us the mood, how long you have and where you subscribe. We will find something
-          worth watching and show you exactly where it is streaming.
+          {sub ?? "Tell us the mood, how long you have and where you subscribe. We will find something worth watching and show you exactly where it is streaming."}
         </p>
 
         <HeroActions />

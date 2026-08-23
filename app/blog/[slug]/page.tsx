@@ -8,7 +8,10 @@ import FollowStrip from "@/components/FollowStrip";
 import { getBlog, getBlogs } from "@/lib/data";
 import { img } from "@/lib/images";
 import { baseUrl } from "@/lib/site";
+import { redirectOrNotFound } from "@/lib/redirectMap";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
+import { renderMarkdown, markdownToText } from "@/lib/markdown";
+import { relatedPosts } from "@/lib/linkGraph";
 
 /** b.date is a display string like "Aug 1, 2024" — best-effort parse for
  *  JSON-LD's ISO datePublished; falls back to omitting the field rather
@@ -34,14 +37,25 @@ interface Params { params: Promise<{ slug: string }> }
 const NOT_FOUND_META = { title: "Not found", robots: { index: false, follow: false } } as const;
 
 
-export async function generateStaticParams() {
-  const blogs = await getBlogs();
-  return blogs.map((b) => ({ slug: b.slug }));
-}
-export const dynamicParams = true;
-// Cached (ISR): rendered once, reused for 300s, then refreshed in the
-// background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 1800;
+// force-dynamic, NOT ISR — and this is a deliberate trade (Phase 4B-2).
+//
+// Measured in the Worker: with ISR on, every INVENTED slug made Next render the
+// not-found result and PERSIST it — one permanent R2 object per junk URL, 77 KB
+// and up, on an unbounded space. Ten junk slugs produced ten objects. The same
+// mechanism took the bucket to 2.79M objects / 211 GB once already, which is
+// why /person/[id] and /[slug] were made force-dynamic before this.
+//
+// The middleware guard (lib/pathGuard.ts) stops malformed slugs earlier and for
+// free, but it cannot know which well-formed slugs are real without a database
+// lookup — so only this closes the hole completely.
+//
+// WHAT IT COSTS: a real article is no longer persisted between requests. It is
+// still absorbed by the Cloudflare edge cache (next.config.mjs gives /blog/:path*
+// `s-maxage=3600`), which is FREE, unlike the R2 incremental cache. Googlebot
+// receives identical HTML either way, so nothing about indexing changes. The
+// Supabase read behind it is still cached on its own tier, so this adds no
+// database traffic.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
@@ -49,24 +63,45 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!b) return NOT_FOUND_META;
   const url = `${baseUrl()}/blog/${b.slug}`;
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
+  // Social share image falls back to the featured image — the ideal 1200x630
+  // crop is rarely the ideal blog-card crop, so the dashboard can set both.
+  const shareImage = b.ogImage || image;
+  // Canonical override (supabase/blog_seo.sql). Blank — which is the right
+  // answer for almost every article — means the post is its own canonical.
+  // A relative value is resolved against metadataBase, same as everywhere else.
+  const canonical = b.canonicalUrl?.trim() || url;
   return {
     // Dashboard SEO overrides win when set; title/excerpt are the fallback.
     title: b.metaTitle || b.title,
     description: (b.metaDescription || b.excerpt).slice(0, 158),
     // Per-page `alternates` fully replaces the root layout's (where the RSS
     // autodiscovery link normally lives), so it has to be repeated here.
-    alternates: { canonical: url, types: { "application/rss+xml": "/rss.xml" } },
-    openGraph: { title: b.title, description: b.excerpt, type: "article", url, images: [{ url: image }] },
-    twitter: { card: "summary_large_image", title: b.title, description: b.excerpt, images: [image] },
+    alternates: { canonical, types: { "application/rss+xml": "/rss.xml" } },
+    // Per-article noindex. `follow` stays ON: a hidden article's links to real
+    // pages should still carry value, same rule as /person/[id].
+    ...(b.noindex ? { robots: { index: false, follow: true } } : {}),
+    // Secondary keywords are a planning aid first, but emitting them costs
+    // nothing and some non-Google services still read the tag.
+    ...(b.secondaryKeywords?.length
+      ? { keywords: [b.focusKeyword, ...b.secondaryKeywords].filter(Boolean) as string[] }
+      : {}),
+    openGraph: { title: b.title, description: b.excerpt, type: "article", url, images: [{ url: shareImage }] },
+    twitter: { card: "summary_large_image", title: b.title, description: b.excerpt, images: [shareImage] },
   };
 }
 
 export default async function ArticlePage({ params }: Params) {
   const { slug } = await params;
   const b = await getBlog(slug);
-  if (!b) notFound();
+  // A slug with no post is the ONLY place the redirect table is consulted, so
+  // a request for a real article never pays for the redirect system existing.
+  // Either redirects or 404s — never returns. See lib/redirectMap.ts.
+  if (!b) return redirectOrNotFound(`/blog/${slug}`);
 
   const image = b.imageUrl || img(`article-${b.slug}`, 1000, 500);
+  // getBlogs() is already in React's per-render cache (getBlog uses it for its
+  // membership check), so this adds no database query and no cache entry.
+  const related = relatedPosts(await getBlogs(), b, 3);
   const crumbs = breadcrumbJsonLd([
     { name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: b.title },
   ]);
@@ -75,7 +110,9 @@ export default async function ArticlePage({ params }: Params) {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: b.title,
-    description: b.excerpt,
+    // Excerpt is the intended summary; fall back to the opening of the article
+    // itself rather than emitting an empty description.
+    description: b.excerpt || markdownToText(b.body).slice(0, 158),
     image,
     datePublished: isoDate(b.date),
     author: { "@type": "Organization", name: "CineTonight Editorial" },
@@ -95,10 +132,39 @@ export default async function ArticlePage({ params }: Params) {
         <span className="article__cat">{b.cat}</span>
         <h1 className="article__t">{b.title}</h1>
         <div className="article__meta">By Editorial Desk · {b.date} · {b.read} read</div>
-        <div className="article__img"><Image fill alt={b.title} src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
-        <div className="article__body">
-          {(b.body ?? [b.excerpt]).map((p, i) => <p key={i}>{p}</p>)}
-        </div>
+        <div className="article__img"><Image fill alt={b.imageAlt || b.title} src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
+        {/* Rendered by lib/markdown.ts — the SAME function the admin preview
+            uses, so what an author sees before publishing is what ships.
+            That module escapes every "<" before parsing, so no raw HTML from
+            the database can reach this page: the only tags here are ones
+            `marked` built from Markdown syntax, with link/image URLs checked
+            against a scheme allow-list. Legacy array bodies render
+            identically (they are joined with blank lines), so posts written
+            before the CMS update are unchanged. */}
+        {/* eslint-disable-next-line react/no-danger -- sanitized by renderMarkdown (escape-then-parse) */}
+        <div className="article__body" dangerouslySetInnerHTML={{ __html: renderMarkdown(b.body ?? b.excerpt) }} />
+
+        {related.length > 0 && (
+          /* Every article now links on to three more. This is the single
+             cheapest SEO improvement available here: it gives Google a real
+             path between articles instead of leaving each one a dead end, and
+             it gives a reader who finished this piece somewhere to go.
+             Costs no extra database work — getBlogs() is already loaded and
+             React-cached for this render. */
+          <aside className="related" aria-labelledby="related-h">
+            <h2 className="related__h" id="related-h">Read next</h2>
+            <div className="related__grid">
+              {related.map((r) => (
+                <Link className="related__c" key={r.slug} href={`/blog/${r.slug}`}>
+                  <span className="related__cat">{r.cat}</span>
+                  <span className="related__t">{r.title}</span>
+                  <span className="related__m">{r.read} read</span>
+                </Link>
+              ))}
+            </div>
+          </aside>
+        )}
+
         <CommentsSection
           movie={{ id: `blog-${b.slug}`, title: b.title, rating: 0 }}
           heading="Comments"

@@ -9,12 +9,13 @@ import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 
 interface Params { params: Promise<{ slug: string }> }
 
-// Cached (ISR): rendered once, reused for 3600s, then refreshed in the
-// background. Turns bot storms into cache hits instead of function runs.
-export const revalidate = 86400;
-export async function generateStaticParams() {
-  return (await getClassics()).map((c) => ({ slug: c.slug }));
-}
+// force-dynamic, NOT ISR — same trade as /blog/[slug], same reason (Phase 4B-2).
+// With ISR on, an invented slug persisted a permanent R2 object per junk URL on
+// an unbounded space. Nineteen real pages do not need a page cache of their own:
+// the Cloudflare edge already absorbs them via next.config.mjs's
+// `/(free-movies|…)/:path*` rule, which is free, and Googlebot sees the same
+// HTML either way.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;

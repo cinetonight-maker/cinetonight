@@ -6,79 +6,96 @@ import MovieCard from "../MovieCard";
 import { track } from "@/lib/analytics";
 import type { CardMovie } from "@/lib/types";
 
-/** One compact browse block instead of a dozen catalogue shelves.
+/** Explore Tonight — one compact tabbed block, Phase 3 locked tabs.
  *
  *  COST DESIGN:
- *  - The Films and Series tabs are FREE. Both are sliced on the server from
- *    the single shared trending fetch the page already makes, and both ship
- *    inside the cached HTML, so switching between them costs nothing at all.
- *  - New Releases and Top Rated load on demand from /api/browse, which is
- *    force-dynamic and therefore writes no page-cache entry. Each is fetched
- *    at most once per visit and then kept in memory.
- *  - Tab state is local. It never touches the URL, so no filter combination
- *    can become crawlable inventory. */
+ *  - "For You" (default) is FREE: the server blends it from already-cached
+ *    industry pools (see app/page.tsx + lib/industry.mixDiscovery) and ships
+ *    it inside the cached homepage HTML. Zero client fetches until a user
+ *    actually taps another tab.
+ *  - The five industry tabs load ON INTERACTION from /api/explore — a
+ *    closed set of exactly five URLs, each edge-cached, each fetched at
+ *    most once per visit and then kept in memory. No all-tab prefetch.
+ *  - Tab state is local, never in the URL — no crawlable filter inventory.
+ *  - Every tab's data passed Phase 2 discoveryFilter on the server. */
 
-type TabId = "movies" | "series" | "new" | "top";
+type TabId = "for-you" | "hollywood" | "bollywood" | "south" | "korean" | "international";
 
 const TABS: { id: TabId; label: string; href: string }[] = [
-  { id: "movies", label: "Films", href: "/movies" },
-  { id: "series", label: "Series", href: "/tv-shows" },
-  { id: "new", label: "New Releases", href: "/latest" },
-  { id: "top", label: "Top Rated", href: "/trending" },
+  // View-all targets reuse existing controlled browse pages; industry-level
+  // browse pages are future Discover work (Phase 4/6), so those tabs point
+  // at the closest existing page rather than minting new routes now.
+  // Label "Tonight Mix", not "For You": this feed is a shared editorial-style
+  // blend, identical for every visitor — the UI must not imply
+  // personalization that does not exist. Internal id stays "for-you" to
+  // avoid churn (it never leaves the client).
+  { id: "for-you", label: "Tonight Mix", href: "/trending" },
+  { id: "hollywood", label: "Hollywood", href: "/movies" },
+  { id: "bollywood", label: "Bollywood", href: "/movies" },
+  { id: "south", label: "South Indian", href: "/movies" },
+  { id: "korean", label: "Korean", href: "/tv-shows" },
+  { id: "international", label: "International", href: "/trending" },
 ];
 
-export default function ExploreTabs({ movies, series }: { movies: CardMovie[]; series: CardMovie[] }) {
-  const [tab, setTab] = useState<TabId>("movies");
+export interface ExploreTabsProps {
+  mixed: CardMovie[];
+  /** Which tabs to offer, their labels and order, and which opens first —
+   *  from the dashboard. Ids are NOT configurable: they are part of the
+   *  /api/explore cache key. Absent = the shipped set. */
+  tabs?: { id: string; label: string }[];
+  defaultTab?: string;
+}
+
+export default function ExploreTabs({ mixed, tabs: configured, defaultTab }: ExploreTabsProps) {
+  // Which tab opens first is configurable; it always falls back to a real
+  // tab id, so a stale setting can never open on nothing.
+  const [tab, setTab] = useState<TabId>(
+    (defaultTab && TABS.some((t) => t.id === defaultTab) ? defaultTab : "for-you") as TabId,
+  );
   const [lazy, setLazy] = useState<Partial<Record<TabId, CardMovie[]>>>({});
   const [loading, setLoading] = useState(false);
   const fetched = useRef<Set<TabId>>(new Set());
 
   const load = useCallback(async (id: TabId) => {
-    // Films/Series are free when the server-rendered slice has content.
-    // BUT global trending skews heavily to films, so the Series slice can
-    // arrive thin or empty - in that case fetch real series from /api/browse
-    // instead of showing "Nothing to show" for a category that obviously
-    // has content. Same guard for Films, for symmetry.
-    const ssrHas = id === "movies" ? movies.length > 0 : id === "series" ? series.length > 0 : false;
-    if (ssrHas || fetched.current.has(id)) return;
+    if (id === "for-you" || fetched.current.has(id)) return;
     fetched.current.add(id);
     setLoading(true);
-    const q =
-      id === "new" ? "kind=all&sort=year"
-      : id === "top" ? "kind=all&sort=rating"
-      : id === "series" ? "kind=series&sort=trending"
-      : "kind=movie&sort=trending";
     try {
-      const res = await fetch(`/api/browse?${q}&page=1`);
+      const res = await fetch(`/api/explore?tab=${id}`);
       const data = res.ok ? await res.json() : null;
-      if (data?.results) setLazy((prev) => ({ ...prev, [id]: data.results.slice(0, 8) }));
+      if (data?.results) setLazy((prev) => ({ ...prev, [id]: data.results.slice(0, 10) }));
     } catch {
       /* a failed tab shows its empty state; the rest of the page is unaffected */
     } finally {
       setLoading(false);
     }
-  }, [movies.length, series.length]);
+  }, []);
 
   useEffect(() => { load(tab); }, [tab, load]);
 
-  const items: CardMovie[] =
-    tab === "movies" ? (movies.length ? movies : lazy.movies ?? [])
-    : tab === "series" ? (series.length ? series : lazy.series ?? [])
-    : lazy[tab] ?? [];
-  const active = TABS.find((t) => t.id === tab)!;
+  // Labels and order come from the dashboard; the ids and their "view all"
+  // targets stay here, because those are part of the routing and the cache.
+  const shown = configured?.length
+    ? configured
+        .map((c) => { const t = TABS.find((x) => x.id === c.id); return t ? { ...t, label: c.label } : null; })
+        .filter((t): t is (typeof TABS)[number] => !!t)
+    : TABS;
+
+  const items: CardMovie[] = tab === "for-you" ? mixed : lazy[tab] ?? [];
+  const active = shown.find((t) => t.id === tab) ?? shown[0] ?? TABS[0];
 
   return (
     <section className="sec" aria-labelledby="explore-h">
       <div className="sec__head">
         <div className="sec__titles">
           <h2 id="explore-h">Explore Tonight</h2>
-          <p className="sec__sub">A short list from each corner of the catalogue</p>
+          <p className="sec__sub">A short list from every corner of cinema</p>
         </div>
         <Link className="sec__all" href={active.href}>View all</Link>
       </div>
 
-      <div className="etabs" role="tablist" aria-label="Explore categories">
-        {TABS.map((t) => (
+      <div className="etabs" role="tablist" aria-label="Explore by industry">
+        {shown.map((t) => (
           <button
             key={t.id}
             type="button"
@@ -87,22 +104,19 @@ export default function ExploreTabs({ movies, series }: { movies: CardMovie[]; s
             aria-selected={t.id === tab}
             aria-controls="etab-panel"
             className={`etab${t.id === tab ? " on" : ""}`}
-            onClick={() => { setTab(t.id); track("explore_tab", { tab: t.id }); }}
+            onClick={() => { setTab(t.id); track("explore_tab", { tab: t.id, surface: "homepage" }); }}
           >
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Its own grid, not the shared .grid: this block always holds eight
-          items, and a fixed four-across layout keeps that as two clean rows
-          instead of seven cards plus a lonely eighth on a second row. */}
       <div className="egrid" id="etab-panel" role="tabpanel" aria-labelledby={`etab-${tab}`}>
         {items.length > 0
-          ? items.map((m) => <MovieCard key={m.id} movie={m} />)
+          ? items.slice(0, 8).map((m) => <MovieCard key={m.id} movie={m} />)
           : (
             <p className="etabs__empty">
-              {loading ? "Loading…" : <>Nothing to show here right now. <Link href={active.href}>Browse {active.label.toLowerCase()}</Link>.</>}
+              {loading ? "Loading…" : <>Nothing to show here right now. <Link href={active.href}>Browse more</Link>.</>}
             </p>
           )}
       </div>

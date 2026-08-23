@@ -16,6 +16,29 @@
     { "binding": "WORKER_SELF_REFERENCE", "service": "cinetonight" }
   ],
 
+  // On-demand revalidation store (see open-next.config.ts → tagCache).
+  // Records "tag X went stale at T" so an admin Publish/Update can refresh
+  // exactly the affected routes instead of waiting out their TTL. It is READ
+  // only for the filtered CMS tags, so the rest of the site never queries it.
+  //
+  // Create once, before the first deploy that uses it:
+  //   npx wrangler d1 create cinetonight-tags
+  // then paste the returned database_id below. The table is created
+  // automatically by `npx opennextjs-cloudflare populateCache` (part of the
+  // normal build), or by hand with:
+  //   npx wrangler d1 execute cinetonight-tags --remote --command \
+  //     "CREATE TABLE IF NOT EXISTS revalidations (tag TEXT NOT NULL, revalidatedAt INTEGER NOT NULL, stale INTEGER, expire INTEGER default NULL, UNIQUE(tag) ON CONFLICT REPLACE);"
+  //
+  // If this binding is absent the tag cache disables itself and the site
+  // falls back to plain TTL expiry — the behaviour before this was added.
+  "d1_databases": [
+    {
+      "binding": "NEXT_TAG_CACHE_D1",
+      "database_name": "cinetonight-tags",
+      "database_id": "f5232324-b3ad-441e-b4b8-97a47dd813c6"
+    }
+  ],
+
   // Revalidation queue (see open-next.config.ts). A single Durable Object
   // de-duplicates regeneration globally, so one stale page produces ONE
   // rebuild and ONE R2 write instead of one per Cloudflare location.

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBrowsePage } from "@/lib/browse";
+import { getBrowsePage, isBrowsePageSupported } from "@/lib/browse";
 import type { BrowseSort } from "@/lib/tmdb";
 import { toCard, type MovieKind } from "@/lib/types";
 import { clientKey, isRateLimited } from "@/lib/rateLimit";
@@ -32,7 +32,29 @@ export async function GET(request: Request) {
   const sortParam = url.searchParams.get("sort") ?? "trending";
   const sort: BrowseSort = (SORTS as string[]).includes(sortParam) ? (sortParam as BrowseSort) : "trending";
   const genre = url.searchParams.get("genre") ?? undefined;
-  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+
+  // STRICT page validation, before any fetch. A missing param legitimately
+  // means page 1, but an EXPLICIT value must be exactly one of "1".."5" -
+  // no coercion. The old `Number(x) || 1` silently normalised "abc", "-1",
+  // "0", "1.5", "1e5" and friends to page 1, which meant malformed bot
+  // input still got a full page of browse work done on its behalf. The UI
+  // can never send an invalid value (totalPages is capped at
+  // MAX_BROWSE_PAGE everywhere), so anything failing this check is a bot or
+  // a hand-built URL: reject it before TMDB, Supabase, or any cache work.
+  // 404 (not 400) to match the page-6+ semantics: "no such page".
+  const rawPage = url.searchParams.get("page");
+  let page = 1;
+  if (rawPage !== null) {
+    if (!/^[1-5]$/.test(rawPage.trim())) {
+      return NextResponse.json({ error: "Page not found." }, { status: 404 });
+    }
+    page = Number(rawPage.trim());
+  }
+  // Defense in depth - getBrowsePage clamps too, but this route never
+  // forwards an unsupported value in the first place.
+  if (!isBrowsePageSupported(page)) {
+    return NextResponse.json({ error: "Page not found." }, { status: 404 });
+  }
 
   const data = await getBrowsePage({ kind, sort, genre, page });
   // Card fields only: <Listing> renders posters and one meta line, so

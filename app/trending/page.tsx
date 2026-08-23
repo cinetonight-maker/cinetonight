@@ -14,5 +14,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ genre?: string }> }) {
   const { genre } = await searchParams;
-  return <ListingPage title="Trending" sub="What everyone is watching this week." kind="all" genre={genre} />;
+  return <ListingPage path="/trending" title="Trending" sub="What everyone is watching this week." kind="all" genre={genre} />;
 }

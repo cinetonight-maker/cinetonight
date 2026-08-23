@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 import Icon from "./Icon";
 import MovieCard from "./MovieCard";
+import { BROWSE_GENRES } from "@/lib/genres";
 import type { CardMovie } from "@/lib/types";
 
 type Sort = "trending" | "rating" | "year" | "az";
 
-/** Curated, TMDB-recognized genre names (covers movie + tv; a couple map to
- *  the tv-side equivalent server-side, see lib/tmdb.ts TV_GENRE_ALIAS). */
-const GENRES = [
-  "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary",
-  "Drama", "Family", "Fantasy", "History", "Horror", "Music",
-  "Mystery", "Romance", "Sci-Fi", "Thriller", "War",
-];
+/** The filter chips. Phase 4A: this used to be a private copy of the genre
+ *  list, which meant the filter UI, the sitemap and the URL validator could
+ *  each believe in a different set of genres — and they did. There is now
+ *  exactly one list, in lib/genres.ts, and all three read it. */
+const GENRES: readonly string[] = BROWSE_GENRES;
 
 interface BrowseResponse { results: CardMovie[]; page: number; totalPages: number; source: "tmdb" | "local" }
 
@@ -40,11 +40,9 @@ export default function Listing({
   // into `initialData` — skip it once, then fetch normally from then on.
   const skipNextFetch = useRef(true);
 
-  // Mobile filter drawer locks page scroll while open.
-  useEffect(() => {
-    document.body.style.overflow = drawerOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [drawerOpen]);
+  // Mobile filter drawer locks page scroll while open (shared, counted,
+  // restoring lock — see lib/useScrollLock).
+  useScrollLock(drawerOpen);
 
   // Any filter change starts back at page 1.
   useEffect(() => { setPage(1); }, [kind, genre, sort]);

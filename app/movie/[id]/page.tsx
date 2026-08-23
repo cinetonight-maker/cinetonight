@@ -8,6 +8,7 @@ import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { posterLg } from "@/lib/images";
+import { validYear, displayCert, displayPeople, hasDisplayableRating, releaseStatus } from "@/lib/quality";
 import type { Movie } from "@/lib/types";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
@@ -63,11 +64,19 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // the bare movie name (which ranks against IMDb/Wikipedia and every other
   // big site — long-tail intent phrases are the gap a small new site can
   // actually win).
-  const title = `${m.title} (${m.year}) — Cast, Trailer & Where to Watch`;
+  // Phase 2: year 0 must never reach a <title> tag; upcoming titles say so
+  // honestly instead of implying the film is watchable today.
+  const yearTag = validYear(m.year) ? ` (${m.year})` : "";
+  const upcoming = releaseStatus(m) === "upcoming";
+  const title = upcoming
+    ? `${m.title}${yearTag} — Release Date, Cast & Trailer`
+    : `${m.title}${yearTag} — Cast, Trailer & Where to Watch`;
   // Intent phrase FIRST, then synopsis, capped at snippet length — Google
   // truncates ~160 chars, so the old 300-char version buried the call to
   // action past the ellipsis.
-  const description = `Watch ${m.title} (${m.year}) — trailer, cast, ratings & where to stream. ${m.desc}`.slice(0, 158);
+  const description = (upcoming
+    ? `${m.title}${yearTag} — release date, trailer, cast & everything confirmed so far. ${m.desc}`
+    : `Watch ${m.title}${yearTag} — trailer, cast, ratings & where to stream. ${m.desc}`).slice(0, 158);
   const image = posterLg(m);
   const url = `${baseUrl()}/movie/${m.id}`;
   return {
@@ -144,26 +153,36 @@ export default async function MoviePage({ params }: Params) {
     { name: m.title },
   ]);
 
+  // Phase 2 hygiene: series are typed TVSeries (not Movie), year 0 never
+  // becomes datePublished, "NR" never becomes contentRating, a placeholder
+  // "—" never becomes a Person, and aggregateRating only exists when there
+  // are REAL votes — fabricating ratingCount: 1 risks a structured-data
+  // penalty. Upcoming titles get no datePublished at all.
+  const directorNames = displayPeople(m.director);
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Movie",
+    "@type": m.kind === "series" ? "TVSeries" : "Movie",
     name: m.title,
     image: posterLg(m),
     description: m.desc,
     url: `${baseUrl()}/movie/${m.id}`,
-    datePublished: String(m.year),
-    genre: m.genres,
-    inLanguage: m.language || undefined,
-    contentRating: m.cert || undefined,
-    duration: toIsoDuration(m.runtime),
-    director: m.director
-      ? m.director.split(",").map((name) => ({ "@type": "Person", name: name.trim() })).filter((p) => p.name)
+    datePublished: releaseStatus(m) === "released" && validYear(m.year)
+      ? (m.releaseDate ?? String(m.year))
       : undefined,
+    genre: m.genres.filter(Boolean),
+    inLanguage: m.language && m.language !== "—" ? m.language : undefined,
+    contentRating: displayCert(m.cert) ?? undefined,
+    duration: toIsoDuration(m.runtime),
+    ...(m.kind === "series" ? {} : {
+      director: directorNames
+        ? directorNames.split(",").map((name) => ({ "@type": "Person", name: name.trim() }))
+        : undefined,
+    }),
     actor: m.cast?.length
       ? m.cast.slice(0, 10).map((c) => ({ "@type": "Person", name: c.name }))
       : undefined,
-    aggregateRating: m.rating
-      ? { "@type": "AggregateRating", ratingValue: m.rating, bestRating: 10, ratingCount: m.votes || 1 }
+    aggregateRating: hasDisplayableRating(m)
+      ? { "@type": "AggregateRating", ratingValue: m.rating, bestRating: 10, ratingCount: m.votes }
       : undefined,
   };
 

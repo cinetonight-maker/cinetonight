@@ -1,4 +1,6 @@
 import type { Movie, MovieKind } from "./types";
+import { rankByWeightedRating, discoveryFilter, titleTier, latestEligible } from "./quality";
+import { canonicalPersonId, parsePersonTmdbId } from "./personUrl";
 
 /**
  * Server-side TMDB access. The API key never reaches the browser — search goes
@@ -27,13 +29,18 @@ export function parseTmdbId(slug: string): { kind: MovieKind; id: string } | nul
   return m ? { kind: m[1] === "t" ? "series" : "movie", id: m[2] } : null;
 }
 
-/** Same idea, for a person who isn't in the local catalogue's cast list. */
+/** Same idea, for a person who isn't in the local catalogue's cast list.
+ *
+ *  Phase 4A: the person URL rule moved to lib/personUrl.ts, which is also
+ *  where /person/[id] reads its canonical and redirect logic from. These stay
+ *  exported here so every existing call site keeps working, but there is now
+ *  ONE definition of "what is a person's URL". Two copies of that rule is
+ *  precisely how the site ended up serving four addresses for one actor —
+ *  and if the builder and the parser ever disagreed, the new redirect would
+ *  bounce between them forever. */
 export const personTmdbId = (id: number | string, name?: string) =>
-  `tmdb-p-${id}` + (name ? `-${seoSlug(name)}` : "");
-export function parsePersonTmdbId(slug: string): string | null {
-  const m = /^tmdb-p-(\d+)(?:-[a-z0-9-]*)?$/.exec(slug);
-  return m ? m[1] : null;
-}
+  canonicalPersonId({ tmdbId: id, name: name ?? "" });
+export { parsePersonTmdbId };
 
 /* ---------------------------------------------------------------------------
  * Caching policy for TMDB responses.
@@ -57,8 +64,11 @@ const TTL = {
   steady: 60 * 60 * 24, // 1 day
   /** Trending, now playing, on the air, popular, upcoming: genuinely daily. */
   fresh: 60 * 60 * 6, // 6 hours
-  /** Free-text search: many one-off keys, so keep them short-lived. */
-  search: 60 * 60, // 1 hour
+  /** Cached /search calls. User-typed queries never come through here any
+   *  more (searchTmdb is no-store), so the only cached search traffic is
+   *  BOUNDED internal title-matching (classics enrichment) - and its 1h TTL
+   *  was silently capping the free-movies routes at 1 hour. */
+  search: 60 * 60 * 24, // 24 hours
 } as const;
 
 function ttlFor(path: string): number {
@@ -148,6 +158,9 @@ function fromSearchHit(hit: any): Movie | null {
     tmdbId: hit.id,
     title,
     year: Number(date.slice(0, 4)) || 0,
+    releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    popularity: Number(hit.popularity ?? 0) || 0,
+    originCountry: (Array.isArray(hit.origin_country) && hit.origin_country[0]) || null,
     genres: [],
     kind,
     rating: Number((hit.vote_average ?? 0).toFixed(1)),
@@ -228,6 +241,9 @@ export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | n
     tmdbId: Number(id),
     title: (isTv ? d.name : d.title) || "Untitled",
     year: Number(date.slice(0, 4)) || 0,
+    releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    popularity: Number(d.popularity ?? 0) || 0,
+    originCountry: (isTv ? d.origin_country?.[0] : d.production_countries?.[0]?.iso_3166_1) || null,
     genres: (d.genres ?? []).map((g: any) => g.name).slice(0, 3),
     kind,
     rating: Number((d.vote_average ?? 0).toFixed(1)),
@@ -357,6 +373,9 @@ function fromDiscoverHit(hit: any, kind: MovieKind, genres: Record<number, strin
     tmdbId: hit.id,
     title,
     year: Number(date.slice(0, 4)) || 0,
+    releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    popularity: Number(hit.popularity ?? 0) || 0,
+    originCountry: (Array.isArray(hit.origin_country) && hit.origin_country[0]) || null,
     genres: (hit.genre_ids ?? []).map((g: number) => genres[g]).filter(Boolean).slice(0, 3),
     kind,
     rating: Number((hit.vote_average ?? 0).toFixed(1)),
@@ -427,9 +446,17 @@ const kindsFor = (kind: MovieKind | "all"): MovieKind[] => (kind === "all" ? ["m
 export async function latestReleasesTmdb(kind: MovieKind | "all" = "movie", limit = 6, region?: string): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
   const lists = await Promise.all(
+    // Phase 2 (revised after live verification): fetch with the original
+    // vote floor of 1 and decide eligibility IN MEMORY via latestEligible —
+    // votes >= 10, OR the freshness rescue (popularity >= 20 + poster +
+    // real overview + released within the last 14 days). A pure vote floor
+    // at the API level excluded real day-one releases (e.g. a major
+    // franchise film 24h after release with 7 votes), while 1-vote junk is
+    // still rejected because its popularity sits near zero.
     kindsFor(kind).map((k) => discoverLive(k, k === "series" ? "first_air_date.desc" : "primary_release_date.desc", limit, 1, region))
   );
-  return lists.flat().sort((a, b) => b.year - a.year || (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+  const fresh = lists.flat().filter(latestEligible);
+  return discoveryFilter(fresh.sort((a, b) => b.year - a.year || (b.votes ?? 0) - (a.votes ?? 0))).slice(0, limit);
 }
 
 /** "Trending" row — matches TMDB.com's own Trending list exactly when no
@@ -440,12 +467,15 @@ export async function trendingLiveTmdb(kind: MovieKind | "all" = "all", limit = 
   if (!tmdbConfigured) return [];
   if (!region) {
     const [mg, tg] = await Promise.all([genreMap("movie"), genreMap("series")]);
+    // Ranking stays exactly TMDB's trending order (data-driven); the only
+    // intervention is dropping Tier C records (no poster AND no overview,
+    // broken metadata) before display. See lib/quality.titleTier.
     if (kind === "all") {
       const { results } = await trendingAllPage("day", 1);
-      return mapTrendingHits(results, mg, tg).slice(0, limit);
+      return mapTrendingHits(results, mg, tg).filter((m) => titleTier(m) !== "C").slice(0, limit);
     }
     const { results } = await trendingPage(kind, "day", 1);
-    return mapTrendingHits(results, mg, tg).slice(0, limit);
+    return mapTrendingHits(results, mg, tg).filter((m) => titleTier(m) !== "C").slice(0, limit);
   }
   const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "popularity.desc", limit, 5, region)));
   return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
@@ -454,8 +484,12 @@ export async function trendingLiveTmdb(kind: MovieKind | "all" = "all", limit = 
 /** "Top Rated" row — highest rated right now, straight from TMDB (global mix unless `region` is set). */
 export async function topRatedTmdb(kind: MovieKind | "all" = "all", limit = 6, region?: string): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
+  // Over-fetch is free here (discoverLive already returns a full TMDB page);
+  // the confidence-aware re-rank below decides the final order. See
+  // lib/quality.rankByWeightedRating: WR = (v/(v+m))R + (m/(v+m))C, so a
+  // 10.0-from-2-votes record can no longer outrank an 8.7-from-30k classic.
   const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "vote_average.desc", limit, region ? 50 : 200, region)));
-  return lists.flat().sort((a, b) => b.rating - a.rating).slice(0, limit);
+  return rankByWeightedRating(discoveryFilter(lists.flat())).slice(0, limit);
 }
 
 /** Convenience category rows for the homepage. */
@@ -476,6 +510,17 @@ export const chineseTmdb = (kind: MovieKind | "all" = "all", limit = 6) => trend
  *  needs to filter by original language instead, not country, to actually
  *  be a different list. */
 export const teluguTmdb = (kind: MovieKind | "all" = "all", limit = 6) => languageTmdb("te", kind, limit);
+/** South Indian — Telugu + Tamil cinema merged (Phase 3 Explore tab). Two
+ *  bounded language queries, interleaved by vote strength. Malayalam/Kannada
+ *  can join later by adding codes here — same closed pattern. */
+export async function southIndianTmdb(kind: MovieKind | "all" = "all", limit = 6): Promise<Movie[]> {
+  const [te, ta] = await Promise.all([languageTmdb("te", kind, limit), languageTmdb("ta", kind, limit)]);
+  const seen = new Set<string>();
+  return [...te, ...ta]
+    .filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)))
+    .sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0))
+    .slice(0, limit);
+}
 
 async function languageTmdb(lang: string, kind: MovieKind | "all", limit: number): Promise<Movie[]> {
   if (!tmdbConfigured) return [];
@@ -1010,12 +1055,13 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
   if (!tmdbConfigured) return null;
   if (kind !== "all") {
     const { results, totalPages } = await discoverPage(kind, sort, genre, page);
-    return { results, page, totalPages };
+    const clean = results.filter((m) => titleTier(m) !== "C");
+    return { results: sort === "rating" ? rankByWeightedRating(clean) : clean, page, totalPages };
   }
   // "all" — merge a movie page and a tv page for the same page number.
   const [m, t] = await Promise.all([discoverPage("movie", sort, genre, page), discoverPage("series", sort, genre, page)]);
-  const merged = [...m.results, ...t.results];
-  if (sort === "rating") merged.sort((a, b) => b.rating - a.rating);
+  const merged = [...m.results, ...t.results].filter((x) => titleTier(x) !== "C");
+  if (sort === "rating") merged.sort(() => 0); // handled below — see rankByWeightedRating
   else if (sort === "year") merged.sort((a, b) => b.year - a.year);
   else if (sort === "az") merged.sort((a, b) => a.title.localeCompare(b.title));
   else merged.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
@@ -1025,15 +1071,19 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
   // tv page here silently doubled "all" pages to up to 40 results, so
   // pagination behaved differently depending on which filter was active.
   const BROWSE_PAGE_SIZE = 15;
-  return { results: merged.slice(0, BROWSE_PAGE_SIZE), page, totalPages: Math.min(m.totalPages, t.totalPages) };
+  const ordered = sort === "rating" ? rankByWeightedRating(merged) : merged;
+  return { results: ordered.slice(0, BROWSE_PAGE_SIZE), page, totalPages: Math.min(m.totalPages, t.totalPages) };
 }
 
 /** Similar/recommended titles, for the detail page rails. */
 export async function relatedTmdb(kind: MovieKind, id: string, limit = 8): Promise<Movie[]> {
   const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/recommendations`);
   if (!d?.results) return [];
-  return d.results
+  const mapped = d.results
     .map((r: any) => fromSearchHit({ ...r, media_type: kind === "series" ? "tv" : "movie" }))
-    .filter(Boolean)
-    .slice(0, limit) as Movie[];
+    .filter(Boolean) as Movie[];
+  // Recommendations must pass catalogue eligibility (Tier A, topping up from
+  // Tier B only if the shelf would run short) — an in-memory filter of a
+  // response we already paid for. See lib/quality.discoveryFilter.
+  return discoveryFilter(mapped, Math.min(4, limit)).slice(0, limit);
 }

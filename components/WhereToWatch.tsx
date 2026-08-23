@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import Icon from "./Icon";
 import type { Movie } from "@/lib/types";
 import type { WatchPayload } from "@/lib/watchRows";
+import { trackProviderClicked, toMediaType, type Surface } from "@/lib/analytics";
 
 /** "Where to Watch" — now a client island. The movie page is statically
  *  cached (ISR) for everyone; this component fetches the visitor's OWN
  *  country's availability from /api/watch after load. Crawlers don't run
  *  JS, so bot traffic never pays the availability cost. */
-export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmdbId" | "kind" | "title"> }) {
+export default function WhereToWatch({ movie, surface = "unknown" }: { movie: Pick<Movie, "id" | "tmdbId" | "kind" | "title">; surface?: Surface }) {
   const [data, setData] = useState<WatchPayload | null>(null);
 
   useEffect(() => {
@@ -50,7 +51,11 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
         </p>
         <div className="w2w__searches">
           {searchLinks.map((l) => (
-            <a key={l.url} className="w2w__searchbtn" href={l.url} target="_blank" rel="noopener noreferrer nofollow">
+            <a key={l.url} className="w2w__searchbtn" href={l.url} target="_blank" rel="noopener noreferrer nofollow"
+              onClick={() => trackProviderClicked({
+                provider: l.label.toLowerCase().includes("youtube") ? "youtube_search" : "web_search",
+                surface, media_type: toMediaType(movie.kind), tmdb_id: movie.tmdbId ?? undefined,
+              })}>
               <span className="w2w__searchlabel">{l.label}</span>
               <span className="w2w__searchnote">{l.note}</span>
             </a>
@@ -81,6 +86,11 @@ export default function WhereToWatch({ movie }: { movie: Pick<Movie, "id" | "tmd
             target="_blank"
             rel="noopener noreferrer nofollow sponsored"
             style={{ borderColor: `color-mix(in srgb, ${o.color} 30%, var(--line))` }}
+            // Watch-intent event, fired on the CLICK only (never on render),
+            // and never blocking the navigation - the tab opens regardless.
+            onClick={() => trackProviderClicked({
+              provider: o.key, surface, media_type: toMediaType(movie.kind), tmdb_id: movie.tmdbId ?? undefined,
+            })}
           >
             <span className={`w2w__logo${o.squareLogo ? " w2w__logo--sq" : ""}`}>
               {o.logo ? (

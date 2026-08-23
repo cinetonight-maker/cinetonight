@@ -1,7 +1,9 @@
 import "server-only";
+import { rankByWeightedRating, discoveryFilter } from "./quality";
 import { cache } from "react";
 import type { Movie, Blog, Review, RowConfig, SiteConfig, ContinueItem, CastCredit } from "./types";
-import { supabasePublic } from "./supabase/public";
+import { supabasePublic, PUBLIC_TTL } from "./supabase/public";
+import { personSlug } from "./personUrl";
 import moviesJson from "@/content/movies.json";
 import siteJson from "@/content/site.json";
 
@@ -48,12 +50,19 @@ function blogFromRow(r: any): Blog {
     excerpt: r.excerpt,
     body: r.body ?? [],
     imageUrl: r.image_url ?? null,
+    imageAlt: r.image_alt ?? null,
+    tags: Array.isArray(r.tags) ? r.tags : [],
     date: r.date_label ?? "",
     read: r.read_label ?? "",
     status: r.status,
     metaTitle: r.meta_title || undefined,
     metaDescription: r.meta_description || undefined,
     publishAt: r.publish_at ?? null,
+    focusKeyword: r.focus_keyword || undefined,
+    secondaryKeywords: Array.isArray(r.secondary_keywords) ? r.secondary_keywords : [],
+    canonicalUrl: r.canonical_url || null,
+    ogImage: r.og_image || null,
+    noindex: r.noindex === true,
   };
 }
 
@@ -67,7 +76,10 @@ function blogFromRow(r: any): Blog {
 // it's cleared for every new request, so it can never serve stale data
 // across requests (unlike the fetch-cache issue fixed in lib/supabase/*).
 export const getMovies = cache(async (): Promise<Movie[]> => {
-  const sb = supabasePublic();
+  // catalogue tier (6h): the sync adds a handful of titles a day, and this
+  // fetch runs inside movie/listing routes - a shorter TTL here would become
+  // those routes' effective revalidate ceiling (see lib/supabase/public.ts).
+  const sb = supabasePublic(PUBLIC_TTL.catalogue);
   if (sb) {
     const { data, error } = await sb.from("movies").select("*").order("year", { ascending: false });
     // An empty result almost always means the one-time migration script
@@ -80,17 +92,17 @@ export const getMovies = cache(async (): Promise<Movie[]> => {
 });
 
 export const getMovie = cache(async (id: string): Promise<Movie | null> => {
-  const sb = supabasePublic();
-  if (sb) {
-    const { data, error } = await sb.from("movies").select("*").eq("id", id).maybeSingle();
-    if (!error && data) return movieFromRow(data);
-    // On "reached Supabase but no row" we still fall through to the built-in
-    // catalogue below: listing pages already fall back to it when the table
-    // is empty, so without this a card the homepage renders could click
-    // through to a 404 (exactly what happened live after the movies table
-    // lost its curated rows). DB row wins when present; JSON is the net.
-  }
-  return FALLBACK_MOVIES.find((m) => m.id === id) ?? null;
+  // Resolved against the FULL cached list, never a per-id query. The old
+  // per-id `.eq("id", <id>)` version embedded every requested id - including
+  // every live-TMDB id and any junk a crawler invents - in its own Supabase
+  // fetch URL, and every unique fetch URL is its own R2 data-cache entry.
+  // Movie ids are an unbounded space, so that was an unbounded cache writer
+  // sitting on the hottest route family on the site. It was also redundant:
+  // getMovies() selects the whole table, so any row the per-id query could
+  // find is already in this list, and the bundled-JSON fallback below covers
+  // the empty-table case exactly as before. DB row wins when present.
+  const all = await getMovies();
+  return all.find((m) => m.id === id) ?? FALLBACK_MOVIES.find((m) => m.id === id) ?? null;
 });
 
 export const movieIds = async () => (await getMovies()).map((m) => m.id);
@@ -135,8 +147,10 @@ export const recentlyAdded = cache(async (kind: Movie["kind"], n = 6): Promise<M
 });
 
 export const genresOf = (movies: Movie[]): string[] => Array.from(new Set(movies.flatMap((m) => m.genres))).sort();
-export const topRated = (movies: Movie[], n = 4) => movies.slice().sort((a, b) => b.rating - a.rating).slice(0, n);
-export const trendingNow = (movies: Movie[], n = 5) => movies.slice().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, n);
+// Phase 2: confidence-aware (Bayesian) instead of raw vote_average — see
+// lib/quality.rankByWeightedRating for the formula and thresholds.
+export const topRated = (movies: Movie[], n = 4) => rankByWeightedRating(movies).slice(0, n);
+export const trendingNow = (movies: Movie[], n = 5) => discoveryFilter(movies.slice().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0))).slice(0, n);
 export const newestSeries = (movies: Movie[], n = 4) =>
   movies.filter((m) => m.kind === "series").sort((a, b) => b.year - a.year).slice(0, n);
 
@@ -172,6 +186,16 @@ export const getSiteConfig = cache(async (): Promise<Omit<SiteConfig, "blog">> =
 // same way without breaking that.
 const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label, read_label, status, publish_at, created_at";
 
+/** The SEO columns supabase/blog_seo.sql adds. Selected SEPARATELY, with a
+ *  fallback, because naming a column that does not exist yet fails the WHOLE
+ *  query — which would blank the blog on an install that has not run that file.
+ *
+ *  The sitemap needs `noindex` and `canonical_url`: without them it happily
+ *  submits a post you have marked "hide from search", which Search Console
+ *  reports as an error against a signal you deliberately set. Bodies are still
+ *  excluded — this stays a light query. */
+const BLOG_SEO_COLUMNS = "noindex, canonical_url";
+
 /** Is this row visible on the site right now?
  *
  *  Evaluated in JS, NOT in the Supabase query - and that distinction is a
@@ -185,27 +209,46 @@ const BLOG_LIST_COLUMNS = "id, slug, title, cat, excerpt, image_url, date_label,
  *  and doing the time comparison here costs a few filtered rows and makes
  *  the query cacheable - and scheduled posts still go live at the exact
  *  minute, on the next ISR render after their time passes. */
-const isLiveNow = (row: { status?: string; publish_at?: string | null }) =>
+const isLiveNow = (row: Record<string, unknown>) =>
   row.status === "published" ||
-  (row.status === "scheduled" && !!row.publish_at && new Date(row.publish_at).getTime() <= Date.now());
+  (row.status === "scheduled" && !!row.publish_at && new Date(row.publish_at as string).getTime() <= Date.now());
 
-export const getBlogs = cache(async (): Promise<Blog[]> => {
-  const sb = supabasePublic();
+/** `ttl` picks the freshness tier and MATTERS for route ceilings: blog
+ *  SURFACES (/blog, /blog/[slug], RSS) use the default 30-min tier so a
+ *  scheduled post appears on time - but embedded teasers (BlogSection on
+ *  genres/listing pages, BlogWidget on movie pages) pass the 6h catalogue
+ *  tier, because a teaser being a few hours stale is invisible while its
+ *  fetch TTL was silently capping every HOST route at 30 minutes. */
+export const getBlogs = cache(async (ttl: number = PUBLIC_TTL.default): Promise<Blog[]> => {
+  // Tagged so an admin Publish/Update can mark exactly this query stale
+  // (lib/revalidateCms.ts). The TTL tier is unchanged.
+  const sb = supabasePublic(ttl as never, ["cms:blog"]);
   if (sb) {
-    const { data, error } = await sb
+    const list = (columns: string) => sb
       .from("blog_posts")
-      .select(BLOG_LIST_COLUMNS)
+      .select(columns)
       .in("status", ["published", "scheduled"])
       .order("created_at", { ascending: false });
+
+    // Try with the SEO columns; fall back to the base set if blog_seo.sql has
+    // not been run. Two fixed query URLs, so the data cache stays bounded.
+    let { data, error } = await list(`${BLOG_LIST_COLUMNS}, ${BLOG_SEO_COLUMNS}`);
+    if (error) ({ data, error } = await list(BLOG_LIST_COLUMNS));
     // Same reasoning as getMovies(): an empty table before migration
     // shouldn't render a blank blog section.
-    if (!error && data && data.length > 0) return data.filter(isLiveNow).map(blogFromRow);
+    // The cast is needed because the column list is a runtime string, so
+    // PostgREST's types degrade to GenericStringError[] — the same cast the
+    // media-usage route needs for the same reason.
+    const rows = (data ?? []) as unknown as Record<string, unknown>[];
+    if (!error && rows.length > 0) return rows.filter(isLiveNow).map(blogFromRow);
   }
   return FALLBACK_SITE.blog ?? [];
 });
 
 export const getBlog = cache(async (slug: string): Promise<Blog | null> => {
-  const sb = supabasePublic();
+  // Tagged with BOTH the collection tag and this post's own tag, so a
+  // publish can invalidate one article without touching the others.
+  const sb = supabasePublic(PUBLIC_TTL.default, ["cms:blog", `cms:blog:${slug}`]);
   if (sb) {
     // Membership check against the LIST first (one stable, cached query URL).
     // Without it, every /blog/<junk> a crawler or attacker requested embedded
@@ -252,7 +295,7 @@ const FALLBACK_SETTINGS: SiteSettings = {
 // come from here, and RootLayout uses maintenanceMode to gate the whole
 // public site (see components/MaintenanceGate.tsx).
 export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
-  const sb = supabasePublic();
+  const sb = supabasePublic(PUBLIC_TTL.stable, ["cms:settings"]);
   if (sb) {
     const { data, error } = await sb.from("site_settings").select("*").eq("id", 1).maybeSingle();
     if (!error && data) {
@@ -273,7 +316,12 @@ export const getSiteSettings = cache(async (): Promise<SiteSettings> => {
 
 /* ------------------------------- people ----------------------------------- */
 
-export const personId = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+/** Phase 4A: this was a second, subtly DIFFERENT copy of the person slug rule
+ *  — it had no `.slice(0, 60)`, so a name longer than 60 characters produced a
+ *  link (built by lib/tmdb.ts) that this lookup could never match. Now both
+ *  read lib/personUrl.ts, which is also what the route's canonical/redirect
+ *  logic uses, so the three can no longer disagree. */
+export const personId = personSlug;
 
 export const peopleOf = (movies: Movie[]): CastCredit[] =>
   Array.from(new Map(movies.flatMap((m) => m.cast.map((c) => [c.name, c] as const))).values());

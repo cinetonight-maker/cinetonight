@@ -14,5 +14,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ genre?: string }> }) {
   const { genre } = await searchParams;
-  return <ListingPage title="Movies" sub="Blockbusters, classics and everything in between." kind="movie" defaultSort="year" genre={genre} />;
+  return <ListingPage path="/movies" title="Movies" sub="Blockbusters, classics and everything in between." kind="movie" defaultSort="year" genre={genre} />;
 }

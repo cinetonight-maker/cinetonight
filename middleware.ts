@@ -1,5 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { canonicalGenre } from "@/lib/genres";
+import { guardPath } from "@/lib/pathGuard";
+
+/** The five browse hubs that accept `?genre=`. A closed, hard-coded list —
+ *  see the genre block inside middleware() for why this check lives here. */
+const GENRE_HUBS: ReadonlySet<string> = new Set([
+  "/movies", "/tv-shows", "/web-series", "/trending", "/latest",
+]);
 
 /**
  * Two jobs, on two different scopes:
@@ -24,6 +32,89 @@ export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const { pathname } = request.nextUrl;
+
+  /* ------------------------------------------------------------------------
+   * R2 CONTAINMENT (Phase 4B-2).
+   *
+   * Measured: an invented slug on an ISR route makes Next render the not-found
+   * result and PERSIST it — one R2 object per invented URL, 77 KB and up, on
+   * an unbounded URL space. Twenty junk requests produced twenty permanent
+   * objects. That is the mechanism that took the bucket to 2.79M objects.
+   *
+   * The write happens because the route RENDERED, so the check has to be
+   * BEFORE rendering — which means here. A request answered in middleware
+   * never reaches the route and never creates a cache entry.
+   *
+   * It only rejects what CANNOT be real: a malformed TMDB id, an id above the
+   * plausible ceiling, an over-long segment, or characters no slug this site
+   * generates contains. An unknown-but-well-formed slug is passed through,
+   * because the catalogue and the blog grow from the dashboard and middleware
+   * cannot see the database. Rejecting something valid would take a real page
+   * off the site; letting something invalid through costs one cache object.
+   *
+   * Pure string work — a regex and a length check. No database, no network,
+   * nothing that can throw. See lib/pathGuard.ts.
+   * --------------------------------------------------------------------- */
+  const impossible = guardPath(pathname);
+  if (impossible) {
+    return new NextResponse(null, {
+      status: 404,
+      headers: {
+        // Never cache this anywhere: the whole point is that it costs nothing
+        // to answer, and a cached 404 for an unbounded URL space is the
+        // problem we are removing rather than a smaller version of it.
+        "cache-control": "no-store",
+        "x-cinetonight-guard": impossible,
+      },
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+   * ONE URL PER GENRE — a real 308, before anything renders. (Phase 4A)
+   *
+   * /movies?genre=<anything> used to return 200 with a UNIQUE self-canonical
+   * and a unique <title> while rendering the plain unfiltered hub. Five hubs
+   * times an unlimited set of values is an unbounded space of indexable
+   * duplicates. Same for TMDB's TV-side names ("Action & Adventure"), which
+   * do not filter a movie query — the sitemap was submitting one of those.
+   *
+   * WHY MIDDLEWARE AND NOT THE PAGE: this was implemented in the page first
+   * and then measured in the real Cloudflare Worker. An in-render
+   * `permanentRedirect()` there returns HTTP **200** with a client-side
+   * redirect payload, not a 308 — the same class of problem as `notFound()`
+   * returning 200. Middleware is the only layer on this stack where a
+   * redirect is an actual HTTP redirect (verified: `next.config.mjs`'s /p/
+   * rule and this block both emit real 308s).
+   *
+   * WHY NOT A 404 for an unknown genre: `notFound()` is a soft 404 here — a
+   * 200 that Google reports as an error. A redirect removes the duplicate
+   * outright, lands the visitor on a page that works, and consolidates any
+   * standing the junk URL picked up. That is strictly better than either a
+   * soft 404 or a noindex.
+   *
+   * COST AND SAFETY: a Set lookup on the pathname, then one lookup in a
+   * hard-coded static table. No database, no network, no await, no
+   * user-supplied patterns, and nothing here can throw — the whole site
+   * passes through this function, so that matters more than the feature does.
+   * It runs before the Supabase work below, so a redirected request never
+   * pays for a session refresh either.
+   * --------------------------------------------------------------------- */
+  if (GENRE_HUBS.has(pathname)) {
+    const raw = request.nextUrl.searchParams.get("genre");
+    if (raw !== null) {
+      const canonical = canonicalGenre(raw);
+      if (canonical !== raw) {
+        const target = request.nextUrl.clone();
+        // An unrecognised genre drops the parameter entirely rather than
+        // guessing at a replacement — the bare hub is the honest destination.
+        if (canonical) target.searchParams.set("genre", canonical);
+        else target.searchParams.delete("genre");
+        // 308, not 307: this is a permanent statement about which URL owns
+        // the page, which is the half that consolidates ranking signals.
+        return NextResponse.redirect(target, 308);
+      }
+    }
+  }
 
   const isApi = pathname.startsWith("/api/admin/");
   const isDashboard = pathname.startsWith("/admin") && pathname !== "/admin/login";

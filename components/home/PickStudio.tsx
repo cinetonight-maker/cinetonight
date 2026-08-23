@@ -11,7 +11,11 @@ import { openPlayer } from "@/lib/player";
 import { poster, backdrop } from "@/lib/images";
 import { MOODS } from "@/lib/moods";
 import { QUICK_PICKS, quickPickById, moodById, whyItFits, type QuickPick } from "@/lib/quickPicks";
-import { track } from "@/lib/analytics";
+import {
+  trackPickerStarted, trackMoodSelected, trackQuickPickSelected, trackAnotherPick,
+  trackRecommendationViewed, trackRecommendationFailed, trackTrailerPlayed,
+  toMediaType, once, track,
+} from "@/lib/analytics";
 import type { Movie } from "@/lib/types";
 
 /** The homepage's decision engine: Quick Picks, moods and one recommendation,
@@ -56,9 +60,18 @@ export interface PickStudioProps {
   seed: Movie | null;
   /** Rest of the seed pool, used by "Another Pick" before any fetch happens. */
   seedPool: Movie[];
+  /** Which moods and Quick Picks to OFFER, and in what order, from the
+   *  dashboard (lib/discoveryConfig). Presentation only — the ids and the
+   *  rules behind them still come from lib/moods.ts and lib/quickPicks.ts, so
+   *  the API's cache-key space is unchanged whatever is configured here.
+   *  Absent = show everything, which is the shipped behaviour. */
+  discovery?: {
+    moods: { id: string; label: string; icon: string }[];
+    quickPicks: { id: string; label: string; sub: string; icon: string }[];
+  };
 }
 
-export default function PickStudio({ seed, seedPool }: PickStudioProps) {
+export default function PickStudio({ seed, seedPool, discovery }: PickStudioProps) {
   const [quickPickId, setQuickPickId] = useState<string | null>(null);
   const [moodId, setMoodId] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind>("any");
@@ -70,8 +83,10 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   const reqRef = useRef(0);
 
   const pick = pool[index] ?? null;
+  const attemptRef = useRef(0); // "another pick" count within the current pool
   const activeQuickPick = quickPickId ? quickPickById(quickPickId) : undefined;
   const activeMood = moodId ? moodById(moodId) : undefined;
+  const recSource = activeQuickPick ? ("quick_pick" as const) : activeMood ? ("mood" as const) : ("trending" as const);
 
   // After hydration, shuffle everything BEHIND the visible seed. The seed
   // itself must stay put (it is in the server HTML - reordering it would be a
@@ -79,6 +94,12 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   // per visitor instead of replaying the same fixed order.
   useEffect(() => {
     setPool((p) => (p.length > 2 ? [p[0], ...shuffle(p.slice(1))] : p));
+    // The server-rendered seed IS a displayed recommendation. once() guards
+    // Strict Mode double-effects and remounts.
+    if (seed && once("seed-recommendation")) {
+      trackRecommendationViewed({ surface: "homepage", recommendation_source: "trending", media_type: toMediaType(seed.kind), tmdb_id: seed.tmdbId });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Fetch a fresh candidate pool for the current selection. */
@@ -100,10 +121,24 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
       const data = res.ok ? await res.json() : null;
       if (mine !== reqRef.current) return;
       const results: Movie[] = data?.results ?? [];
-      if (results.length) { setPool(shuffle(results)); setIndex(0); }
-      else setFailed(true);
+      if (results.length) {
+        setPool(shuffle(results)); setIndex(0);
+        attemptRef.current = 0; // fresh pool, fresh attempt counter
+        // SUCCESS boundary: a result actually exists and is on screen.
+        trackRecommendationViewed({
+          surface: "homepage",
+          recommendation_source: opts.quick ? "quick_pick" : opts.moodId === "surprise" ? "trending" : "mood",
+          media_type: toMediaType(results[0]?.kind),
+          mood: opts.quick ? undefined : opts.moodId,
+          quick_pick: opts.quick?.id,
+          tmdb_id: results[0]?.tmdbId,
+        });
+      } else {
+        setFailed(true);
+        trackRecommendationFailed({ failure_type: "no_results", surface: "homepage" });
+      }
     } catch {
-      if (mine === reqRef.current) setFailed(true);
+      if (mine === reqRef.current) { setFailed(true); trackRecommendationFailed({ failure_type: "network", surface: "homepage" }); }
     } finally {
       if (mine === reqRef.current) setLoading(false);
     }
@@ -114,7 +149,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   const chooseQuickPick = (q: QuickPick) => {
     const next = quickPickId === q.id ? null : q.id;
     setQuickPickId(next);
-    track("quick_pick_selected", { quick_pick: q.id });
+    trackQuickPickSelected({ quick_pick: q.id, surface: "homepage" });
     if (next) {
       setMoodId(null);
       loadPool({ moodId: q.moodId, quick: q, kind });
@@ -125,7 +160,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   const chooseMood = (id: string) => {
     const next = moodId === id ? null : id;
     setMoodId(next);
-    track("mood_selected", { mood: id });
+    trackMoodSelected({ mood: id, surface: "homepage", media_type: kind === "any" ? undefined : kind });
     if (next) {
       setQuickPickId(null);
       loadPool({ moodId: id, kind });
@@ -134,7 +169,9 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   };
 
   const anotherPick = () => {
-    track("another_pick", {});
+    attemptRef.current += 1;
+    // attempt_number matters: a high count means the first picks missed.
+    trackAnotherPick({ surface: "homepage", attempt_number: attemptRef.current, recommendation_source: recSource });
     setIndex((i) => (pool.length ? (i + 1) % pool.length : 0));
   };
 
@@ -145,7 +182,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
   const chooseKind = (next: Kind) => {
     if (next === kind) return;
     setKind(next);
-    track("kind_selected", { kind: next });
+    track("media_type_selected", { media_type: toMediaType(next === "any" ? undefined : next), surface: "homepage" });
     if (activeQuickPick) loadPool({ moodId: activeQuickPick.moodId, quick: activeQuickPick, kind: next });
     else if (moodId) loadPool({ moodId, kind: next });
     else if (next !== "any") loadPool({ moodId: "surprise", kind: next });
@@ -198,7 +235,12 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
           </div>
         </div>
         <div className="qpicks" role="group" aria-label="Quick Picks">
-          {QUICK_PICKS.map((q) => {
+          {(discovery
+            ? discovery.quickPicks
+                .map((d) => { const q = quickPickById(d.id); return q ? { ...q, label: d.label, sub: d.sub, icon: d.icon } : null; })
+                .filter((q): q is QuickPick => !!q)
+            : QUICK_PICKS
+          ).map((q) => {
             const on = quickPickId === q.id;
             return (
               <button
@@ -227,7 +269,12 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
           </div>
         </div>
         <div className="moodgrid" role="group" aria-label="Choose your mood">
-          {MOODS.map((m) => {
+          {(discovery
+            ? discovery.moods
+                .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
+                .filter((m): m is (typeof MOODS)[number] => !!m)
+            : MOODS
+          ).map((m) => {
             const on = moodId === m.id;
             return (
               <button
@@ -326,7 +373,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
               </div>
 
               <div className="pcard__watch">
-                <WhereToWatch movie={{ id: pick.id, tmdbId: pick.tmdbId, kind: pick.kind, title: pick.title }} />
+                <WhereToWatch movie={{ id: pick.id, tmdbId: pick.tmdbId, kind: pick.kind, title: pick.title }} surface="homepage" />
               </div>
             </div>
 
@@ -335,7 +382,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
                 type="button"
                 className="pcard__trailer"
                 onClick={() => {
-                  track("trailer_play", { title: pick.title, source: "homepage_pick" });
+                  trackTrailerPlayed({ surface: "homepage", media_type: toMediaType(pick.kind), tmdb_id: pick.tmdbId });
                   openPlayer({ title: pick.title, trailerKey: pick.trailerKey ?? null, mode: "trailer" });
                 }}
               >
@@ -350,7 +397,7 @@ export default function PickStudio({ seed, seedPool }: PickStudioProps) {
                 <Link className="pcard__btn pcard__btn--primary" href={`/movie/${pick.id}`}>
                   <Icon name="info" size={15} /> Full details
                 </Link>
-                <WatchlistButton id={pick.id} />
+                <WatchlistButton id={pick.id} kind={pick.kind} surface="homepage" />
               </div>
 
               <TicketStub movie={pick} />

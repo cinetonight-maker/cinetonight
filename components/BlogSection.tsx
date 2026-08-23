@@ -2,6 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import Icon from "./Icon";
 import { getBlogs } from "@/lib/data";
+import GuideLink from "./GuideLink";
+import type { Surface } from "@/lib/analytics";
+import { PUBLIC_TTL } from "@/lib/supabase/public";
 import { img } from "@/lib/images";
 
 /** Blog teaser row.
@@ -14,12 +17,18 @@ export default async function BlogSection({
   count = 3,
   title = "From the Blog",
   sub,
+  analyticsSurface = "unknown",
 }: {
   count?: number;
   title?: string;
   sub?: string;
+  /** Where this teaser is embedded - lets GA answer "which surfaces send
+   *  readers into guides". Controlled Surface value, never free text. */
+  analyticsSurface?: Surface;
 }) {
-  const blogs = await getBlogs();
+  // 6h tier: this teaser renders inside movie/genre/listing routes, so its
+  // fetch TTL is part of THEIR revalidate ceiling. See getBlogs.
+  const blogs = await getBlogs(PUBLIC_TTL.catalogue);
   return (
     <section className="sec">
       <div className="sec__head">
@@ -31,7 +40,7 @@ export default async function BlogSection({
       </div>
       <div className="blog-grid">
         {blogs.slice(0, count).map((b) => (
-          <Link className="blogc" href={`/blog/${b.slug}`} key={b.slug}>
+          <GuideLink className="blogc" href={`/blog/${b.slug}`} slug={b.slug} surface={analyticsSurface} key={b.slug}>
             <div className="blogc__img"><Image fill alt={b.title} src={b.imageUrl || img(`b-${b.slug}`, 600, 340)} sizes="(max-width: 760px) 100vw, 380px" /></div>
             <div className="blogc__b">
               <span className="blogc__cat">{b.cat}</span>
@@ -39,7 +48,7 @@ export default async function BlogSection({
               <p className="blogc__x">{b.excerpt}</p>
               <div className="blogc__meta"><span>{b.date}</span><span>· {b.read} read</span><span className="rd">Read <Icon name="arrow" size={13} /></span></div>
             </div>
-          </Link>
+          </GuideLink>
         ))}
       </div>
     </section>

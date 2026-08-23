@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 import Icon from "./Icon";
 import { drawTicket, canvasToBlob, triggerDownload } from "@/lib/ticket";
 import type { Movie } from "@/lib/types";
+import { trackTicketCreated, trackShare, toMediaType, once } from "@/lib/analytics";
+import { parseTmdbId } from "@/lib/tmdb";
 
 export default function TicketStub({ movie }: { movie: Movie }) {
   const [open, setOpen] = useState(false);
@@ -11,9 +14,9 @@ export default function TicketStub({ movie }: { movie: Movie }) {
   const [posterEmbedded, setPosterEmbedded] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-  }, [open]);
+  // Shared scroll lock — the old version never cleaned up on unmount, so
+  // closing the page with the modal open left the body locked.
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
@@ -24,7 +27,15 @@ export default function TicketStub({ movie }: { movie: Movie }) {
       const canvas = canvasRef.current;
       if (!canvas) return;
       await drawTicket(canvas, movie, { includePoster: true });
-      if (!cancelled) setReady(true);
+      if (!cancelled) {
+        setReady(true);
+        // SUCCESS boundary: the ticket has actually rendered. once() keys on
+        // the title so reopening the same modal doesn't re-fire, while a
+        // ticket for a different title still counts.
+        if (once(`ticket-${movie.id}`)) {
+          trackTicketCreated({ surface: "unknown", media_type: toMediaType(movie.kind), tmdb_id: movie.tmdbId ?? parseTmdbId(movie.id)?.id });
+        }
+      }
     })();
     return () => { cancelled = true; };
   }, [open, movie]);
@@ -51,6 +62,9 @@ export default function TicketStub({ movie }: { movie: Movie }) {
     try {
       const blob = await blobOrFallback();
       triggerDownload(blob, `${movie.id}-cinetonight-ticket.png`);
+      // GA4 recommended `share` event, fired only after the file was
+      // actually produced and handed to the browser.
+      trackShare({ method: "download", content_type: "ticket", item_id: String(movie.tmdbId ?? movie.id) });
     } catch {
       /* canvas truly unreadable — it's still visible on screen to screenshot */
     }
@@ -62,9 +76,13 @@ export default function TicketStub({ movie }: { movie: Movie }) {
       const file = new File([blob], `${movie.id}-cinetonight-ticket.png`, { type: "image/png" });
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
         await navigator.share({ files: [file], title: `${movie.title} — CineTonight ticket` });
+        // Reached only if the user completed the native share sheet
+        // (navigator.share rejects on cancel, landing in catch).
+        trackShare({ method: "native_share", content_type: "ticket", item_id: String(movie.tmdbId ?? movie.id) });
         return;
       }
       triggerDownload(blob, `${movie.id}-cinetonight-ticket.png`);
+      trackShare({ method: "download", content_type: "ticket", item_id: String(movie.tmdbId ?? movie.id) });
     } catch {
       /* user cancelled the share sheet, or nothing could be extracted — no-op */
     }

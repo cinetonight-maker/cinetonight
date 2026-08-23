@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AUTH_EVENT } from "@/lib/auth";
+import { trackSignUp } from "@/lib/analytics";
 
 /** Was a static form with no onSubmit — "Create Account" did nothing.
  *  Handles both possible project configurations: if the Supabase project
@@ -37,6 +38,7 @@ export default function SignUpForm() {
     }
     if (data.session) {
       window.dispatchEvent(new Event(AUTH_EVENT)); // see lib/auth.tsx
+      trackSignUp(); // success boundary: account + session actually created
       router.push("/");
       router.refresh();
       return;

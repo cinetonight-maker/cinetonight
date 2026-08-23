@@ -10,30 +10,51 @@ import { toCard, type Movie } from "@/lib/types";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
+import { factualAbout, displayRating, displayRuntime, displayCert, displayField, displayPeople, validYear, releaseStatus } from "@/lib/quality";
 import InlineTrailer from "./InlineTrailer";
 import WhereToWatch from "./WhereToWatch";
 import EpisodePicker from "./EpisodePicker";
 
-function Det({ rows }: { rows: [string, string][] }) {
-  return <>{rows.map(([k, v]) => (
+function Det({ rows }: { rows: [string, string | null][] }) {
+  // Phase 2: a null value means "we don't have this" — the row is skipped
+  // entirely instead of rendering a dash or a fake value.
+  return <>{rows.filter((r): r is [string, string] => Boolean(r[1])).map(([k, v]) => (
     <div className="det" key={k}><span className="det__k">{k}</span><span className="det__v">{v}</span></div>
   ))}</>;
 }
 
 export default function MovieDetail({ movie, seasons = [], suggestions = [] }: { movie: Movie; seasons?: SeasonInfo[]; suggestions?: Movie[] }) {
-  const stars = movie.cast.slice(0, 3).map((c) => c.name).join(", ") || "—";
   const isSeries = movie.kind === "series";
+  const status = releaseStatus(movie);
 
-  const minfo: [string, string][][] = [
-    [["Release Year", String(movie.year)], ["Runtime", movie.runtime], ["Language", movie.language], ["Certification", movie.cert]],
-    [["Genres", movie.genres.join(", ") || "—"], ["Votes", movie.votes ? movie.votes.toLocaleString("en-US") : "—"], ["Director", movie.director], ["Writers", movie.writers]],
-    [["Type", isSeries ? "Web Series" : "Feature Film"], ["Rating", movie.rating > 0 ? `${movie.rating.toFixed(1)} out of 10` : "Not rated yet"], ["Cast", `${movie.cast.length} credited`], ["Also Known As", movie.title]],
+  // Phase 2: every cell goes through a display helper — a missing value
+  // hides the row (Det skips nulls) instead of showing 0 / NR / a dash.
+  const rating = displayRating(movie);
+  const minfo: [string, string | null][][] = [
+    [
+      ["Release Year", validYear(movie.year) ? String(movie.year) : null],
+      ["Status", status === "upcoming" ? "Upcoming" : null],
+      ["Runtime", displayRuntime(movie.runtime)],
+      ["Language", displayField(movie.language)],
+      ["Certification", displayCert(movie.cert)],
+    ],
+    [
+      ["Genres", movie.genres.filter(Boolean).join(", ") || null],
+      ["Votes", movie.votes ? movie.votes.toLocaleString("en-US") : null],
+      [isSeries ? "Created By" : "Director", displayPeople(movie.director)],
+      ["Writers", displayPeople(movie.writers)],
+    ],
+    [
+      ["Type", isSeries ? "Web Series" : "Feature Film"],
+      // Zero votes never masquerades as a real score; upcoming titles have
+      // no audience yet, so "Not rated yet" only appears for released work.
+      ["Rating", rating ? `${rating} out of 10` : status === "released" ? "Not rated yet" : null],
+      ["Cast", movie.cast.length ? `${movie.cast.length} credited` : null],
+    ],
   ];
-  const about = [
-    movie.desc,
-    `Directed by ${movie.director}, ${movie.title} leans on a strong ensemble — ${stars} — to carry a story that balances spectacle with character.`,
-    `${isSeries ? "The series" : "The film"} landed with audiences for its craft and performances, and remains one of the most talked-about ${(movie.genres[0] ?? "screen").toLowerCase()} titles of ${movie.year}.`,
-  ];
+  // Factual-only About: built strictly from verified data (lib/quality).
+  // No invented audience/critic reception; future titles get future wording.
+  const about = factualAbout(movie);
 
   return (
     <>
@@ -58,22 +79,23 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
             ))}
           </div>
           <div className="dbar__meta">
-            {movie.rating > 0 && <><span className="dbar__rate"><Icon name="star" size={13} /> {movie.rating.toFixed(1)}</span>
-            <span className="dot">·</span></>}<span>{movie.year}</span>
-            <span className="dot">·</span><span>{movie.runtime}</span>
-            {movie.cert && movie.cert !== "NR" && <><span className="dot">·</span><span className="cert">{movie.cert}</span></>}
+            {rating && <><span className="dbar__rate"><Icon name="star" size={13} /> {rating}</span>
+            <span className="dot">·</span></>}{validYear(movie.year) && <span>{movie.year}</span>}
+            {status === "upcoming" && <><span className="dot">·</span><span className="cert">Upcoming</span></>}
+            {displayRuntime(movie.runtime) && <><span className="dot">·</span><span>{movie.runtime}</span></>}
+            {displayCert(movie.cert) && <><span className="dot">·</span><span className="cert">{movie.cert}</span></>}
           </div>
         </div>
         <div className="dbar__acts">
           {/* No Watch Now button here — the inline trailer right above IS
               the play action; a second play button was redundant. */}
-          <WatchlistButton id={movie.id} />
+          <WatchlistButton id={movie.id} kind={movie.kind} surface={movie.kind === "series" ? "series_detail" : "movie_detail"} />
           <TicketStub movie={movie} />
         </div>
       </section>
 
       <section className="sec">
-        <WhereToWatch movie={movie} />
+        <WhereToWatch movie={movie} surface={movie.kind === "series" ? "series_detail" : "movie_detail"} />
       </section>
 
       {/* Series only: pick a season → tap an episode → its trailer plays.
@@ -89,7 +111,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
         />
       )}
 
-      <section className="sec">
+      {movie.cast.length > 0 && <section className="sec">
         <div className="sec__head"><h2>Cast</h2></div>
         <div className="railwrap"><div className="rail castrail">
           {movie.cast.map((c) => (
@@ -104,7 +126,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
             </Link>
           ))}
         </div></div>
-      </section>
+      </section>}
 
       <section className="sec">
         <div className="sec__head"><h2>Movie Info &amp; Details</h2></div>

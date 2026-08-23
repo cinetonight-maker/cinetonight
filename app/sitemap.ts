@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
-import { getMovies, getBlogs, genresOf, peopleOf, personId } from "@/lib/data";
+import { getMovies, getBlogs, genresOf } from "@/lib/data";
+import { canonicalGenre } from "@/lib/genres";
 import { CHANNELS } from "@/lib/channels";
 import { getClassics } from "@/lib/classics";
 import { supabasePublic } from "@/lib/supabase/public";
@@ -54,8 +55,12 @@ async function tmdbSitemapMovies(): Promise<{ id: string }[]> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = baseUrl();
   const [movies, blogs, tmdbMovies] = await Promise.all([getMovies(), getBlogs(), tmdbSitemapMovies()]);
-  const genres = genresOf(movies);
-  const people = peopleOf(movies);
+
+  // Catalogue genre names folded onto the canonical browse-genre names and
+  // deduped — see the genre block below for why.
+  const genres = Array.from(
+    new Set(genresOf(movies).map(canonicalGenre).filter((g): g is NonNullable<typeof g> => !!g)),
+  ).sort();
 
   // NO `lastModified: new Date()` anywhere in this file any more. Stamping
   // every URL with "modified this second" on every crawl told Google the
@@ -75,6 +80,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/latest", priority: 0.7 },
     { path: "/genres", priority: 0.6 },
     { path: "/blog", priority: 0.6 },
+    // Added Phase 4A: /discover was linked from the homepage but absent here,
+    // which is contradictory signalling about a page the site clearly treats
+    // as useful. It is canonical, ISR-cached for a day and does zero data
+    // fetches, so listing it costs nothing.
+    { path: "/discover", priority: 0.6 },
   ].map(({ path, priority }) => ({ url: `${base}${path}`, changeFrequency: "daily" as const, priority }));
 
   // Channel pages ("what's streaming on Netflix/Prime/JioHotstar/..." )
@@ -121,21 +131,53 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // The one honest date we hold: a post's publish time.
-  const blogRoutes: MetadataRoute.Sitemap = blogs.map((b) => ({
+  //
+  // FILTERED, and this was a real bug: the sitemap listed every live post
+  // regardless of its own SEO settings, so a post marked "hide from search"
+  // was still SUBMITTED for indexing, and a post whose canonical points
+  // elsewhere was still advertised as the original. Search Console reports the
+  // first as "Submitted URL marked noindex" — an error, against a signal the
+  // author deliberately set. A sitemap is a request to index; it must never
+  // contradict the page it points at.
+  const indexableBlogs = blogs.filter((b) => !b.noindex && !b.canonicalUrl?.trim());
+
+  const blogRoutes: MetadataRoute.Sitemap = indexableBlogs.map((b) => ({
     url: `${base}/blog/${b.slug}`,
     ...(b.publishAt ? { lastModified: new Date(b.publishAt) } : {}),
     changeFrequency: "monthly" as const, priority: 0.6,
   }));
 
+  // Genre landing pages. Phase 4A: these now come from the canonical browse
+  // genre list (lib/genres.ts), not straight from the catalogue.
+  //
+  // WHY: genresOf() returns whatever names the catalogue happens to carry,
+  // including TMDB's TV-only names. This file was therefore submitting
+  // /movies?genre=Action%20%26%20Adventure — a name the movie-side genre
+  // lookup does not recognise, so that URL rendered the UNFILTERED hub with
+  // its own canonical tag. The sitemap was advertising an example of the exact
+  // duplicate-page bug the browse routes now redirect away. Folded and
+  // deduped above, so "Action" and "Action & Adventure" submit one URL.
   const genreRoutes: MetadataRoute.Sitemap = genres.map((g) => ({
     url: `${base}/movies?genre=${encodeURIComponent(g)}`, changeFrequency: "weekly" as const, priority: 0.5,
   }));
 
-  // Actor/cast pages — every person with at least one credit in the
-  // curated catalogue (mirrors generateStaticParams in app/person/[id]).
-  const personRoutes: MetadataRoute.Sitemap = people.slice(0, 50).map((p) => ({
-    url: `${base}/person/${personId(p.name)}`, changeFrequency: "monthly" as const, priority: 0.4,
-  }));
+  // PERSON PAGES ARE DELIBERATELY ABSENT (removed Phase 4A).
+  //
+  // This block used to submit up to 50 /person/<name-slug> URLs. Two reasons
+  // it is gone, both from docs/SEO-ARCHITECTURE-AUDIT.md:
+  //
+  // 1. The route is now `noindex, follow` (see app/person/[id]/page.tsx).
+  //    Submitting a URL in a sitemap is an explicit request to index it;
+  //    doing that for a page marked noindex is a contradiction, and Search
+  //    Console reports it as one.
+  // 2. These were not even the URLs the site links to. Every cast link emits
+  //    /person/tmdb-p-<id>-<name>, so the sitemap and the internal links were
+  //    advertising two different addresses for the same person, with no
+  //    canonical joining them. That duplication is now resolved by a
+  //    permanent redirect on the route itself.
+  //
+  // Person pages remain fully crawlable (no robots.txt Disallow) so Google
+  // can reach them, read the noindex, and drop them.
 
-  return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...personRoutes];
+  return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes];
 }

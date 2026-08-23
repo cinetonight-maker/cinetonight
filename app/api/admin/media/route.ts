@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { recordAudit } from "@/lib/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,10 +85,17 @@ export async function DELETE(request: Request) {
   if (!id) return NextResponse.json({ error: "Missing id." }, { status: 400 });
   try {
     const admin = supabaseAdmin();
-    const { data: row } = await admin.from("media").select("path").eq("id", id).single();
+    const { data: row } = await admin.from("media").select("*").eq("id", id).single();
     if (row?.path) await admin.storage.from(BUCKET).remove([row.path]);
     const { error } = await admin.from("media").delete().eq("id", id);
     if (error) throw error;
+    // Media deletion is permanent — there is no Trash for files — so it is
+    // exactly the kind of action the activity log exists for.
+    await recordAudit({
+      module: "media", action: "delete",
+      targetId: id, targetLabel: row?.name ?? null, before: row, after: null,
+      note: "Deleted permanently from the media library — this cannot be undone",
+    });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return NextResponse.json({ error: `Could not delete: ${(e as Error).message}` }, { status: 500 });

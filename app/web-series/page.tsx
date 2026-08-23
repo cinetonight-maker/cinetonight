@@ -14,5 +14,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ genre?: string }> }) {
   const { genre } = await searchParams;
-  return <ListingPage title="Web Series" sub="Binge-worthy originals and trending shows." kind="series" badges defaultSort="year" genre={genre} />;
+  return <ListingPage path="/web-series" title="Web Series" sub="Binge-worthy originals and trending shows." kind="series" badges defaultSort="year" genre={genre} />;
 }

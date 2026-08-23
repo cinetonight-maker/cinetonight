@@ -38,9 +38,14 @@ const EMPTY_HOME: HomeConfig = { hero: { slides: [], intervalMs: 6000 }, rows: [
  *  fields it wants to change — see `save` below for why. */
 type HomePatch = (base: HomeConfig) => Partial<HomeConfig>;
 
-export default function AdminDashboard() {
+/** `section` is supplied by the route pages (Stage 1 admin shell). When set,
+ *  the component renders that one section and hides its legacy tab strip and
+ *  page heading — the shell provides both now. Called with no props it still
+ *  behaves exactly as before. */
+export default function AdminDashboard({ section }: { section?: string } = {}) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("hero");
+  const [tab, setTab] = useState<Tab>((section as Tab) ?? "hero");
+  useEffect(() => { if (section) setTab(section as Tab); }, [section]);
   const [site, setSite] = useState<HomeConfig | null>(null);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [status, setStatus] = useState<{ kind: "idle" | "saving" | "ok" | "err"; msg?: string }>({ kind: "idle" });
@@ -90,29 +95,44 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="ad">
-      <div className="ad__head">
-        <div>
-          <h1>Dashboard</h1>
-          <p>Everything here is live — changes save straight to your site, no rebuild or redeploy needed.</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div className={`ad__status ad__status--${status.kind}`}>
-            {status.kind === "saving" && "Saving…"}
-            {status.kind === "ok" && <><Icon name="check" size={14} /> {status.msg}</>}
-            {status.kind === "err" && <>⚠ {status.msg}</>}
+    <div className={section ? "ad ad--embedded" : "ad"}>
+      {/* Legacy chrome — only when this component is used standalone. Inside
+          the Stage 1 admin shell the sidebar owns navigation and the top bar
+          owns the title, so the tab strip and heading are hidden; the save
+          status pill stays, because it belongs to this component's writes. */}
+      {!section && (
+        <div className="ad__head">
+          <div>
+            <h1>Dashboard</h1>
+            <p>Everything here is live — changes save straight to your site, no rebuild or redeploy needed.</p>
           </div>
-          <button className="ad__btn" onClick={logout}>Log out</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div className={`ad__status ad__status--${status.kind}`}>
+              {status.kind === "saving" && "Saving…"}
+              {status.kind === "ok" && <><Icon name="check" size={14} /> {status.msg}</>}
+              {status.kind === "err" && <>⚠ {status.msg}</>}
+            </div>
+            <button className="ad__btn" onClick={logout}>Log out</button>
+          </div>
         </div>
-      </div>
+      )}
+      {section && status.kind !== "idle" && (
+        <div className={`ad__status ad__status--${status.kind} ad__status--float`}>
+          {status.kind === "saving" && "Saving…"}
+          {status.kind === "ok" && <><Icon name="check" size={14} /> {status.msg}</>}
+          {status.kind === "err" && <>⚠ {status.msg}</>}
+        </div>
+      )}
 
-      <div className="ad__tabs">
-        {TABS.map(([id, label, icon]) => (
-          <button key={id} className={`ad__tab${tab === id ? " on" : ""}`} onClick={() => setTab(id)}>
-            <Icon name={icon} size={16} /> {label}
-          </button>
-        ))}
-      </div>
+      {!section && (
+        <div className="ad__tabs">
+          {TABS.map(([id, label, icon]) => (
+            <button key={id} className={`ad__tab${tab === id ? " on" : ""}`} onClick={() => setTab(id)}>
+              <Icon name={icon} size={16} /> {label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {loadErr && tab === "hero" && (
         <div className="ad__err">{loadErr}</div>
@@ -475,7 +495,7 @@ function BlogTab() {
     load();
   };
 
-  const startNew = () => { setDraft(EMPTY_POST); setEditing("new"); };
+  const startNew = () => { setErr(null); setDraft(EMPTY_POST); setEditing("new"); };
   const startEdit = (p: BlogRow) => {
     setDraft({
       slug: p.slug, title: p.title, cat: p.cat, excerpt: p.excerpt, body: p.body ?? [],
@@ -544,7 +564,13 @@ function BlogTab() {
             </div>
             <label className="ad__field"><span>Excerpt</span>
               <textarea rows={2} value={draft.excerpt} onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })} /></label>
-            <label className="ad__field"><span>Body — one paragraph per blank-line-separated block</span>
+            <label className="ad__field">
+              <span>
+                Body — one paragraph per blank-line-separated block. Structure: start a line
+                with <b>##&nbsp;</b> for a section heading (H2) or <b>###&nbsp;</b> for a
+                sub-heading (H3). Google reads that outline, so give every post 3–6 <b>##</b> sections;
+                the post title is already the H1 — never repeat it as a heading.
+              </span>
               <textarea rows={9} value={(draft.body ?? []).join("\n\n")}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean) })} /></label>
             <div className="ad__grid2">
@@ -576,6 +602,10 @@ function BlogTab() {
                 </label>
               )}
             </div>
+            {/* Validation feedback used to render ONLY when the post list was
+                empty, so a blocked save (unknown category, missing schedule
+                date) looked like a dead Save button. Show it right here. */}
+            {err && <div className="ad__err" style={{ marginTop: 10 }}>{err}</div>}
             <div className="ad__actions">
               <button className="ad__btn ad__btn--primary" disabled={busy} onClick={commit}><Icon name="check" size={14} /> Save post</button>
               <button className="ad__btn" onClick={() => setEditing(null)}>Cancel</button>
@@ -1063,7 +1093,7 @@ function PagesTab() {
               <label className="ad__field"><span>Slug (optional — auto from title)</span>
                 <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="about" /></label>
             </div>
-            <label className="ad__field"><span>Content — Markdown supported: **bold**, *italic*, # headings, [links](url), - lists</span>
+            <label className="ad__field"><span>Content — Markdown: **bold**, *italic*, [links](url), - lists. Headings: use ## for sections and ### for sub-sections (the page title above is already the H1, so never use a single #).</span>
               <textarea rows={14} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} /></label>
             <label className="ad__field">
               <span>Status</span>
@@ -1344,6 +1374,9 @@ function CommentsTab() {
     load();
   };
   const remove = async (id: string) => {
+    // CMS rule: every destructive action confirms first. Comment deletion is
+    // permanent (there is no comment Trash), so it asks before, not after.
+    if (!confirm("Delete this comment permanently? This cannot be undone.")) return;
     await api(`/api/admin/comments?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     load();
   };

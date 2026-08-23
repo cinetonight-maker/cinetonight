@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import AdminDashboard from "@/components/AdminDashboard";
+import Overview from "@/components/admin/Overview";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
 
-export default function AdminPage() {
-  return <div className="page"><AdminDashboard /></div>;
+export default function AdminOverviewPage() {
+  return <Overview />;
 }

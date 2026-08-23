@@ -4,6 +4,8 @@ import Icon from "./Icon";
 import NewsletterForm from "./NewsletterForm";
 import type { Movie } from "@/lib/types";
 import { getMovies, getBlogs, genresOf, trendingNow } from "@/lib/data";
+import { canonicalGenre } from "@/lib/genres";
+import { PUBLIC_TTL } from "@/lib/supabase/public";
 import { img, poster } from "@/lib/images";
 
 export function Widget({ title, all, children }: { title: string; all?: React.ReactNode; children: React.ReactNode }) {
@@ -36,7 +38,14 @@ export async function TrendingWidget() {
 
 export async function GenresWidget() {
   const movies = await getMovies();
-  const genres = genresOf(movies);
+  // Folded onto the canonical browse genres (lib/genres.ts) and deduped, so
+  // every tag links a URL that actually filters and no two tags point at the
+  // same page. Previously this emitted raw catalogue names, which included
+  // TMDB's TV-side "Action & Adventure" — a second link to the Action page
+  // that did not filter, and that now costs a redirect hop.
+  const genres = Array.from(
+    new Set(genresOf(movies).map(canonicalGenre).filter((g): g is NonNullable<typeof g> => !!g)),
+  ).sort();
   return (
     <Widget title="Genres" all={<Link href="/genres">All</Link>}>
       <div className="tags">
@@ -49,7 +58,8 @@ export async function GenresWidget() {
 }
 
 export async function BlogWidget() {
-  const blogs = await getBlogs();
+  // 6h tier - renders on movie pages; see getBlogs.
+  const blogs = await getBlogs(PUBLIC_TTL.catalogue);
   return (
     <Widget title="From the Blog" all={<Link href="/blog">All</Link>}>
       {blogs.map((b) => (

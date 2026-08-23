@@ -1,4 +1,11 @@
-/** Shown while the blog index's server-side data fetch is in flight. */
+/** Loading skeleton for the BLOG INDEX ONLY (/blog).
+ *
+ *  Phase 4B-1: this was at app/blog/loading.tsx, one level up, where it also
+ *  wrapped /blog/[slug] — and a Suspense boundary flushes the response with a
+ *  200 before the page under it can call notFound(). That is what kept
+ *  /blog/<invented-slug> returning 200 instead of 404 even after the root
+ *  boundary was moved. The (index) route group scopes it to /blog alone; the
+ *  URL is unchanged. */
 export default function Loading() {
   return (
     <div className="page">

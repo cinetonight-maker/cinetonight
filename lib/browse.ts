@@ -1,4 +1,5 @@
 import "server-only";
+import { rankByWeightedRating } from "./quality";
 import { browsePage, tmdbConfigured, MAX_BROWSE_PAGE, type BrowseSort } from "./tmdb";
 import { getMovies } from "./data";
 import type { Movie, MovieKind } from "./types";
@@ -41,12 +42,14 @@ function localFallback(movies: Movie[], kind: MovieKind | "all", sort: BrowseSor
   let out = movies.slice();
   if (kind !== "all") out = out.filter((m) => m.kind === kind);
   if (genre && genre !== "All") out = out.filter((m) => m.genres.includes(genre));
-  if (sort === "rating") out.sort((a, b) => b.rating - a.rating);
+  if (sort === "rating") out = rankByWeightedRating(out); // Phase 2: confidence-aware
   else if (sort === "year") out.sort((a, b) => b.year - a.year);
   else if (sort === "az") out.sort((a, b) => a.title.localeCompare(b.title));
   else out.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
 
-  const totalPages = Math.max(1, Math.ceil(out.length / PAGE_SIZE));
+  // Capped like the TMDB path: the UI builds pagination from totalPages, so
+  // an uncapped local value could advertise page links past MAX_BROWSE_PAGE.
+  const totalPages = Math.min(MAX_BROWSE_PAGE, Math.max(1, Math.ceil(out.length / PAGE_SIZE)));
   const start = (Math.max(1, page) - 1) * PAGE_SIZE;
   const results: Movie[] = out.slice(start, start + PAGE_SIZE);
   return { results, page: Math.max(1, page), totalPages, source: "local" };

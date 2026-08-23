@@ -57,18 +57,51 @@ const nextConfig = {
       // to another from a shared cache.
       {
         source: "/person/:path*",
+        missing: [
+          // NEVER apply this CDN header to RSC / prefetch requests. The
+          // Next 16 client router prefetches routes and reads caching hints
+          // from the response; our "max-age=0, s-maxage=..." header told it
+          // every prefetch was instantly stale, so viewport links to static
+          // routes re-prefetched in a tight loop - observed live at ~40
+          // req/s per visitor on /follow and /free-movies. With this
+          // condition the header applies to real HTML document requests
+          // only, and RSC responses keep Next's own caching semantics.
+          { type: "header", key: "rsc" },
+        ],
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400, stale-while-revalidate=604800" },
         ],
       },
       {
         source: "/movie/:path*",
+        missing: [
+          // NEVER apply this CDN header to RSC / prefetch requests. The
+          // Next 16 client router prefetches routes and reads caching hints
+          // from the response; our "max-age=0, s-maxage=..." header told it
+          // every prefetch was instantly stale, so viewport links to static
+          // routes re-prefetched in a tight loop - observed live at ~40
+          // req/s per visitor on /follow and /free-movies. With this
+          // condition the header applies to real HTML document requests
+          // only, and RSC responses keep Next's own caching semantics.
+          { type: "header", key: "rsc" },
+        ],
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=43200, stale-while-revalidate=604800" },
         ],
       },
       {
         source: "/(free-movies|genres|channel|blog|faq|follow)/:path*",
+        missing: [
+          // NEVER apply this CDN header to RSC / prefetch requests. The
+          // Next 16 client router prefetches routes and reads caching hints
+          // from the response; our "max-age=0, s-maxage=..." header told it
+          // every prefetch was instantly stale, so viewport links to static
+          // routes re-prefetched in a tight loop - observed live at ~40
+          // req/s per visitor on /follow and /free-movies. With this
+          // condition the header applies to real HTML document requests
+          // only, and RSC responses keep Next's own caching semantics.
+          { type: "header", key: "rsc" },
+        ],
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
         ],
@@ -87,6 +120,17 @@ const nextConfig = {
       // free, unlike the R2 incremental cache these pages deliberately skip.
       {
         source: "/(movies|tv-shows|web-series|trending|latest)",
+        missing: [
+          // NEVER apply this CDN header to RSC / prefetch requests. The
+          // Next 16 client router prefetches routes and reads caching hints
+          // from the response; our "max-age=0, s-maxage=..." header told it
+          // every prefetch was instantly stale, so viewport links to static
+          // routes re-prefetched in a tight loop - observed live at ~40
+          // req/s per visitor on /follow and /free-movies. With this
+          // condition the header applies to real HTML document requests
+          // only, and RSC responses keep Next's own caching semantics.
+          { type: "header", key: "rsc" },
+        ],
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400" },
         ],

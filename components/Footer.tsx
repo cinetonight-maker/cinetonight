@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Icon from "./Icon";
-import { supabasePublic } from "@/lib/supabase/public";
+import { supabasePublic, PUBLIC_TTL } from "@/lib/supabase/public";
 import { getSiteSettings } from "@/lib/data";
+import PrivacyChoices from "./PrivacyChoices";
 import BrandMark from "@/components/BrandMark";
 
 // Maps each icon to the matching key in Settings → social. Every icon here
@@ -22,7 +23,9 @@ const FALLBACK_LEGAL: [string, string][] = [["Terms of Service", "/terms-of-serv
 type NavLink = { label: string; url: string; is_external: boolean };
 
 async function getFooterLinks() {
-  const supabase = supabasePublic();
+  // stable tier: the footer renders inside the ROOT LAYOUT, so this fetch's
+  // TTL is part of every route's effective revalidate ceiling.
+  const supabase = supabasePublic(PUBLIC_TTL.stable);
   if (!supabase) return null;
   const { data } = await supabase
     .from("nav_links")
@@ -92,6 +95,7 @@ export default async function Footer() {
         )}
       </div>
       <div className="footer__copy">
+        <PrivacyChoices />
         © {new Date().getFullYear()} CineTonight. All rights reserved.
         <br />
         <span className="tmdb-attr">

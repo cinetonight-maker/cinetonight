@@ -7,6 +7,7 @@ import Icon from "./Icon";
 import { poster } from "@/lib/images";
 import { addRecentSearch } from "@/lib/recentSearches";
 import type { Movie } from "@/lib/types";
+import { trackSearch } from "@/lib/analytics";
 
 const DEBOUNCE_MS = 250;
 const MIN_CHARS = 2;
@@ -76,6 +77,11 @@ export default function SearchBox({
   function goToResults(q: string) {
     setOpen(false);
     if (q) addRecentSearch(q);
+    // GA4 recommended `search`, fired once at the moment of a real search
+    // (submitting for the full results page) - never per keystroke, so the
+    // suggestion dropdown generates zero events. The term is sanitized in
+    // lib/analytics (capped; email/phone/token-shaped input dropped).
+    if (q) trackSearch(q);
     router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
     onNavigate?.();
   }

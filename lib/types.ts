@@ -19,6 +19,21 @@ export interface Movie {
   tmdbId?: number;
   title: string;
   year: number;
+  /** Full release date "YYYY-MM-DD" when the source provides one — the
+   *  reliable way to tell released from upcoming (lib/quality.releaseStatus).
+   *  Older Supabase rows synced before Phase 2 lack it; releaseStatus falls
+   *  back to the year alone. */
+  releaseDate?: string | null;
+  /** TMDB popularity score (page-traffic driven, reacts within hours of a
+   *  big release). Used by the Latest freshness rescue in lib/quality —
+   *  votes take days to accumulate, popularity doesn't. */
+  popularity?: number;
+  /** ISO 3166-1 origin country ("US", "IN", "KR"...) when the source
+   *  exposes it. TMDB LIST hits only carry this for TV (origin_country);
+   *  movie list hits omit it — detail fetches map production_countries.
+   *  Used by lib/industry.industryOf (English + known non-US country →
+   *  International). */
+  originCountry?: string | null;
   genres: string[];
   kind: MovieKind;
   rating: number;
@@ -40,10 +55,15 @@ export interface Movie {
 export interface Blog {
   slug: string; title: string; cat: string; excerpt: string;
   date: string; read: string;
-  /** Article paragraphs. */
-  body?: string[];
+  /** Article content. Markdown string since the CMS update; older rows are
+   *  still an array of paragraphs, and lib/markdown.ts renders both shapes. */
+  body?: string | string[];
   /** Featured image — a Media Library URL. Falls back to a placeholder when unset. */
   imageUrl?: string | null;
+  /** Alt text for the featured image (accessibility + image SEO). */
+  imageAlt?: string | null;
+  /** Free-form tags, used for related-post suggestions. */
+  tags?: string[];
   /** Present when the post comes from Supabase (needed for dashboard edit/delete). */
   id?: string;
   status?: "draft" | "published" | "scheduled";
@@ -52,6 +72,19 @@ export interface Blog {
   metaDescription?: string;
   /** When status is "scheduled": the moment the post goes live. */
   publishAt?: string | null;
+  /* ---- SEO fields (supabase/blog_seo.sql). All optional: the site behaves
+     exactly as before when the migration has not been run. ---- */
+  /** The one phrase this article should rank for. Drives the editor checklist. */
+  focusKeyword?: string;
+  /** Supporting phrases — a planning aid, and the article's keyword meta tag. */
+  secondaryKeywords?: string[];
+  /** Set ONLY when this article is a copy of something that lives elsewhere.
+   *  Blank means the article is its own canonical, which is almost always right. */
+  canonicalUrl?: string | null;
+  /** Social share image. Falls back to imageUrl when blank. */
+  ogImage?: string | null;
+  /** Per-article noindex. Default false. */
+  noindex?: boolean;
 }
 export interface Review { name: string; rating: number; when: string; text: string; up: number; down: number; }
 export interface ContinueItem { id: string; progress: number; note: string; }

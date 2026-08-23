@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
+import { Suspense } from "react";
+import AnalyticsPageViews from "@/components/AnalyticsPageViews";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import BottomNav from "@/components/BottomNav";
@@ -159,13 +161,43 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             never block rendering. */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} strategy="afterInteractive" />
-            <Script id="ga4-init" strategy="afterInteractive">
+            {/* CONSENT MODE DEFAULTS - must run before the tag processes
+                anything, hence the same afterInteractive stage but emitted
+                FIRST into the dataLayer queue:
+                - advertising consent is denied everywhere, always: this is
+                  an analytics deployment, not an ads one;
+                - analytics_storage defaults to denied in EEA/UK/CH and
+                  granted elsewhere (region list), unless the visitor has an
+                  explicit stored choice - which then wins globally;
+                - a stored denial also arms Google's documented kill switch
+                  (ga-disable-<ID>) so the tag never sends at all.
+                send_page_view:false makes components/AnalyticsPageViews.tsx
+                the ONLY page_view source - see that file for why automatic
+                measurement misses App Router client navigations. */}
+            <Script id="ga4-consent" strategy="afterInteractive">
               {`window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
+                window.gtag = window.gtag || gtag;
+                (function(){
+                  var choice = null;
+                  try { choice = localStorage.getItem('cinetonight:analytics-consent'); } catch(e) {}
+                  var denied = { ad_storage:'denied', ad_user_data:'denied', ad_personalization:'denied' };
+                  if (choice === 'granted' || choice === 'denied') {
+                    gtag('consent','default', Object.assign({ analytics_storage: choice }, denied));
+                    if (choice === 'denied') window['ga-disable-${process.env.NEXT_PUBLIC_GA_ID}'] = true;
+                  } else {
+                    gtag('consent','default', Object.assign({ analytics_storage:'denied',
+                      region:['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE','IS','LI','NO','GB','CH'] }, denied));
+                    gtag('consent','default', Object.assign({ analytics_storage:'granted' }, denied));
+                  }
+                })();
                 gtag('js', new Date());
-                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}');`}
+                gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', { send_page_view: false });`}
             </Script>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`} strategy="afterInteractive" />
+            <Suspense fallback={null}>
+              <AnalyticsPageViews />
+            </Suspense>
           </>
         )}
       </body>

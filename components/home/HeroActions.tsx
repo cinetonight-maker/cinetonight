@@ -1,7 +1,7 @@
 "use client";
 
 import Icon from "../Icon";
-import { track } from "@/lib/analytics";
+import { trackPickerStarted, track } from "@/lib/analytics";
 
 /** The hero's two primary buttons.
  *
@@ -15,10 +15,13 @@ import { track } from "@/lib/analytics";
  *  in a context provider just to connect two buttons. Both also carry a real
  *  href, so they work as ordinary anchors if JavaScript never arrives. */
 export default function HeroActions() {
-  const fire = (name: string, event: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const fire = (name: string, event: "picker_started" | "choose_mood") => (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (typeof window === "undefined") return;
     e.preventDefault();
-    track(event, {});
+    // "Pick something for me" = the picker genuinely starting; the mood
+    // button only scrolls, so it gets a lightweight custom event instead.
+    if (event === "picker_started") trackPickerStarted({ surface: "homepage" });
+    else track("choose_mood_clicked", { surface: "homepage" });
     window.dispatchEvent(new CustomEvent(name));
   };
 
@@ -27,7 +30,7 @@ export default function HeroActions() {
       <a
         className="hhero__btn hhero__btn--primary"
         href="#tonights-pick"
-        onClick={fire("cinetonight:surprise", "pick_for_me")}
+        onClick={fire("cinetonight:surprise", "picker_started")}
       >
         <Icon name="sparkle" size={16} /> Pick something for me
       </a>

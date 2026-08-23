@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import Icon from "./Icon";
 import BrandMark from "@/components/BrandMark";
 import SearchBox from "./SearchBox";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { useWatchlist } from "@/lib/watchlist";
 import { useAuth } from "@/lib/auth";
 import { NAV } from "./Sidebar";
@@ -15,16 +16,28 @@ export default function Header() {
   const { count } = useWatchlist();
   const { user } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Desktop icon-rail expansion — mirrored in state purely so aria-expanded
+  // reports the truth on desktop (the CSS itself keys off the body class).
+  const [railExpanded, setRailExpanded] = useState(false);
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
-  useEffect(() => {
-    document.body.style.overflow = drawerOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [drawerOpen]);
+  // Shared, counted, restoring scroll lock (see lib/useScrollLock).
+  useScrollLock(drawerOpen);
 
   // Close the drawer on any route change (e.g. back/forward navigation),
   // not just clicks on its own links.
   useEffect(() => { setDrawerOpen(false); }, [pathname]);
+
+  // The drawer only EXISTS below 761px (globals.css hides it above that).
+  // If the viewport grows past the breakpoint while it is open — rotating a
+  // tablet, dragging a window wider — close it, so the lock can never
+  // outlive the UI that owns it.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 760px)");
+    const sync = () => { if (!mq.matches) setDrawerOpen(false); };
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   return (
     <>
@@ -32,14 +45,28 @@ export default function Header() {
       <button
         className="burger"
         aria-label="Open menu"
-        aria-expanded={drawerOpen}
+        aria-expanded={drawerOpen || railExpanded}
         onClick={() => {
-          // Desktop: expand the icon-only sidebar to show labels (no-op on
-          // mobile, where .sidebar is display:none). Mobile: open the nav
-          // drawer below — the sidebar has no on-screen equivalent there,
-          // so without this the burger button did nothing at all on phones.
-          document.body.classList.toggle("sb-expanded");
-          setDrawerOpen(true);
+          // ONE button, TWO jobs, chosen by viewport — never both at once.
+          //
+          // Below 761px the nav drawer is the only nav surface, so the
+          // burger toggles it. Above 761px the drawer is display:none and
+          // the burger expands the icon rail instead.
+          //
+          // The previous version did BOTH unconditionally, which is what
+          // froze the page on desktop: it set drawerOpen=true (locking body
+          // scroll) while the drawer itself was invisible, so there was no
+          // overlay or X to close it — and because the handler only ever
+          // set `true`, clicking the burger again produced no state change,
+          // no effect re-run, and no unlock. Only a route change or a
+          // refresh recovered. Note `setDrawerOpen(v => !v)`: a real
+          // toggle, so a second tap on mobile also closes and unlocks.
+          if (window.matchMedia("(max-width: 760px)").matches) {
+            setDrawerOpen((v) => !v);
+          } else {
+            document.body.classList.toggle("sb-expanded");
+            setRailExpanded((v) => !v);
+          }
         }}
       >
         <Icon name="menu" size={20} />
@@ -52,7 +79,7 @@ export default function Header() {
         </div>
       </Link>
       <nav className="topnav">
-        {NAV.filter((n) => n.top && n.href !== "/").map((n) => (
+        {NAV.filter((n) => n.top && n.href !== "/").sort((a, b) => (a.topOrder ?? 99) - (b.topOrder ?? 99)).map((n) => (
           <Link key={n.href} className={active(n.href) ? "on" : undefined} href={n.href}>{n.label}</Link>
         ))}
       </nav>

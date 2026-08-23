@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AdminShell from "@/components/admin/AdminShell";
 
 // robots.txt already disallows /admin, but Google's own docs are explicit
 // that a disallow rule only stops crawling — a URL that gets discovered via
@@ -12,5 +13,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <AdminShell>{children}</AdminShell>;
 }

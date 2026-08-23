@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { MOODS } from "@/lib/moods";
+import { ALL_MOODS } from "@/lib/moods";
 import { moodPoolTmdb, discoverPoolTmdb, trendingLiveTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { discoveryFilter } from "@/lib/quality";
 import { clientKey, isRateLimited } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
 
   const sp = new URL(request.url).searchParams;
   const id = (sp.get("id") ?? "").trim();
-  const mood = MOODS.find((m) => m.id === id);
+  const mood = ALL_MOODS.find((m) => m.id === id);
   if (!mood) return NextResponse.json({ error: "Unknown mood." }, { status: 400 });
   if (!tmdbConfigured) return NextResponse.json({ results: [] });
 
@@ -66,7 +67,10 @@ export async function GET(request: Request) {
     // across ALL visitors then hits Cloudflare's edge instead of the Worker.
     // Variety is unaffected: the client shuffles the pool after fetching.
     // Success responses only - never cache errors or rate-limit replies.
-    const res = NextResponse.json({ results });
+    // Phase 2: recommendations must pass catalogue eligibility before a
+    // visitor ever sees one (Tier A, topping up from B if the pool runs
+    // short). In-memory filter of data already fetched — zero extra cost.
+    const res = NextResponse.json({ results: discoveryFilter(results, 8) });
     res.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
     return res;
   } catch {

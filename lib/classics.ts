@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import classicsJson from "@/content/classics.json";
-import { supabasePublic } from "./supabase/public";
+import { supabasePublic, PUBLIC_TTL } from "./supabase/public";
 import { fetchTitle, findMovieTmdb, tmdbConfigured } from "./tmdb";
 import { img, tmdb } from "./images";
 import type { Movie } from "./types";
@@ -60,7 +60,7 @@ function classicFromRow(r: any): ClassicFilm {
  *  as getMovies()). To take a film off the site, unpublish it in the
  *  dashboard rather than deleting every row. */
 export const getClassics = cache(async (): Promise<ClassicFilm[]> => {
-  const sb = supabasePublic();
+  const sb = supabasePublic(PUBLIC_TTL.stable); // stable tier: classics change rarely
   if (sb) {
     const { data, error } = await sb
       .from("classics")

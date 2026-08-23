@@ -1,4 +1,4 @@
-import { MOODS, type Mood } from "./moods";
+import { ALL_MOODS, type Mood } from "./moods.ts";
 
 /** One-tap starting points for the homepage recommendation engine.
  *
@@ -35,10 +35,12 @@ export interface QuickPick {
 }
 
 export const QUICK_PICKS: QuickPick[] = [
+  // Phase 3: LOCKED to these six. Each feeds the same recommendation engine
+  // (/api/mood) — no separate per-pick datasets.
   {
-    id: "date-night", label: "Date Night", sub: "Warm, well reviewed",
-    icon: "sparkle", moodId: "feelgood", minRating: 7,
-    criteria: ["a feel-good pick", "rated 7 or higher"],
+    id: "date-night", label: "Date Night", sub: "Romantic, well reviewed",
+    icon: "sparkle", moodId: "romantic", minRating: 7,
+    criteria: ["a romantic pick", "rated 7 or higher"],
   },
   {
     id: "short", label: "Under 90 Minutes", sub: "Home before bedtime",
@@ -47,21 +49,16 @@ export const QUICK_PICKS: QuickPick[] = [
   },
   {
     id: "feelgood", label: "Feel Good", sub: "Nothing heavy",
-    icon: "thumbup", moodId: "feelgood",
-    criteria: ["a feel-good pick"],
-  },
-  {
-    id: "highly-rated", label: "Highly Rated", sub: "Score of 8 and up",
-    icon: "star", moodId: "surprise", minRating: 8,
-    criteria: ["rated 8 or higher"],
+    icon: "thumbup", moodId: "happy",
+    criteria: ["a feel-good pick with nothing heavy"],
   },
   {
     // NOTE: the label is the OCCASION, the criteria are the FILTER. We do not
     // have certification data, so we must not claim a title is "family
     // friendly" - what we can truthfully say is which genres were included and
-    // which were excluded, which is what the feelgood mood actually does.
+    // which were excluded, which is what the happy mood actually does.
     id: "family", label: "Family Night", sub: "Nothing dark or violent",
-    icon: "user", moodId: "feelgood", minRating: 6.5, kind: "movie",
+    icon: "user", moodId: "happy", minRating: 6.5, kind: "movie",
     criteria: ["a film with no horror, crime, war or thriller", "rated 6.5 or higher"],
   },
   {
@@ -70,19 +67,15 @@ export const QUICK_PICKS: QuickPick[] = [
     criteria: ["rated 7.5 or higher", "with fewer than 1,500 TMDB votes"],
   },
   {
-    id: "late-night", label: "Late Night", sub: "Dark and tense",
-    icon: "playc", moodId: "chills",
-    criteria: ["a horror, thriller or mystery pick"],
-  },
-  {
-    id: "mind-bending", label: "Mind Bending", sub: "Twist your brain",
-    icon: "grid", moodId: "mindbender",
-    criteria: ["a mystery, science fiction, thriller or crime pick"],
+    id: "highly-rated", label: "Highly Rated", sub: "Score of 8 and up",
+    icon: "star", moodId: "surprise", minRating: 8,
+    criteria: ["rated 8 or higher"],
   },
 ];
 
 export const quickPickById = (id: string) => QUICK_PICKS.find((q) => q.id === id);
-export const moodById = (id: string) => MOODS.find((m) => m.id === id);
+// Resolves grid moods AND the internal "surprise" mood quick picks rely on.
+export const moodById = (id: string) => ALL_MOODS.find((m) => m.id === id);
 
 /** The factual explanation shown under a recommendation.
  *

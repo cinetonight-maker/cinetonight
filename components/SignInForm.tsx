@@ -4,6 +4,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { AUTH_EVENT } from "@/lib/auth";
+import { trackLogin } from "@/lib/analytics";
 import { safeNextPath } from "@/lib/site";
 
 /** Was a static form with no onSubmit at all — clicking "Sign In" did
@@ -40,6 +41,7 @@ function Form() {
     // Tell the (lazily-connected) AuthProvider a session now exists - it
     // does not remount on this soft navigation. See lib/auth.tsx.
     window.dispatchEvent(new Event(AUTH_EVENT));
+    trackLogin(); // success boundary: signInWithPassword resolved without error
     router.push(safeNextPath(params.get("next"), "/"));
     router.refresh();
   };

@@ -4,21 +4,30 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "./Icon";
 
-export const NAV: { icon: string; label: string; href: string; top?: boolean; bottom?: boolean; short?: string }[] = [
-  { icon: "home", label: "Home", href: "/", top: true, bottom: true },
-  { icon: "film", label: "Movies", href: "/movies", top: true, bottom: true },
-  { icon: "search", label: "Search", href: "/search", bottom: true },
-  { icon: "monitor", label: "Web Series", href: "/web-series", top: true, bottom: true, short: "Series" },
-  // TV Shows & Genres deliberately have no `top` flag — removed from the
-  // header nav to keep it tight (still reachable via sidebar + mobile drawer).
+export const NAV: { icon: string; label: string; href: string; top?: boolean; bottom?: boolean; side?: boolean; topOrder?: number; short?: string }[] = [
+  // Phase 3 navigation (§19–20).
+  //   top:    header nav — LOCKED order via topOrder:
+  //           Movies, Series, Trending, Discover, Guides, My List
+  //   side:   desktop icon sidebar — LOCKED: Home, Discover, Search,
+  //           Movies, Series, My List (array order)
+  //   bottom: mobile tab bar — Home, Movies, Search, Series, My List
+  //   (no flags = reachable via the mobile drawer + footer only)
+  // Visible label standard is "Series" (§19); the /tv-shows route keeps its
+  // drawer label until the Phase 4 route/SEO consolidation.
+  { icon: "home", label: "Home", href: "/", bottom: true, side: true },
+  { icon: "compass", label: "Discover", href: "/discover", top: true, topOrder: 4, side: true },
+  { icon: "search", label: "Search", href: "/search", bottom: true, side: true },
+  { icon: "film", label: "Movies", href: "/movies", top: true, topOrder: 1, bottom: true, side: true },
+  { icon: "monitor", label: "Series", href: "/web-series", top: true, topOrder: 2, bottom: true, side: true, short: "Series" },
+  { icon: "trend", label: "Trending", href: "/trending", top: true, topOrder: 3 },
+  { icon: "article", label: "Guides", href: "/blog", top: true, topOrder: 5 },
+  { icon: "bookmark", label: "My List", href: "/my-list", top: true, topOrder: 6, bottom: true, side: true },
+  // Drawer/footer-only destinations (kept fully reachable, off the chrome):
   { icon: "tv", label: "TV Shows", href: "/tv-shows" },
   { icon: "grid", label: "Genres", href: "/genres" },
-  { icon: "trend", label: "Trending", href: "/trending", top: true },
   { icon: "sparkle", label: "Latest", href: "/latest" },
-  { icon: "playc", label: "Free Movies", href: "/free-movies", top: true, short: "Free" },
-  { icon: "article", label: "Blog", href: "/blog", top: true },
-  { icon: "bookmark", label: "My List", href: "/my-list", bottom: true },
-  { icon: "sparkle", label: "Follow Us", href: "/follow", top: true, short: "Follow" },
+  { icon: "playc", label: "Free Movies", href: "/free-movies" },
+  { icon: "sparkle", label: "Follow Us", href: "/follow" },
 ];
 
 export default function Sidebar() {
@@ -26,9 +35,16 @@ export default function Sidebar() {
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
   return (
     <aside className="sidebar">
-      <nav>
-        {NAV.map((n) => (
-          <Link key={n.href} className={`nav-item${active(n.href) ? " on" : ""}`} href={n.href} title={n.label}>
+      <nav aria-label="Primary">
+        {NAV.filter((n) => n.side).map((n) => (
+          <Link
+            key={n.href}
+            className={`nav-item${active(n.href) ? " on" : ""}`}
+            href={n.href}
+            title={n.label}
+            aria-label={n.label}
+            aria-current={active(n.href) ? "page" : undefined}
+          >
             <span className="nav-item__ico"><Icon name={n.icon} size={18} /></span>
             <span className="nav-item__label">{n.label}</span>
           </Link>

@@ -1,3 +1,5 @@
+import { genreListingMeta } from "./genres";
+
 /** Shared site-URL helper — same fallback chain used by sitemap.ts,
  *  robots.ts, and any JSON-LD structured data that needs an absolute URL.
  *  Set NEXT_PUBLIC_SITE_URL once there's a real custom domain; falls back
@@ -58,15 +60,14 @@ export function listingMetadata(opts: {
   baseDescription: string;
   genre?: string;
 }): { title: string; description: string; alternates: { canonical: string } } {
-  const { path, baseTitle, baseDescription, genre } = opts;
-  if (!genre || genre === "All") {
-    return { title: baseTitle, description: baseDescription, alternates: { canonical: path } };
-  }
-  return {
-    title: `${genre} ${baseTitle}`,
-    description: `${genre} picks: ${baseDescription}`,
-    alternates: { canonical: `${path}?genre=${encodeURIComponent(genre)}` },
-  };
+  // Phase 4A: the raw URL value is no longer trusted. An unrecognised genre
+  // used to produce a UNIQUE title and a UNIQUE self-canonical while the page
+  // rendered the plain unfiltered hub — an unbounded space of indexable
+  // duplicates. The rule now lives in lib/genres.ts (where it is unit-tested);
+  // this stays here because the five hub pages import it from this module.
+  // ListingPage redirects the request itself; this keeps the metadata honest
+  // in the meantime and for any caller that does not.
+  return genreListingMeta(opts);
 }
 
 /** "2h 23m" / "45m" / "1h" → ISO 8601 duration ("PT2H23M"), for JSON-LD's

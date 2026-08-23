@@ -13,8 +13,13 @@ import { channelLogoUrl } from "@/lib/channelLogoManifest";
  *
  *  Only platforms CineTonight actually supports appear here - the list comes
  *  from lib/channels.ts, never invented. */
-export default function StreamingRow({ limit = 8 }: { limit?: number }) {
-  const channels = CHANNELS.slice(0, limit);
+export default function StreamingRow({ limit = 8, slugs }: { limit?: number; slugs?: string[] }) {
+  // `slugs` is the dashboard's chosen set and order (lib/discoveryConfig). The
+  // slug is part of the /channel/<slug> URL, so it is never invented here —
+  // an unknown slug is simply dropped. No config = the shipped list.
+  const channels = slugs?.length
+    ? slugs.map((s) => CHANNELS.find((c) => c.slug === s)).filter((c): c is (typeof CHANNELS)[number] => !!c).slice(0, limit)
+    : CHANNELS.slice(0, limit);
 
   return (
     <section className="sec" aria-labelledby="streaming-h">

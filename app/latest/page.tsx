@@ -14,5 +14,5 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 
 export default async function Page({ searchParams }: { searchParams: Promise<{ genre?: string }> }) {
   const { genre } = await searchParams;
-  return <ListingPage title="Latest Releases" sub="Fresh off the reel." kind="all" badges defaultSort="year" genre={genre} />;
+  return <ListingPage path="/latest" title="Latest Releases" sub="Fresh off the reel." kind="all" badges defaultSort="year" genre={genre} />;
 }

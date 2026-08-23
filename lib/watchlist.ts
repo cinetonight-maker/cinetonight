@@ -76,7 +76,7 @@ export function useWatchlist() {
   }, [user, authLoading]);
 
   const toggle = useCallback(
-    (id: string): boolean => {
+    (id: string, onConfirmed?: (added: boolean) => void): boolean => {
       const added = !ids.includes(id);
 
       if (!user) {
@@ -85,6 +85,9 @@ export function useWatchlist() {
         if (i === -1) list.push(id); else list.splice(i, 1);
         writeLocal(list);
         setIds(list);
+        // Local writes cannot fail - confirmed immediately. Analytics uses
+        // this callback so watchlist events fire only on ACTUAL success.
+        onConfirmed?.(added);
         return added;
       }
 
@@ -100,6 +103,8 @@ export function useWatchlist() {
           : supabase.from("watchlist").delete().eq("user_id", user.id).eq("movie_id", id);
         return write.then(({ error }) => {
           if (error) throw error;
+          // Server confirmed - NOW it is safe to report the event.
+          onConfirmed?.(added);
         });
       }).catch(() => {
         // Roll back the optimistic update on ANY failure (import or write).

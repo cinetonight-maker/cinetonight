@@ -2,13 +2,14 @@
   "name": "cinetonight",
   "version": "1.0.0",
   "private": true,
-  "description": "CineTonight — know what to watch tonight. Next.js movie-discovery site (App Router, TypeScript).",
+  "description": "CineTonight \u2014 know what to watch tonight. Next.js movie-discovery site (App Router, TypeScript).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync": "node scripts/sync-tmdb.mjs"
+    "sync": "node scripts/sync-tmdb.mjs",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

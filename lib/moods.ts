@@ -29,43 +29,62 @@ export interface Mood {
 }
 
 export const MOODS: Mood[] = [
+  // Phase 3: the homepage mood set is LOCKED to these eight. Each maps onto
+  // the same tiered genre engine below — no second mood engine exists.
+  // Ids are controlled enum values; /api/mood validates against this list,
+  // so the cache-key space stays closed.
   {
-    id: "heartbreak", label: "Heartbreak", emoji: "\u{1F494}",
-    genres: ["Romance", "Drama"], match: "all",
-    exclude: ["Action", "Action & Adventure", "Horror", "Thriller", "Crime", "War", "Science Fiction", "Sci-Fi"],
+    id: "happy", label: "Happy", emoji: "\u{1F60A}",
+    genres: ["Comedy", "Family", "Music", "Adventure", "Animation"],
+    exclude: ["Horror", "Crime", "War", "Thriller"],
   },
   {
-    id: "adrenaline", label: "Adrenaline Rush", emoji: "⚡",
-    genres: ["Action", "Action & Adventure", "Thriller", "War"],
+    id: "romantic", label: "Romantic", emoji: "\u{1F495}",
+    genres: ["Romance"],
+    exclude: ["Horror", "War", "Crime"],
+  },
+  {
+    id: "relaxed", label: "Relaxed", emoji: "\u{1F9D8}",
+    genres: ["Comedy", "Family", "Documentary", "Animation"],
+    exclude: ["Horror", "Thriller", "Crime", "War", "Action"],
+  },
+  {
+    // Comfort viewing: the point after a hard day is LOW stakes, so heavy
+    // drama is excluded too — softer than "Relaxed".
+    id: "stressed", label: "Stressed", emoji: "\u{1F62E}\u{200D}\u{1F4A8}",
+    genres: ["Comedy", "Animation", "Family", "Music"],
+    exclude: ["Horror", "Thriller", "Crime", "War", "Drama", "Action"],
+  },
+  {
+    id: "excited", label: "Excited", emoji: "⚡",
+    genres: ["Action", "Action & Adventure", "Adventure", "Thriller", "Science Fiction", "Sci-Fi & Fantasy"],
     exclude: ["Romance"],
   },
   {
-    id: "laugh", label: "Laugh Out Loud", emoji: "\u{1F602}",
+    id: "need-a-laugh", label: "Need a Laugh", emoji: "\u{1F602}",
     genres: ["Comedy"],
     exclude: ["Horror", "War"],
   },
   {
-    id: "chills", label: "Spine-Chiller", emoji: "\u{1F47B}",
-    genres: ["Horror", "Thriller", "Mystery"],
+    id: "dark", label: "Dark", emoji: "\u{1F311}",
+    genres: ["Horror", "Thriller", "Crime", "Mystery"],
     exclude: ["Comedy", "Romance", "Family"],
   },
   {
-    id: "epic", label: "Epic Journey", emoji: "\u{1F5FA}️",
-    genres: ["Adventure", "Action & Adventure", "Fantasy", "Sci-Fi & Fantasy", "History", "War"],
-    exclude: [],
+    id: "thoughtful", label: "Thoughtful", emoji: "\u{1F9E0}",
+    genres: ["Drama", "Mystery", "History", "Documentary", "Science Fiction"],
+    exclude: ["Comedy", "Family"],
   },
-  {
-    id: "mindbender", label: "Mind Bender", emoji: "\u{1F9E0}",
-    genres: ["Mystery", "Science Fiction", "Sci-Fi", "Sci-Fi & Fantasy", "Thriller", "Crime"],
-    exclude: ["Comedy", "Romance", "Family"],
-  },
-  {
-    id: "feelgood", label: "Feel Good", emoji: "☀️",
-    genres: ["Comedy", "Romance", "Family", "Music", "Adventure", "Animation"],
-    exclude: ["Horror", "Crime", "War", "Thriller"],
-  },
-  { id: "surprise", label: "Surprise Me", emoji: "\u{1F3B2}", genres: [] },
 ];
+
+/** Internal genreless mood used by Quick Picks ("Under 90 Minutes",
+ *  "Highly Rated", "Hidden Gem" constrain by numbers, not genres). Not
+ *  rendered in the homepage mood grid — the visible set is locked to the
+ *  eight above. */
+export const SURPRISE: Mood = { id: "surprise", label: "Surprise Me", emoji: "\u{1F3B2}", genres: [] };
+
+/** Every mood the ENGINE accepts (grid moods + the internal surprise). */
+export const ALL_MOODS: Mood[] = [...MOODS, SURPRISE];
 
 /** Below this many first-tier matches, widen to the next tier — small
  *  catalogues would otherwise make every spin land on the same 1-2 titles. */

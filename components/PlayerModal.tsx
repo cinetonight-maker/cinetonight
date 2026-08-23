@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useScrollLock } from "@/lib/useScrollLock";
 import Icon from "./Icon";
 import type { PlayRequest } from "@/lib/player";
 
@@ -52,14 +53,23 @@ export default function PlayerModal() {
     return () => { window.removeEventListener("cinetonight:play", onPlay); window.removeEventListener("keydown", onKey); };
   }, []);
 
+  useScrollLock(s.open);
+
   useEffect(() => {
-    document.body.style.overflow = s.open ? "hidden" : "";
     const v = videoRef.current;
     if (v && !s.key) { if (s.open) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); }
   }, [s.open, s.key]);
 
   const close = () => setS(CLOSED);
   const label = s.key ? "Trailer" : s.mode === "trailer" ? "Trailer" : "Now Playing";
+
+  // Render NOTHING while closed. This modal is mounted in the root layout,
+  // and its closed state used to keep a hidden <video> (with a sample MP4
+  // source and a remote poster) in the DOM of EVERY page - browsers preload
+  // video content, so every single pageview downloaded megabytes of a
+  // placeholder film nobody had asked to play. The CSS fade on close is a
+  // small price for that going away.
+  if (!s.open) return null;
 
   return (
     <div className={`pmodal${s.open ? " open" : ""}`} onClick={close}>
@@ -86,7 +96,7 @@ export default function PlayerModal() {
           />
         ) : (
           <>
-            <video ref={videoRef} controls playsInline poster="https://picsum.photos/seed/player/1200/675">
+            <video ref={videoRef} controls playsInline preload="metadata" poster="https://picsum.photos/seed/player/1200/675">
               <source src={SAMPLE} type="video/mp4" />
             </video>
             {s.mode === "trailer" && s.open && (
