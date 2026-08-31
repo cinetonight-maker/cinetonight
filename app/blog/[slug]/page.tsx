@@ -13,6 +13,8 @@ import { redirectOrNotFound } from "@/lib/redirectMap";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
 import { renderMarkdown, markdownToText } from "@/lib/markdown";
 import { relatedPosts } from "@/lib/linkGraph";
+import { authorFor } from "@/lib/authors";
+import { metaDescription } from "@/lib/metaDesc";
 
 /** b.date is a display string like "Aug 1, 2024" — best-effort parse for
  *  JSON-LD's ISO datePublished; falls back to omitting the field rather
@@ -74,7 +76,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     // Dashboard SEO overrides win when set; title/excerpt are the fallback.
     title: b.metaTitle || b.title,
-    description: (b.metaDescription || b.excerpt).slice(0, 158),
+    description: metaDescription(b.metaDescription || b.excerpt),
     // Per-page `alternates` fully replaces the root layout's (where the RSS
     // autodiscovery link normally lives), so it has to be repeated here.
     alternates: { canonical, types: { "application/rss+xml": "/rss.xml" } },
@@ -107,13 +109,15 @@ export default async function ArticlePage({ params }: Params) {
     { name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: b.title },
   ]);
 
+  const postAuthor = authorFor(b.author);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: b.title,
     // Excerpt is the intended summary; fall back to the opening of the article
     // itself rather than emitting an empty description.
-    description: b.excerpt || markdownToText(b.body).slice(0, 158),
+    description: b.excerpt || metaDescription(markdownToText(b.body)),
     image,
     datePublished: isoDate(b.date),
     // Freshness. Google reads dateModified when deciding how recently a page
@@ -121,7 +125,21 @@ export default async function ArticlePage({ params }: Params) {
     // row's own updated_at, never from "now", which would claim every crawl was
     // an update and is the kind of lie that gets lastmod signals ignored.
     ...(b.updatedAt ? { dateModified: isoDate(b.updatedAt) } : {}),
-    author: { "@type": "Organization", name: "CineTonight Editorial" },
+    // A NAMED PERSON, not an organisation.
+    //
+    // This used to say Organization "CineTonight Editorial", which tells a
+    // search or answer engine nothing about who is accountable for the piece.
+    // The author comes from the post's own `author` column, falling back to
+    // the default author when it is empty or the column does not exist yet
+    // (see lib/authors.ts and supabase/blog_author.sql), so this is correct
+    // for every existing post without anyone editing one.
+    author: {
+      "@type": "Person",
+      name: postAuthor.name,
+      jobTitle: postAuthor.role,
+      url: `${baseUrl()}/author/${postAuthor.slug}`,
+      ...(postAuthor.sameAs.length ? { sameAs: postAuthor.sameAs } : {}),
+    },
     // Required for an Article rich result. Without a publisher carrying a logo
     // the markup is valid but ineligible.
     publisher: {
@@ -172,7 +190,10 @@ export default async function ArticlePage({ params }: Params) {
       <div className="article">
         <span className="article__cat">{b.cat}</span>
         <h1 className="article__t">{b.title}</h1>
-        <div className="article__meta">By Editorial Desk · {b.date} · {b.read} read</div>
+        <div className="article__meta">
+          By <Link className="article__author" href={`/author/${postAuthor.slug}`}>{postAuthor.name}</Link>
+          {" · "}{b.date} · {b.read} read
+        </div>
         <div className="article__img"><Image fill alt={b.imageAlt || b.title} src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
         {/* Rendered by lib/markdown.ts — the SAME function the admin preview
             uses, so what an author sees before publishing is what ships.

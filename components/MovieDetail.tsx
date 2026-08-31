@@ -7,6 +7,7 @@ import BlogSection from "./BlogSection";
 import CommentsSection from "./CommentsSection";
 import MovieCard from "./MovieCard";
 import { toCard, type Movie } from "@/lib/types";
+import type { WatchPayload } from "@/lib/watchRows";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
@@ -23,7 +24,7 @@ function Det({ rows }: { rows: [string, string | null][] }) {
   ))}</>;
 }
 
-export default function MovieDetail({ movie, seasons = [], suggestions = [] }: { movie: Movie; seasons?: SeasonInfo[]; suggestions?: Movie[] }) {
+export default function MovieDetail({ movie, seasons = [], suggestions = [], watch = null }: { movie: Movie; seasons?: SeasonInfo[]; suggestions?: Movie[]; watch?: WatchPayload | null }) {
   const isSeries = movie.kind === "series";
   const status = releaseStatus(movie);
 
@@ -95,7 +96,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [] }: {
       </section>
 
       <section className="sec">
-        <WhereToWatch movie={movie} surface={movie.kind === "series" ? "series_detail" : "movie_detail"} />
+        <WhereToWatch movie={movie} surface={movie.kind === "series" ? "series_detail" : "movie_detail"} initial={watch} />
       </section>
 
       {/* Series only: pick a season → tap an episode → its trailer plays.

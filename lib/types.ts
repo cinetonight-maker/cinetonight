@@ -89,6 +89,10 @@ export interface Blog {
   ogImage?: string | null;
   /** Per-article noindex. Default false. */
   noindex?: boolean;
+  /** Author SLUG (see lib/authors.ts). Empty falls back to the default
+   *  author, so posts written before per-post attribution existed still
+   *  carry a real named byline. */
+  author?: string | null;
 }
 export interface Review { name: string; rating: number; when: string; text: string; up: number; down: number; }
 export interface ContinueItem { id: string; progress: number; note: string; }

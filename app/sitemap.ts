@@ -4,8 +4,9 @@ import { canonicalGenre } from "@/lib/genres";
 import { CHANNELS } from "@/lib/channels";
 import { getClassics } from "@/lib/classics";
 import { supabasePublic } from "@/lib/supabase/public";
-import { trendingLiveTmdb, latestReleasesTmdb, topRatedTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { trendingLiveTmdb, latestReleasesTmdb, topRatedTmdb, tmdbConfigured, preferCurated } from "@/lib/tmdb";
 import { baseUrl } from "@/lib/site";
+import { AUTHORS } from "@/lib/authors";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,14 @@ export const dynamic = "force-dynamic";
 async function tmdbSitemapMovies(): Promise<{ id: string }[]> {
   if (!tmdbConfigured) return [];
   try {
-    const lists = await Promise.all([
+    // getMovies() runs alongside the TMDB calls (it's React cache()'d, so
+    // this is not a second Supabase query — the rest of sitemap() already
+    // calls it too) and every list below is passed through preferCurated()
+    // before it can turn into a sitemap URL, so a title already in the
+    // catalogue is always listed under its own clean address here, never a
+    // second tmdb-* entry for the same title (STAB-03 follow-up).
+    const [curated, ...lists] = await Promise.all([
+      getMovies(),
       trendingLiveTmdb("all", 40),
       latestReleasesTmdb("all", 40),
       topRatedTmdb("all", 40),
@@ -35,7 +43,7 @@ async function tmdbSitemapMovies(): Promise<{ id: string }[]> {
     const seen = new Set<string>();
     const out: { id: string }[] = [];
     for (const list of lists) {
-      for (const m of list) {
+      for (const m of preferCurated(list, curated)) {
         if (!seen.has(m.id)) { seen.add(m.id); out.push({ id: m.id }); }
       }
     }
@@ -179,5 +187,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Person pages remain fully crawlable (no robots.txt Disallow) so Google
   // can reach them, read the noindex, and drop them.
 
-  return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes];
+  // Author pages. Few, static, and the entity signal behind every byline -
+  // exactly the kind of page a sitemap is for, unlike the unbounded live-TMDB
+  // title space this file deliberately caps above.
+  const authorRoutes: MetadataRoute.Sitemap = AUTHORS.map((a) => ({
+    url: `${base}/author/${a.slug}`, changeFrequency: "monthly" as const, priority: 0.4,
+  }));
+
+  return [...staticRoutes, ...pageRoutes, ...channelRoutes, ...classicsRoutes, ...movieRoutes, ...tmdbMovieRoutes, ...blogRoutes, ...genreRoutes, ...authorRoutes];
 }

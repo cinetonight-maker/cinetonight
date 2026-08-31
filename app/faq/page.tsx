@@ -69,6 +69,15 @@ const FAQS: { q: string; a: string; links?: [string, string][] }[] = [
     a: "Not yet, and you do not need one: the site is built mobile first and works like an app in any phone browser. Choose Add to Home Screen in your browser menu and CineTonight installs with its own icon and full screen view.",
   },
   {
+    // Named humans, deliberately. "Who runs this?" is one of the first things
+    // both a reader and an answer engine check before trusting a
+    // recommendations site, and an anonymous byline is a weak signal. Keep
+    // this answer in step with the About page.
+    q: "Who runs CineTonight?",
+    a: "CineTonight is an independent project run by a small team. Shahzaib Ali builds and runs the site, the recommendation system and the availability data. Syed Ahmad writes the guides, articles and editorial content. Recommendations are made by people who watch the films they write about.",
+    links: [["Read more about us", "/about-us"]],
+  },
+  {
     q: "How does CineTonight make money?",
     a: "Some Where to Watch links may be affiliate links, meaning a platform can pay us a small commission if you subscribe through them, at no extra cost to you. Affiliate links never change what we show: availability comes from live data, not from who pays.",
   },

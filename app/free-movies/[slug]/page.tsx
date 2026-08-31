@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { metaDescription } from "@/lib/metaDesc";
 import Icon from "@/components/Icon";
 import { getClassics, getClassic, enrichClassic, getClassicsEnriched, classicEmbedUrl } from "@/lib/classics";
 import { baseUrl } from "@/lib/site";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!classic) notFound();
   const title = `Watch ${classic.title} (${classic.year}) Free Online — Full Movie, Legal`;
   // Intent phrase first, snippet-capped — Google truncates ~160 chars.
-  const description = `Watch ${classic.title} (${classic.year}) full movie free & legally. ${classic.desc}`.slice(0, 158);
+  const description = metaDescription(`Watch ${classic.title} (${classic.year}) full movie free & legally. ${classic.desc}`);
   const url = `${baseUrl()}/free-movies/${classic.slug}`;
   return {
     title,
@@ -59,9 +60,14 @@ export default async function ClassicWatchPage({ params }: Params) {
     url: `${baseUrl()}/free-movies/${classic.slug}`,
     genre: classic.genre,
     duration: undefined,
-    aggregateRating: movie?.rating
-      ? { "@type": "AggregateRating", ratingValue: movie.rating, bestRating: 10, ratingCount: movie.votes || 1 }
-      : undefined,
+    // STAB-05 (Pre-V2 Stabilization Backlog): this used to carry
+    // aggregateRating built from movie.rating/movie.votes — TMDB's rating,
+    // republished as if it were CineTonight's own review aggregate, and
+    // worse here than in app/movie/[id]/page.tsx because `movie.votes || 1`
+    // fabricated a ratingCount of 1 whenever votes was 0/null/undefined —
+    // exactly the "fake local ratings to keep rich-result markup" the
+    // backlog rules out. There is no local rating system to legitimately
+    // report, so the field is dropped rather than patched.
     video: {
       "@type": "VideoObject",
       name: `${classic.title} (${classic.year}) — Full Movie`,

@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useScrollLock } from "@/lib/useScrollLock";
 import Icon from "./Icon";
 import type { PlayRequest } from "@/lib/player";
 
 /** Placeholder stream (Blender Foundation, CC BY 3.0) — stands in for the feature itself. */
-const SAMPLE = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
 type State = {
   open: boolean;
@@ -20,7 +19,6 @@ const CLOSED: State = { open: false, title: "", key: null, loading: false, mode:
 
 export default function PlayerModal() {
   const [s, setS] = useState<State>(CLOSED);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let reqId = 0;
@@ -54,11 +52,6 @@ export default function PlayerModal() {
   }, []);
 
   useScrollLock(s.open);
-
-  useEffect(() => {
-    const v = videoRef.current;
-    if (v && !s.key) { if (s.open) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause(); }
-  }, [s.open, s.key]);
 
   const close = () => setS(CLOSED);
   const label = s.key ? "Trailer" : s.mode === "trailer" ? "Trailer" : "Now Playing";
@@ -95,14 +88,12 @@ export default function PlayerModal() {
             allowFullScreen
           />
         ) : (
-          <>
-            <video ref={videoRef} controls playsInline preload="metadata" poster="https://picsum.photos/seed/player/1200/675">
-              <source src={SAMPLE} type="video/mp4" />
-            </video>
-            {s.mode === "trailer" && s.open && (
-              <div className="pmodal__note">No trailer available for this title — showing a sample clip.</div>
-            )}
-          </>
+          /* No trailer: say so. This used to autoplay Big Buck Bunny, the
+             Creative-Commons demo clip the original template shipped with,
+             behind a picsum.photos poster - a cartoon rabbit standing in for
+             whatever film the visitor had just clicked. Both were scaffold
+             leftovers, and both were still being fetched in production. */
+          <div className="pmodal__wait">No trailer available for this title yet.</div>
         )}
       </div>
     </div>

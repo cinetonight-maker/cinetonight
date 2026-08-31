@@ -5,6 +5,8 @@ import Icon from "@/components/Icon";
 import MarkdownEditor from "./MarkdownEditor";
 import { api, ImagePicker, effectiveBlogStatus, cacheNote, type Revalidated } from "./shared";
 import { seoChecklist, checklistSummary } from "@/lib/blogSeo";
+import { AUTHORS, authorFor } from "@/lib/authors";
+import { metaDescription } from "@/lib/metaDesc";
 import { offerRedirect } from "./offerRedirect";
 import { markdownToText, readingTime } from "@/lib/markdown";
 import type { LinkTarget } from "@/lib/linkGraph";
@@ -30,7 +32,7 @@ type BlogRow = {
   date_label: string; read_label: string;
   status: "draft" | "published" | "scheduled";
   meta_title: string; meta_description: string; publish_at: string | null;
-  focus_keyword?: string | null; secondary_keywords?: string[] | null;
+  focus_keyword?: string | null; secondary_keywords?: string[] | null; author?: string | null;
   canonical_url?: string | null; og_image?: string | null; noindex?: boolean | null;
   draft_body?: string | null; draft_saved_at?: string | null;
   deleted_at?: string | null; updated_at?: string | null;
@@ -43,7 +45,7 @@ type Draft = {
   image_url: string | null; image_alt: string; tags: string;
   date_label: string; read_label: string;
   status: BlogRow["status"]; meta_title: string; meta_description: string; publish_at: string | null;
-  focus_keyword: string; secondary_keywords: string; canonical_url: string; og_image: string; noindex: boolean;
+  focus_keyword: string; secondary_keywords: string; canonical_url: string; og_image: string; noindex: boolean; author: string;
 };
 
 const todayLabel = () => new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
@@ -53,7 +55,7 @@ const EMPTY: Draft = {
   image_url: null, image_alt: "", tags: "",
   date_label: todayLabel(), read_label: "5 min", status: "draft",
   meta_title: "", meta_description: "", publish_at: null,
-  focus_keyword: "", secondary_keywords: "", canonical_url: "", og_image: "", noindex: false,
+  focus_keyword: "", secondary_keywords: "", canonical_url: "", og_image: "", noindex: false, author: "",
 };
 
 const asMarkdown = (v: string | string[] | null | undefined) =>
@@ -128,6 +130,7 @@ export default function BlogManager() {
       date_label: p.date_label, read_label: p.read_label, status: p.status,
       meta_title: p.meta_title ?? "", meta_description: p.meta_description ?? "", publish_at: p.publish_at ?? null,
       focus_keyword: p.focus_keyword ?? "",
+      author: p.author ?? "",
       secondary_keywords: (p.secondary_keywords ?? []).join(", "),
       canonical_url: p.canonical_url ?? "", og_image: p.og_image ?? "", noindex: p.noindex === true,
     };
@@ -236,6 +239,7 @@ export default function BlogManager() {
       read: readingTime(next.body),
       status: next.status, metaTitle: next.meta_title, metaDescription: next.meta_description,
       publishAt: next.publish_at,
+      author: next.author,
       focusKeyword: next.focus_keyword,
       secondaryKeywords: next.secondary_keywords.split(",").map((k) => k.trim()).filter(Boolean),
       canonicalUrl: next.canonical_url,
@@ -465,8 +469,21 @@ export default function BlogManager() {
             <div className="ad__serp">
               <div className="ad__serpurl">cinetonight.com › blog › {draft.slug || slugify(draft.title) || "your-post"}</div>
               <div className="ad__serpt">{(draft.meta_title || draft.title || "Post title").slice(0, 60)}</div>
-              <div className="ad__serpd">{(draft.meta_description || draft.excerpt || markdownToText(draft.body)).slice(0, 160) || "Your description appears here."}</div>
+              <div className="ad__serpd">{metaDescription(draft.meta_description || draft.excerpt || markdownToText(draft.body)) || "Your description appears here."}</div>
             </div>
+
+            <label className="ad__field">
+              <span>Author — who wrote this article</span>
+              {/* Blank means the site's default author (lib/authors.ts), which
+                  is what every post written before this field existed uses.
+                  Stores the SLUG, so renaming a person never orphans a row. */}
+              <select value={draft.author} onChange={(e) => setDraft({ ...draft, author: e.target.value })}>
+                <option value="">Default ({authorFor("").name})</option>
+                {AUTHORS.map((a) => (
+                  <option key={a.slug} value={a.slug}>{a.name} — {a.role}</option>
+                ))}
+              </select>
+            </label>
 
             <div className="ad__grid2">
               <label className="ad__field">

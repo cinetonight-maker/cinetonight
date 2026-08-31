@@ -64,6 +64,15 @@ const fallbackSearch = (platform: string) => (t: string) =>
 
 const ACCESS_RANK: Record<WatchProvider["access"], number> = { stream: 0, rent: 1, buy: 2 };
 
+/** How many confirmed platforms we keep at all. Beyond this the tail is
+ *  store links nobody uses, and every extra row is bytes in every cached
+ *  page. */
+const MAX_ROWS = 8;
+// NOTE: how many rows the panel SHOWS before its "Show more" toggle lives in
+// components/WhereToWatch.tsx, not here. This module is `server-only`, so a
+// client component importing a value from it poisons the browser bundle -
+// only `import type` is safe across that boundary.
+
 export interface Row {
   key: string;
   name: string;
@@ -133,7 +142,11 @@ export interface WatchPayload {
 
 export async function buildWatch(
   id: string, tmdbId: string | number | null | undefined,
-  kind: MovieKind, title: string, region: string
+  kind: MovieKind, title: string, region: string,
+  /** Set by the SERVER-RENDERED call on /movie/[id] so the providers fetch
+   *  uses the 3-day TTL and cannot shorten that page's revalidate window.
+   *  The /api/watch route leaves it off and keeps the normal 24h data. */
+  opts: { longTtl?: boolean } = {}
 ): Promise<WatchPayload> {
   const parsed = parseTmdbId(id);
   const tmdbRef = parsed?.id ?? (tmdbId != null ? String(tmdbId) : null);
@@ -149,7 +162,7 @@ export async function buildWatch(
   let usedRegion = region;
   if (tmdbRef && tmdbConfigured) {
     try {
-      const r = await watchProvidersWithFallback(k, tmdbRef, region);
+      const r = await watchProvidersWithFallback(k, tmdbRef, region, { longTtl: opts.longTtl });
       providers = r.providers;
       if (providers.length) usedRegion = r.region;
     } catch { providers = []; }
@@ -166,8 +179,19 @@ export async function buildWatch(
       unknown.push(p);
     }
   }
+  // PRIME FIRST, among the providers that genuinely carry the title.
+  // This is an ORDERING preference over real rows, never an injected one:
+  // if Prime neither streams nor sells this title it still does not appear.
+  // Access rank still dominates, so a Prime rent row can never outrank a
+  // watch-with-subscription row on another platform - only a Prime STREAM
+  // row is promoted, which is the same condition the affiliate treatment
+  // in buildRow() already uses.
+  const primeFirst = (slug: string, p: WatchProvider) =>
+    slug === "prime-video" && p.access === "stream" ? -1 : 0;
   const knownRows = [...bySlug.entries()]
-    .sort((a, b) => ACCESS_RANK[a[1].access] - ACCESS_RANK[b[1].access])
+    .sort((a, b) =>
+      (ACCESS_RANK[a[1].access] + primeFirst(a[0], a[1])) -
+      (ACCESS_RANK[b[1].access] + primeFirst(b[0], b[1])))
     .map(([slug, p]) => buildRow(p, slug, title));
   const unknownRows = unknown
     .sort((a, b) => ACCESS_RANK[a.access] - ACCESS_RANK[b.access])
@@ -180,11 +204,17 @@ export async function buildWatch(
   // whole value is trust. Unconfirmed titles get honest SEARCH links
   // instead (YouTube first: Pakistani and many regional dramas stream
   // free on their channels' official YouTube uploads).
-  // MAX THREE rows, best first. knownRows is already sorted stream -> rent
-  // -> buy, so the top three are the most useful ways to actually watch;
-  // a six-row wall of half-relevant store links was decision fatigue, which
-  // is the exact thing this site exists to remove.
-  const rows = live ? [...knownRows, ...unknownRows].slice(0, 3) : [];
+  // THREE rows VISIBLE, best first - the rest are kept and revealed behind
+  // a "Show more" toggle in the UI (see VISIBLE_ROWS in WhereToWatch).
+  //
+  // Why keep them at all now: a six-row wall was decision fatigue, which is
+  // what the old hard slice(0, 3) removed. But discarding the extras also
+  // hid them from the SERVER-RENDERED HTML, and that HTML is the only thing
+  // a crawler ever reads - the panel is a client island, so Googlebot never
+  // fetches /api/watch (it is robots-disallowed). Collapsed-but-present is
+  // ordinary progressive disclosure: the reader still sees three, the
+  // crawler sees every confirmed platform.
+  const rows = live ? [...knownRows, ...unknownRows].slice(0, MAX_ROWS) : [];
   return {
     rows, live, region: usedRegion, countryName: regionName(usedRegion), affiliate: !!AMAZON_TAG,
     fallbackRegion: usedRegion !== region,

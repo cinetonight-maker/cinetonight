@@ -239,6 +239,11 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .w2w__benefit{color:var(--muted);font-size:12.5px}
 .w2w__cta{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:7px;color:#fff;font-weight:600;font-size:13px;padding:10px 18px;border-radius:9px;transition:filter .15s;white-space:nowrap}
 .w2w__row:hover .w2w__cta{filter:brightness(1.12)}
+.article__author{color:var(--purple2);text-decoration:none;font-weight:600}
+.article__author:hover{text-decoration:underline}
+.w2w__row--hidden{display:none}
+.w2w__more{display:block;width:100%;margin-top:10px;padding:9px 14px;border:1px dashed var(--line);border-radius:12px;background:transparent;color:var(--muted2);font-size:12.5px;cursor:pointer;transition:border-color .15s ease,color .15s ease}
+.w2w__more:hover{border-color:var(--purple2);color:var(--purple2)}
 .w2w__note{color:var(--muted2);font-size:11.5px;text-align:center;margin-top:14px}
 .w2w__unknown{color:var(--muted);font-size:12.5px;margin-bottom:12px}
 .w2w__mono{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-family:var(--font-poppins);font-weight:700;font-size:19px}

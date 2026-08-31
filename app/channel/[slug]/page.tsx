@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { metaDescription } from "@/lib/metaDesc";
 import MovieCard from "@/components/MovieCard";
 import { CHANNELS, channelBySlug, channelTitlesForRegion } from "@/lib/channels";
 import { tmdbConfigured } from "@/lib/tmdb";
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // phrasing people actually search for a platform's lineup — same
   // strategy as the movie detail pages' titles.
   const title = `${channel.name}: Latest Movies & Shows to Watch`;
-  const description = `${channel.desc}. What's streaming on ${channel.name} now — movies & web series with trailers and ratings, updated live.`.slice(0, 158);
+  const description = metaDescription(`${channel.desc}. What's streaming on ${channel.name} now — movies & web series with trailers and ratings, updated live.`);
   const url = `${baseUrl()}/channel/${channel.slug}`;
   return {
     title,

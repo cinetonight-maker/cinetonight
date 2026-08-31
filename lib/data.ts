@@ -66,6 +66,7 @@ function blogFromRow(r: any): Blog {
     canonicalUrl: r.canonical_url || null,
     ogImage: r.og_image || null,
     noindex: r.noindex === true,
+    author: r.author || null,
   };
 }
 

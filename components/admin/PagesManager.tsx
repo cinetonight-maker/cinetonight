@@ -6,6 +6,7 @@ import MarkdownEditor from "./MarkdownEditor";
 import { api, cacheNote, type Revalidated } from "./shared";
 import { offerRedirect } from "./offerRedirect";
 import { markdownToText } from "@/lib/markdown";
+import { metaDescription } from "@/lib/metaDesc";
 import type { LinkTarget } from "@/lib/linkGraph";
 
 /* ============================================================================
@@ -318,7 +319,7 @@ export default function PagesManager() {
             <div className="ad__serp">
               <div className="ad__serpurl">cinetonight.com › {(draft.slug || slugify(draft.title) || "your-page")}</div>
               <div className="ad__serpt">{(draft.meta_title || draft.title || "Page title").slice(0, 60)}</div>
-              <div className="ad__serpd">{(draft.meta_description || markdownToText(draft.content)).slice(0, 160) || "Your description appears here."}</div>
+              <div className="ad__serpd">{metaDescription(draft.meta_description || markdownToText(draft.content)) || "Your description appears here."}</div>
             </div>
 
             <label className="ad__field">

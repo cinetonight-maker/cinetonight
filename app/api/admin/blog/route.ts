@@ -93,6 +93,9 @@ const isMissingSchema = (e: unknown) => {
  *  yet — the insert/update retries without them (see isMissingSchema). */
 function seoExtra(body: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  // Author lives in the same optional-column bucket (supabase/blog_author.sql)
+  // for the same reason: the save must still succeed before that file is run.
+  if (typeof body.author === "string") out.author = body.author.trim().slice(0, 60) || null;
   if (typeof body.focusKeyword === "string") out.focus_keyword = body.focusKeyword.trim().slice(0, 120) || null;
   if (Array.isArray(body.secondaryKeywords)) {
     out.secondary_keywords = (body.secondaryKeywords as unknown[])

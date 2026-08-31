@@ -5,10 +5,12 @@ import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
-import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, type SeasonInfo } from "@/lib/tmdb";
+import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
+import { buildWatch } from "@/lib/watchRows";
+import { metaDescription } from "@/lib/metaDesc";
 import { posterLg } from "@/lib/images";
-import { validYear, displayCert, displayPeople, hasDisplayableRating, releaseStatus } from "@/lib/quality";
+import { validYear, displayCert, displayPeople, releaseStatus } from "@/lib/quality";
 import type { Movie } from "@/lib/types";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
@@ -41,6 +43,28 @@ export const dynamicParams = true;
 // history; live availability is a client island that is never cached here.
 export const revalidate = 259200;
 
+/* WHERE-TO-WATCH IN THE CACHED HTML.
+ *
+ * The panel is a client island so each visitor gets their OWN country. That
+ * is right for humans and wrong for crawlers: /api/watch is robots-disallowed
+ * (deliberately - it is force-dynamic and calls TMDB), so Googlebot renders
+ * the page, cannot make the call, and indexes "Checking availability in your
+ * country...". Every movie page therefore promised "Where to Watch" in its
+ * title and delivered a spinner in its body.
+ *
+ * Fix: render ONE fixed region into the cached HTML as the island's initial
+ * state. The browser still swaps in the visitor's real country on load.
+ *
+ * MUST NOT be visitorRegion(). That reads headers(), which would make this
+ * route dynamic and destroy the ISR caching this whole phase exists to
+ * protect - straight back to the R2 bill. A constant keeps the page static.
+ *
+ * US, not IN: TMDB's provider coverage is densest there and Googlebot crawls
+ * predominantly from the US. buildWatch already falls back US -> IN -> GB ->
+ * any country with data, so a title missing from the US still renders rows,
+ * labelled with the country they actually came from. */
+const SSR_WATCH_REGION = "US";
+
 /** Local catalogue first, then TMDB for ids like "tmdb-m-1234". */
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const local = movies.find((m) => m.id === id);
@@ -51,7 +75,20 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const catalogued = await getMovie(id);
   if (catalogued) return catalogued;
   const parsed = parseTmdbId(id);
-  return parsed ? fetchTitle(parsed.kind, parsed.id) : null;
+  if (!parsed) return null;
+  // A curated title is ALSO reachable by its raw tmdb-{m|t}-{id}-{slug} form
+  // (e.g. /movie/tmdb-m-1368337-the-odyssey for a title we've curated at
+  // /movie/the-odyssey). Without this check, fetchTitle() below builds a
+  // FRESH Movie straight from TMDB whose own .id happens to equal the
+  // requested id (tmdbId() derives the same slug), so the permanentRedirect()
+  // in the page component below never fires — the title ends up served at
+  // two independent, self-canonical URLs instead of one. Cross-check the
+  // curated catalogue by tmdbId + kind first so this collapses onto the
+  // existing redirect instead of needing a new mechanism.
+  const numericId = Number(parsed.id);
+  const curated = movies.find((m) => m.tmdbId === numericId && m.kind === parsed.kind);
+  if (curated) return curated;
+  return fetchTitle(parsed.kind, parsed.id);
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -74,9 +111,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // Intent phrase FIRST, then synopsis, capped at snippet length — Google
   // truncates ~160 chars, so the old 300-char version buried the call to
   // action past the ellipsis.
-  const description = (upcoming
+  const rawDescription = (upcoming
     ? `${m.title}${yearTag} — release date, trailer, cast & everything confirmed so far. ${m.desc}`
-    : `Watch ${m.title}${yearTag} — trailer, cast, ratings & where to stream. ${m.desc}`).slice(0, 158);
+    : `Watch ${m.title}${yearTag} — trailer, cast, ratings & where to stream. ${m.desc}`);
+  // Word-boundary trim, not a hard slice: the old .slice(0, 158) cut wherever
+  // the 158th character landed, so pages ended mid-word ("...availabi").
+  const description = metaDescription(rawDescription);
   const image = posterLg(m);
   const url = `${baseUrl()}/movie/${m.id}`;
   return {
@@ -115,22 +155,30 @@ export default async function MoviePage({ params }: Params) {
   // they were previously awaited after them, adding a full extra network
   // round-trip to every series page's TTFB. try/catch inside the promise
   // so a TMDB hiccup degrades to "no picker", never a 500.
+  const watchPromise = buildWatch(m.id, m.tmdbId, m.kind, m.title, SSR_WATCH_REGION, { longTtl: true })
+    .catch(() => null);
   const seasonsPromise: Promise<SeasonInfo[]> =
     m.kind === "series" && m.tmdbId != null && tmdbConfigured
       ? fetchSeasons(m.tmdbId).catch(() => [])
       : Promise.resolve([]);
 
+  // STAB-03 follow-up: every list below is live TMDB data, so before it
+  // becomes a card/link on this page it's passed through preferCurated() -
+  // a title you've already added to the catalogue always shows and links
+  // via its own clean address here, never a fresh tmdb-* one.
   let related: Movie[];
   let featured: Movie[];
   if (parsed) {
-    const recs = await relatedTmdb(parsed.kind, parsed.id, 8);
+    const recs = preferCurated(await relatedTmdb(parsed.kind, parsed.id, 8), movies);
     related = recs.slice(0, 4);
-    featured = recs.slice(4, 8).length ? recs.slice(4, 8) : await latestReleasesTmdb("series", 4);
+    featured = recs.slice(4, 8).length ? recs.slice(4, 8) : preferCurated(await latestReleasesTmdb("series", 4), movies);
   } else {
-    const [liveRelated, liveFeatured] = await Promise.all([
+    const [liveRelatedRaw, liveFeaturedRaw] = await Promise.all([
       tmdbConfigured ? trendingLiveTmdb("all", 8) : Promise.resolve([] as Movie[]),
       tmdbConfigured ? latestReleasesTmdb("series", 8) : Promise.resolve([] as Movie[]),
     ]);
+    const liveRelated = preferCurated(liveRelatedRaw, movies);
+    const liveFeatured = preferCurated(liveFeaturedRaw, movies);
     related = (liveRelated.length ? liveRelated : trendingNow(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
     featured = (liveFeatured.length ? liveFeatured : newestSeries(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
   }
@@ -142,6 +190,9 @@ export default async function MoviePage({ params }: Params) {
     .slice(0, 6);
 
   const seasons = await seasonsPromise;
+  // Never let an availability hiccup take the page down: on failure the
+  // island simply falls back to its old fetch-on-load behaviour.
+  const watch = await watchPromise;
 
   // Structured data (schema.org/Movie) — this is what makes Google eligible
   // to show a "Rich Result" card (poster thumbnail + star rating right in
@@ -155,9 +206,24 @@ export default async function MoviePage({ params }: Params) {
 
   // Phase 2 hygiene: series are typed TVSeries (not Movie), year 0 never
   // becomes datePublished, "NR" never becomes contentRating, a placeholder
-  // "—" never becomes a Person, and aggregateRating only exists when there
-  // are REAL votes — fabricating ratingCount: 1 risks a structured-data
-  // penalty. Upcoming titles get no datePublished at all.
+  // "—" never becomes a Person. Upcoming titles get no datePublished at all.
+  //
+  // STAB-05 / STAB-06 (Pre-V2 Stabilization Backlog): this JSON-LD used to
+  // carry aggregateRating (built from TMDB's rating/vote count, republished
+  // as if it were CineTonight's own review aggregate — Google's guidance
+  // treats an unattributed third-party rating this way as exactly the kind
+  // of review-rich-result misuse manual actions target) and offers (marked
+  // every Where-to-Watch row "https://schema.org/InStock", including rows
+  // whose .url is a generic provider search link, e.g. a plain Google
+  // search URL — an unverified search page is not a confirmed in-stock
+  // offer). The backlog explicitly rules out both easy-looking fixes: "no
+  // fake local ratings to keep rich-result markup" and "no guessed
+  // provider deep links or availability" — so both fields are dropped
+  // rather than patched. The rating number and Where-to-Watch panel still
+  // render normally for human visitors; only the structured-data claims
+  // are removed. Reinstate aggregateRating once there's a real local
+  // rating corpus, and offers once rows carry genuine per-title deep
+  // links instead of search URLs.
   const directorNames = displayPeople(m.director);
   const jsonLd = {
     "@context": "https://schema.org",
@@ -181,9 +247,6 @@ export default async function MoviePage({ params }: Params) {
     actor: m.cast?.length
       ? m.cast.slice(0, 10).map((c) => ({ "@type": "Person", name: c.name }))
       : undefined,
-    aggregateRating: hasDisplayableRating(m)
-      ? { "@type": "AggregateRating", ratingValue: m.rating, bestRating: 10, ratingCount: m.votes }
-      : undefined,
   };
 
   return (
@@ -197,7 +260,7 @@ export default async function MoviePage({ params }: Params) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
       <div className="pagerow">
         <div className="pagemain">
-          <MovieDetail movie={m} seasons={seasons} suggestions={suggestions} />
+          <MovieDetail movie={m} seasons={seasons} suggestions={suggestions} watch={watch} />
         </div>
         <aside className="pageaside">
           {related.length > 0 && <PosterWidget title="Related Movies" movies={related} href="/trending" />}

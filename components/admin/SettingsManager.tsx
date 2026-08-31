@@ -8,6 +8,7 @@ import {
   SOCIAL_KEYS, SOCIAL_LABEL, DEFAULTS,
   type SiteSettingsConfig,
 } from "@/lib/settingsConfig";
+import { metaDescription } from "@/lib/metaDesc";
 
 /* ============================================================================
  * /admin/settings — the site's own details, on the same contract as everything
@@ -201,7 +202,7 @@ export default function SettingsManager() {
         <div className="ad__serp">
           <div className="ad__serpurl">cinetonight.com</div>
           <div className="ad__serpt">{draft.siteTitle.slice(0, 60) || "Site title"}</div>
-          <div className="ad__serpd">{draft.siteDescription.slice(0, 160) || "Your description appears here."}</div>
+          <div className="ad__serpd">{metaDescription(draft.siteDescription) || "Your description appears here."}</div>
         </div>
       </section>
 

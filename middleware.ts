@@ -27,6 +27,39 @@ const GENRE_HUBS: ReadonlySet<string> = new Set([
  *    - /admin/login itself is always reachable (otherwise no one could log in)
  */
 export async function middleware(request: NextRequest) {
+  /* ------------------------------------------------------------------------
+   * ENFORCE HTTPS (STAB-01, confirmed live 31 Aug 2026).
+   *
+   * http://cinetonight.com served the full page directly with zero redirect
+   * — Cloudflare's edge-level "Always Use HTTPS" is off for this zone, and
+   * nothing downstream replaced it, so the plaintext origin has been a live
+   * duplicate of every URL on the site (and every cookie including the
+   * Supabase session cookie could travel unencrypted on it).
+   *
+   * A real 308 here, not an in-render redirect: see the genre block below
+   * for why `permanentRedirect()` inside a page returns HTTP 200 with a
+   * client-side payload on this stack rather than an actual redirect.
+   * Middleware is the one layer where a redirect is a real HTTP redirect.
+   *
+   * Runs before every other check, including the path guard: an insecure
+   * request should never reach guardPath, genre canonicalisation or the
+   * Supabase session refresh below — it should just be told to come back
+   * over HTTPS. `port` is cleared so a request that somehow arrived with an
+   * explicit port doesn't redirect to "https://cinetonight.com:80".
+   *
+   * Skipped in development: `next dev` serves plain HTTP with no local TLS
+   * listener, so this would otherwise redirect every local request to an
+   * https://localhost URL nothing is listening on. `next build`/the
+   * deployed Worker both run with NODE_ENV=production, so this never
+   * weakens the production behaviour above.
+   * --------------------------------------------------------------------- */
+  if (process.env.NODE_ENV !== "development" && request.nextUrl.protocol === "http:") {
+    const secure = request.nextUrl.clone();
+    secure.protocol = "https:";
+    secure.port = "";
+    return NextResponse.redirect(secure, 308);
+  }
+
   const response = NextResponse.next({ request: { headers: request.headers } });
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

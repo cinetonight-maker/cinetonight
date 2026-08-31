@@ -6,12 +6,35 @@ import type { Movie } from "@/lib/types";
 import type { WatchPayload } from "@/lib/watchRows";
 import { trackProviderClicked, toMediaType, type Surface } from "@/lib/analytics";
 
-/** "Where to Watch" — now a client island. The movie page is statically
- *  cached (ISR) for everyone; this component fetches the visitor's OWN
- *  country's availability from /api/watch after load. Crawlers don't run
- *  JS, so bot traffic never pays the availability cost. */
-export default function WhereToWatch({ movie, surface = "unknown" }: { movie: Pick<Movie, "id" | "tmdbId" | "kind" | "title">; surface?: Surface }) {
-  const [data, setData] = useState<WatchPayload | null>(null);
+/** Rows shown before the "Show more" toggle. Defined HERE, not imported from
+ *  lib/watchRows: that module is `server-only`, so importing a value from it
+ *  into this client component would poison the browser bundle. */
+const VISIBLE_ROWS = 3;
+
+/** "Where to Watch" — a client island over a server-rendered starting state.
+ *
+ *  The movie page is statically cached (ISR) for everyone, so it cannot know
+ *  the visitor's country. It therefore renders ONE fixed region's rows into
+ *  the cached HTML (see SSR_WATCH_REGION in app/movie/[id]/page.tsx) and
+ *  passes them in as `initial`. This component paints those immediately, then
+ *  fetches /api/watch and swaps in the visitor's OWN country.
+ *
+ *  Why the server half exists at all: /api/watch is robots-disallowed, so a
+ *  crawler renders the page, cannot make the call, and used to index
+ *  "Checking availability in your country...". The initial rows are the only
+ *  version a crawler ever sees. Real browsers still get their own region, and
+ *  bot traffic still never pays the per-request availability cost. */
+export default function WhereToWatch({ movie, surface = "unknown", initial = null }: {
+  movie: Pick<Movie, "id" | "tmdbId" | "kind" | "title">;
+  surface?: Surface;
+  /** Server-rendered availability for the default SSR region. Present in the
+   *  cached HTML so the panel ships real platform names instead of a spinner,
+   *  which is the ONLY version a crawler ever sees. Replaced below with the
+   *  visitor's own country once the client resolves it. */
+  initial?: WatchPayload | null;
+}) {
+  const [data, setData] = useState<WatchPayload | null>(initial);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,6 +49,9 @@ export default function WhereToWatch({ movie, surface = "unknown" }: { movie: Pi
     return () => { cancelled = true; };
   }, [movie.id, movie.kind, movie.title, movie.tmdbId]);
 
+  // Only reachable when the server had nothing either (no TMDB data, or the
+  // fetch threw). With `initial` set this branch never renders, so the first
+  // paint - and the crawled HTML - carries real rows.
   if (!data) {
     return (
       <div className="w2w" aria-busy="true">
@@ -78,10 +104,15 @@ export default function WhereToWatch({ movie, surface = "unknown" }: { movie: Pi
         </p>
       )}
       <div className="w2w__rows">
-        {rows.map((o) => (
+        {rows.map((o, i) => (
           <a
             key={o.key}
-            className="w2w__row"
+            // Rows past the third are IN THE DOM but hidden until the toggle
+            // is pressed. Rendering then hiding (rather than not rendering)
+            // is deliberate: the crawler reads every confirmed platform while
+            // the reader still gets a three-row panel.
+            className={`w2w__row${i >= VISIBLE_ROWS && !expanded ? " w2w__row--hidden" : ""}`}
+            hidden={i >= VISIBLE_ROWS && !expanded}
             href={o.url}
             target="_blank"
             rel="noopener noreferrer nofollow sponsored"
@@ -112,6 +143,11 @@ export default function WhereToWatch({ movie, surface = "unknown" }: { movie: Pi
           </a>
         ))}
       </div>
+      {rows.length > VISIBLE_ROWS && !expanded && (
+        <button type="button" className="w2w__more" onClick={() => setExpanded(true)}>
+          Show {rows.length - VISIBLE_ROWS} more {rows.length - VISIBLE_ROWS === 1 ? "option" : "options"}
+        </button>
+      )}
       <div className="w2w__note">
         Availability may vary by region and plan. Streaming data by JustWatch via TMDB.
         {affiliate && " Some links are affiliate links, and we may earn a commission at no extra cost to you."}

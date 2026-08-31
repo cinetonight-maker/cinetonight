@@ -14,7 +14,7 @@ import { getHomepageConfig } from "@/lib/homepage";
 import { getDiscoveryConfig } from "@/lib/discovery";
 import { enabledMoods, enabledQuickPicks, enabledExploreTabs, enabledProviders } from "@/lib/discoveryConfig";
 import { visibleSections, type SectionId } from "@/lib/homepageConfig";
-import { trendingLiveTmdb, bollywoodTmdb, southIndianTmdb, koreanTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { trendingLiveTmdb, bollywoodTmdb, southIndianTmdb, koreanTmdb, tmdbConfigured, preferCurated } from "@/lib/tmdb";
 import { mixDiscovery, industryOf } from "@/lib/industry";
 import { discoveryFilter } from "@/lib/quality";
 import { toCard, toPick, type Movie } from "@/lib/types";
@@ -55,7 +55,7 @@ export default async function HomePage() {
   // this page still triggers each underlying TMDB call once. The three
   // region pools exist to fix the Hollywood-heavy mix (§14): they feed the
   // "For You" Explore blend at ~45/25/20/10, quality-first.
-  const [movies, site, trending, bolly, south, korean] = await Promise.all([
+  const [movies, site, trendingRaw, bollyRaw, southRaw, koreanRaw] = await Promise.all([
     getMovies(),
     getSiteConfig(),
     tmdbConfigured ? trendingLiveTmdb("all", 20) : noMovies,
@@ -63,6 +63,15 @@ export default async function HomePage() {
     tmdbConfigured ? southIndianTmdb("all", 8).catch(() => [] as Movie[]) : noMovies,
     tmdbConfigured ? koreanTmdb("all", 8).catch(() => [] as Movie[]) : noMovies,
   ]);
+  // STAB-03 follow-up: swap in the catalogue's own title (and its clean
+  // address) wherever one of these live TMDB rows is something you've
+  // already added, so the homepage never links to a tmdb-* address for a
+  // title that already has a real one. No extra fetch or delay - movies is
+  // already resolved above.
+  const trending = preferCurated(trendingRaw, movies);
+  const bolly = preferCurated(bollyRaw, movies);
+  const south = preferCurated(southRaw, movies);
+  const korean = preferCurated(koreanRaw, movies);
 
   // One list, sliced several ways. Nothing below this refetches.
   const pool = trending.length ? trending : movies;

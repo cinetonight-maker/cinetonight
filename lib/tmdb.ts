@@ -24,6 +24,34 @@ export const tmdbConfigured = Boolean(KEY || TOKEN);
 const seoSlug = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
 export const tmdbId = (kind: MovieKind, id: number | string, title?: string) =>
   `tmdb-${kind === "series" ? "t" : "m"}-${id}` + (title ? `-${seoSlug(title)}` : "");
+
+/** STAB-03 follow-up (Pre-V2 Stabilization Backlog): app/movie/[id]/page.tsx's
+ *  resolve() already redirects a tmdb-{m|t}-{id}-{slug} URL to a catalogue
+ *  title's own address if one exists, so nothing can ever end up LIVE at two
+ *  addresses. But redirecting after the fact isn't the same as never showing
+ *  the tmdb-* address in the first place: the trending/latest/related rows
+ *  (and the sitemap) fetch straight from TMDB and build their own ids with
+ *  no idea a title might already be in the catalogue under a clean slug.
+ *
+ *  Call this on any Movie[] pulled live from TMDB before rendering it as
+ *  cards/links, passing the caller's already-fetched curated catalogue
+ *  (from lib/data.ts's getMovies()) — every row whose tmdbId + kind matches
+ *  a catalogue title is swapped for that catalogue title's own object (so
+ *  the card AND its link both point at the clean address, never tmdb-*).
+ *
+ *  Deliberately takes `curated` as a plain array instead of importing
+ *  getMovies() itself: lib/data.ts is `server-only`, and lib/tmdb.ts is
+ *  imported by client components (TicketStub, WatchlistButton) for
+ *  parseTmdbId — importing a server-only module here would break their
+ *  build. Keeping this file free of any lib/data.ts dependency avoids that
+ *  entirely. */
+export function preferCurated(list: Movie[], curated: Movie[]): Movie[] {
+  if (!curated.length) return list;
+  const byKey = new Map(
+    curated.filter((m) => m.tmdbId != null).map((m) => [`${m.kind}:${m.tmdbId}`, m] as const)
+  );
+  return list.map((m) => (m.tmdbId != null && byKey.get(`${m.kind}:${m.tmdbId}`)) || m);
+}
 export function parseTmdbId(slug: string): { kind: MovieKind; id: string } | null {
   const m = /^tmdb-(m|t)-(\d+)(?:-[a-z0-9-]*)?$/.exec(slug);
   return m ? { kind: m[1] === "t" ? "series" : "movie", id: m[2] } : null;
@@ -92,7 +120,7 @@ const MEMO_MAX = 300;
 async function get<T>(
   path: string,
   params: Record<string, string | number | undefined> = {},
-  opts: { noStore?: boolean } = {},
+  opts: { noStore?: boolean; ttl?: number } = {},
 ): Promise<T | null> {
   if (!tmdbConfigured) return null;
   const url = new URL(API + path);
@@ -116,7 +144,7 @@ async function get<T>(
       headers: TOKEN ? { Authorization: `Bearer ${TOKEN}`, accept: "application/json" } : undefined,
       // noStore keeps the response OUT of the persisted data cache entirely
       // (used for unbounded key spaces like free-text search).
-      ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: ttlFor(path) } }),
+      ...(opts.noStore ? { cache: "no-store" as const } : { next: { revalidate: opts.ttl ?? ttlFor(path) } }),
     });
     if (!res.ok) return null;
     const data = (await res.json()) as T;
@@ -355,11 +383,22 @@ const TV_GENRE_ALIAS: Record<string, string> = {
   "Sci-Fi": "Sci-Fi & Fantasy", Fantasy: "Sci-Fi & Fantasy", War: "War & Politics",
 };
 
+/** TMDB's MOVIE genre list names this "Science Fiction", not "Sci-Fi" — the
+ *  TV side really is "Sci-Fi & Fantasy", which is why TV_GENRE_ALIAS above
+ *  already covers it. Without this, genreIdFor("movie", "Sci-Fi") matched
+ *  nothing, with_genres was silently left unset, and /movies?genre=Sci-Fi
+ *  rendered the UNFILTERED newest-movies list under a Sci-Fi title and
+ *  canonical. Confirmed live 31 Aug 2026 (STAB-04): non-scifi titles like
+ *  Camp Rock 3 and Tony under "Sci-Fi". Every other browse genre name
+ *  already matches TMDB's movie list exactly — this was the one mismatch. */
+const MOVIE_GENRE_ALIAS: Record<string, string> = { "Sci-Fi": "Science Fiction" };
+
 async function genreIdFor(kind: MovieKind, name?: string): Promise<number | undefined> {
   if (!name || name === "All") return undefined;
   const map = await genreMap(kind);
   const entries = Object.entries(map);
-  const wanted = kind === "series" && TV_GENRE_ALIAS[name] ? TV_GENRE_ALIAS[name] : name;
+  const alias = kind === "series" ? TV_GENRE_ALIAS[name] : MOVIE_GENRE_ALIAS[name];
+  const wanted = alias ?? name;
   const hit = entries.find(([, n]) => n === wanted);
   return hit ? Number(hit[0]) : undefined;
 }
@@ -755,9 +794,25 @@ export async function watchProvidersTmdb(kind: MovieKind, id: string | number, r
  *  returned so the UI can label it honestly ("Where to Watch in India")
  *  instead of pretending it's local. */
 export async function watchProvidersWithFallback(
-  kind: MovieKind, id: string | number, preferred: string
+  kind: MovieKind, id: string | number, preferred: string, opts: { longTtl?: boolean } = {}
 ): Promise<{ providers: WatchProvider[]; region: string }> {
-  const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/watch/providers`);
+  // longTtl is for the SERVER-RENDERED copy on /movie/[id] only.
+  //
+  // Next sets a segment's revalidate to the SHORTEST TTL among its fetches.
+  // At the normal TTL.steady (24h) this one call would drag the whole movie
+  // page down from 72h to 24h - 3x the regenerations and 3x the R2 writes
+  // across the entire long tail, which is the exact cost Phase 1 removed.
+  //
+  // TTL.stable keeps the page on its 72h cycle. The cost is that the CACHED
+  // HTML can carry availability up to 3 days old, and that is fine: it is
+  // the crawler's copy. Every real visitor's browser calls /api/watch on
+  // load, which still runs at the normal 24h TTL, so humans never see the
+  // older data.
+  const d = await get<any>(
+    `${kind === "series" ? "/tv" : "/movie"}/${id}/watch/providers`,
+    {},
+    opts.longTtl ? { ttl: TTL.stable } : {},
+  );
   const results = d?.results ?? {};
   const toProviders = (r: any): WatchProvider[] => {
     if (!r) return [];
@@ -1005,7 +1060,21 @@ const SORT_MAP: Record<BrowseSort, { movie: string; tv: string }> = {
   year: { movie: "primary_release_date.desc", tv: "first_air_date.desc" },
   az: { movie: "original_title.asc", tv: "name.asc" },
 };
-const MIN_VOTES: Record<BrowseSort, number> = { trending: 20, rating: 200, year: 1, az: 0 };
+/* Minimum TMDB vote count per sort, applied as `vote_count.gte` in the
+ * discover query - so TMDB filters BEFORE sending, and every browse page
+ * still returns a full set of results. Filtering after the fetch instead
+ * would leave ragged pages (20 results on one, 4 on the next).
+ *
+ * `year` was 1. "Newest first, at least one vote" is effectively every
+ * no-name release on earth, which is why the default /movies listing filled
+ * up with titles like "TNA Lockdown 2026" and "Good hobo = DEAD hobo".
+ * titleTier() did not catch them either: Tier C needs BOTH no poster and no
+ * overview, and junk usually has both, so it passed through as Tier B.
+ *
+ * 25 is deliberately below TIER_A_MIN_VOTES (50): this is a junk filter, not
+ * a quality bar, and a real release clears 25 votes within hours. The cost is
+ * that a genuinely obscure new film waits a few days to appear in "newest". */
+const MIN_VOTES: Record<BrowseSort, number> = { trending: 20, rating: 200, year: 25, az: 0 };
 /** Maximum PUBLIC browse depth, in pages, for every listing route.
  *
  *  Was 50. Each (kind, sort, genre, page) combination is its own TMDB request
@@ -1061,10 +1130,15 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
   // "all" — merge a movie page and a tv page for the same page number.
   const [m, t] = await Promise.all([discoverPage("movie", sort, genre, page), discoverPage("series", sort, genre, page)]);
   const merged = [...m.results, ...t.results].filter((x) => titleTier(x) !== "C");
-  if (sort === "rating") merged.sort(() => 0); // handled below — see rankByWeightedRating
-  else if (sort === "year") merged.sort((a, b) => b.year - a.year);
+  // "rating" is deliberately absent here: it is ordered below by
+  // rankByWeightedRating, which applies Bayesian shrinkage AND a vote floor.
+  // This used to read `if (sort === "rating") merged.sort(() => 0)`, a
+  // comparator that always returns 0 and therefore sorts nothing - dead code
+  // that looked like a decision. The `sort !== "rating"` guard on the last
+  // branch is what keeps rating out of the popularity fallback.
+  if (sort === "year") merged.sort((a, b) => b.year - a.year);
   else if (sort === "az") merged.sort((a, b) => a.title.localeCompare(b.title));
-  else merged.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
+  else if (sort !== "rating") merged.sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0));
   // Cap at the same page size every other path uses (single-kind branches
   // above return one TMDB page — typically 20 — and lib/browse.ts's local
   // fallback uses PAGE_SIZE = 20). Without this, merging a movie page + a
