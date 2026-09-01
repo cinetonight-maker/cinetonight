@@ -11,6 +11,11 @@ import type { Movie } from "@/lib/types";
 
 type State = { loading: boolean; results: Movie[]; source: string; error: string | null };
 
+/* V2 (docs/V2-BUILD-PATH.md Phase 4): grouped, honestly-counted results and
+ * a zero-result state that recovers instead of dead-ending. Same /api/search,
+ * same noindex policy — presentation only, behind the build-time flag. */
+const V2 = process.env.NEXT_PUBLIC_V2_THEME === "1";
+
 export default function SearchResults({
   trendingMovie = null, trendingSeries = null, genres = [],
 }: { trendingMovie?: Movie | null; trendingSeries?: Movie | null; genres?: string[] }) {
@@ -51,17 +56,48 @@ export default function SearchResults({
         </div>
       )}
 
-      {!s.loading && s.results.length > 0 && (
+      {!s.loading && s.results.length > 0 && (V2 ? (
+        (() => {
+          const movies = s.results.filter((m) => m.kind !== "series");
+          const series = s.results.filter((m) => m.kind === "series");
+          return (
+            <>
+              {movies.length > 0 && (
+                <section className="sec">
+                  <div className="sec__head"><h2>Movies <span className="v2s-count">{movies.length}</span></h2></div>
+                  <div className="grid">{movies.map((m) => <MovieCard key={m.id} movie={m} />)}</div>
+                </section>
+              )}
+              {series.length > 0 && (
+                <section className="sec">
+                  <div className="sec__head"><h2>Series <span className="v2s-count">{series.length}</span></h2></div>
+                  <div className="grid">{series.map((m) => <MovieCard key={m.id} movie={m} />)}</div>
+                </section>
+              )}
+            </>
+          );
+        })()
+      ) : (
         <div className="grid">
           {s.results.map((m) => <MovieCard key={m.id} movie={m} />)}
         </div>
-      )}
+      ))}
 
       {!s.loading && q && !s.results.length && !s.error && (
         <div className="empty">
           No titles match “{q}”.
           {s.source === "local" && (
             <><br /><span style={{ fontSize: 13 }}>Live search is off — add TMDB_API_KEY to .env.local to search everything.</span></>
+          )}
+          {/* V2 zero-result recovery: a dead end becomes three honest routes
+              onward (spec SEARCH_PAGE.md — "useful zero-result recovery to
+              Finder, genres and catalogue"). */}
+          {V2 && (
+            <div className="v2s-recover">
+              <Link className="v2s-recover__btn" href="/discover">Find me something to watch</Link>
+              <Link className="v2s-recover__btn" href="/genres">Browse genres</Link>
+              <Link className="v2s-recover__btn" href="/trending">Trending tonight</Link>
+            </div>
           )}
         </div>
       )}

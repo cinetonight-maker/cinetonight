@@ -185,8 +185,47 @@ export default async function PersonPage({ params }: Params) {
   if (redirectTo) permanentRedirect(redirectTo);
 
   const { person: p, credits } = resolved;
-  const years = credits.map((c) => c.year);
-  const avg = credits.length ? (credits.reduce((s, c) => s + c.rating, 0) / credits.length).toFixed(1) : "—";
+  const years = credits.map((c) => c.year).filter((y) => y > 1900);
+  const avg = credits.length ? (credits.reduce((s, c) => s + c.rating, 0) / credits.length).toFixed(1) : null;
+
+  // V2 (docs/V2-BUILD-PATH.md Phase 4): factual person layout. The old
+  // template asserted "Actor" and "Based in India" for EVERY person — both
+  // fabrications for anyone the data doesn't support (PERSON_PAGE.md bans
+  // role claims without verified credits and private-life fills). V2 shows
+  // only what the credits prove: a role-context line when we hold one, a
+  // Top Rated starting shelf (objective, rating-sorted — not an editorial
+  // "best starting point", which needs the intel pilot), and the full
+  // filmography newest-first. Page stays noindex,follow either way.
+  if (process.env.NEXT_PUBLIC_V2_THEME === "1") {
+    const topRated = [...credits].filter((c) => c.rating > 0).sort((a, b) => b.rating - a.rating).slice(0, 3);
+    const byYear = [...credits].sort((a, b) => (b.year || 0) - (a.year || 0));
+    return (
+      <div className="page">
+        <div className="person v2p-head">
+          <div className="person__ph"><Image fill alt={p.name} src={profile(p)} sizes="220px" priority /></div>
+          <div>
+            <h1 className="person__n">{p.name}</h1>
+            {p.character && p.character !== "—" && <div className="person__role">Known for playing {p.character}</div>}
+            <div className="person__facts">
+              <div><b>{credits.length}</b>Title{credits.length === 1 ? "" : "s"} here</div>
+              {years.length > 0 && <div><b>{Math.min(...years)}</b>Earliest</div>}
+              {avg && <div><b>{avg}</b>Avg. film rating</div>}
+            </div>
+          </div>
+        </div>
+        {topRated.length > 0 && (
+          <Row title="Top Rated">
+            {topRated.map((m) => <MovieCard key={m.id} movie={toCard(m)} />)}
+          </Row>
+        )}
+        {byYear.length > 0 && (
+          <Row title={`All Titles (${byYear.length})`}>
+            {byYear.map((m) => <MovieCard key={m.id} movie={toCard(m)} />)}
+          </Row>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -203,8 +242,7 @@ export default async function PersonPage({ params }: Params) {
           <div className="person__facts">
             <div><b>{credits.length}</b>Titles</div>
             <div><b>{years.length ? Math.min(...years) : "—"}</b>Earliest</div>
-            <div><b>{avg}</b>Avg. rating</div>
-            <div><b>India</b>Based in</div>
+            <div><b>{avg ?? "—"}</b>Avg. rating</div>
           </div>
         </div>
       </div>

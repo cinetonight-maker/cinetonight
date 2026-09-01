@@ -145,3 +145,10 @@
 /* series commitment panel */
 .v2m-panel--commit{border-color:#33261a;background:linear-gradient(135deg,rgba(255,207,77,.06),var(--card) 70%)}
 .v2m-kicker--gold{color:#ffcf4d}
+
+/* V2 search: group counts + zero-result recovery */
+.v2s-count{color:var(--muted);font-weight:500;font-size:14px;margin-left:6px}
+.v2s-recover{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+.v2s-recover__btn{display:inline-flex;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;
+  font-weight:600;font-size:13px;color:#fff;border:1px solid var(--line);background:var(--card)}
+.v2s-recover__btn:hover{border-color:var(--purple)}
