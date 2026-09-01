@@ -6,6 +6,17 @@
 
 **Design source of truth:** the "CineTonight V2" canvas + static exports in `CineTonight_V2_Clean_Developer_Handover/06_Design_References/V2_Design_Canvas_Mockup/`.
 
+## Status — 2026-09-01 (autonomous build session)
+- [x] Phase 1 built & committed — `19277c3` (theme flag + v2-theme.css)
+- [x] Phase 2 built & committed — `fbfa6fb` (MovieDetailV2, movie_intel.sql, lib/intel.ts, honest ratings)
+- [x] Phase 3 built & committed — `152f752` (SeriesFacts + Commitment panel, EpisodePicker wiring)
+- [x] Phase 4 built & committed — `a1462f9` (grouped search + recovery; factual person layout, fabricated bio line removed)
+- [ ] Phase 5 — not started
+- [ ] Phase 6 — founder-driven (needs `supabase/movie_intel.sql` run once)
+- [ ] Phase 7 — launch (founder deploys)
+
+Verified per phase in a container mirror: `tsc --noEmit` clean, 286/286 tests, production build with `NEXT_PUBLIC_V2_THEME=1` compiles, `/movie/[id]` still SSG (3d revalidate), served HTML + screenshot checks. Founder still to do: preview locally with the flag set, Windows tsc, run the movie_intel SQL.
+
 ## Phase 1 — theme foundation (this commit)
 - `app/v2-theme.css`: the locked V2 token set applied via `body.v2`, overriding the existing custom properties (`--bg`, `--card`, `--purple*`, rgb channels, `--glow`) so every component that reads tokens turns dark-red with zero per-component edits. Fonts need nothing: Inter + Poppins are already self-hosted and wired.
 - Flag: `NEXT_PUBLIC_V2_THEME=1` at build time adds the class in `app/layout.tsx`. Build-time, not per-visitor — ISR caches one theme, cache keys unchanged. Launch = flip the env at deploy. Preview = run locally with the env set.
