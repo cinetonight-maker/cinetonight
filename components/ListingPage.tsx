@@ -63,7 +63,9 @@ export default async function ListingPage({
   const initialData = { ...raw, results: raw.results.map(toCard) };
 
   return (
-    <div className="page">
+    // page--listing: hook for the V2 catalogue CSS layer (app/v2-listing.css);
+    // inert with the flag off.
+    <div className="page page--listing">
       <div className="page__head"><h1>{title}</h1><p>{sub}</p></div>
       <div className="pagerow">
         <div className="pagemain">

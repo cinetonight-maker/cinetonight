@@ -18,6 +18,7 @@ import "./globals.css";
 import "./v2-theme.css";
 import "./v2-movie.css";
 import "./v2-home.css";
+import "./v2-listing.css";
 
 // Was a render-blocking request to fonts.googleapis.com on every page load
 // (a full extra round trip before text could even paint, straight against

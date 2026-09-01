@@ -1,0 +1,29 @@
+/* ==========================================================================
+   V2 CATALOGUE LISTING (canvas "Catalogue Listing — Desktop", 1 Sep 2026)
+
+   One shell for /movies, /tv-shows, /web-series, /trending, /latest — the
+   pages that render <ListingPage>. Pure body.v2 CSS layer over the existing
+   markup: same chips, same query params, same /api/browse calls, zero
+   route or logic changes. With the flag off, none of this applies.
+   ========================================================================== */
+
+body.v2 .page--listing .page__head h1{font-size:32px;letter-spacing:-.4px}
+
+/* Filter bar becomes the contained card from the canvas. */
+body.v2 .page--listing .chip-row--desktop{flex:1 1 100%;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:13px 15px;gap:9px}
+body.v2 .page--listing .fchip{background:var(--card2);padding:9px 16px}
+body.v2 .page--listing .fchip.on{background:var(--purple)}
+
+/* Desktop: count + sort move up beside the H1 (canvas page-head row). The
+   sub line stays short on every listing page, so the corner is free. */
+@media(min-width:761px){
+  body.v2 .page--listing .pagemain{position:relative}
+  body.v2 .page--listing .controls .cright{position:absolute;top:-64px;right:0;
+    display:flex;align-items:center;gap:12px}
+  body.v2 .page--listing .controls{margin-bottom:24px}
+}
+
+/* Pagination pills per canvas: squared numbers, red active, pill prev/next. */
+body.v2 .page--listing .pager__num{border-radius:10px}
+body.v2 .page--listing .pager__btn{border-radius:10px;padding:10px 16px}
