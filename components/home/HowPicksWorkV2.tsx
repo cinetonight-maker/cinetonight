@@ -17,7 +17,7 @@ export default function HowPicksWorkV2() {
           tonight. Availability is checked separately and shown for your
           country, never guessed.
         </p>
-        <Link className="v2hp-link" href="/what-should-i-watch-tonight">Read how we decide →</Link>
+        <Link className="v2hp-link" href="/blog/what-should-i-watch-tonight">Read how we decide →</Link>
       </div>
       <div className="v2hp-steps">
         <div className="v2hp-step">
