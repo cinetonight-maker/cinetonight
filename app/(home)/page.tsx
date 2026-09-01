@@ -5,6 +5,8 @@ import BlogSection from "@/components/BlogSection";
 import NewSinceLastVisit from "@/components/NewSinceLastVisit";
 import NewsletterForm from "@/components/NewsletterForm";
 import HomeHero from "@/components/home/HomeHero";
+import HomeHeroV2 from "@/components/home/HomeHeroV2";
+import HowPicksWorkV2 from "@/components/home/HowPicksWorkV2";
 import PickStudio from "@/components/home/PickStudio";
 import StreamingRow from "@/components/home/StreamingRow";
 import ExploreTabs from "@/components/home/ExploreTabs";
@@ -48,6 +50,11 @@ export const metadata = { alternates: { canonical: "/" } };
  */
 
 const noMovies = Promise.resolve([] as Movie[]);
+
+// Build-time V2 template switch — same flag, same rules as /movie/[id]
+// (docs/V2-BUILD-PATH.md Phase 5): one shared ISR entry either way, no
+// per-visitor branching, launch flips the env at deploy.
+const V2_TEMPLATE = process.env.NEXT_PUBLIC_V2_THEME === "1";
 
 export default async function HomePage() {
   // Phase 3 data budget: FOUR TMDB requests, all server-side and all served
@@ -181,12 +188,27 @@ export default async function HomePage() {
       {/* LOCKED SPINE (Phase 3 §3). The hero question and the picker are what
           this page is for, so they are not configurable — see
           lib/homepageConfig.ts. Everything below them is. */}
-      <HomeHero posters={heroArt} title={home.hero.title} sub={home.hero.sub} />
+      {V2_TEMPLATE ? (
+        /* V2 fanned card-stack hero (canvas Main/Mobile). Same inputs, same
+           data budget; the badge tells the truth about where the art came
+           from — admin Hero Slides vs the trending fallback. */
+        <HomeHeroV2
+          posters={heroArt}
+          title={home.hero.title}
+          sub={home.hero.sub}
+          badge={chosen.length >= 3 ? "Featured tonight" : "Popular tonight"}
+        />
+      ) : (
+        <HomeHero posters={heroArt} title={home.hero.title} sub={home.hero.sub} />
+      )}
 
       {/* Quick Picks + moods + the single recommendation, in one client island
           so the three share state. Seeded from the server so the section is
           useful (and crawlable) before any JavaScript runs. */}
       <PickStudio seed={seed} seedPool={seedPool} discovery={discovery} />
+
+      {/* V2-only static explainer right after the picker — no data, no fetch. */}
+      {V2_TEMPLATE && <HowPicksWorkV2 />}
 
       {/* Order, on/off, headings and counts all come from the dashboard. */}
       {home.order.map((id) => SECTIONS[id] ?? null)}

@@ -1,0 +1,66 @@
+/* ==========================================================================
+   V2 HOMEPAGE (docs/V2-BUILD-PATH.md Phase 5 · canvas Main/Mobile artboards)
+
+   Styles for the V2-only homepage pieces: the fanned card-stack hero
+   (HomeHeroV2) and the static "How picks work" section. Rendered only when
+   NEXT_PUBLIC_V2_THEME=1, and every color reads the site tokens — under
+   body.v2 those resolve to the dark-red system, with the flag off these
+   classes never appear at all. The fan reuses the SAME card grammar as the
+   rails (rounded poster, border, red-tinted shadow, bottom scrim, gold
+   rating badge) so the hero is the site's own card design, fanned.
+   ========================================================================== */
+
+.v2h{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center;
+  margin:8px 0 40px;border:1px solid var(--line);border-radius:22px;background:var(--bg2);overflow:hidden}
+.v2h-copy{position:relative;z-index:2;max-width:560px;padding:44px 8px 44px 40px}
+.v2h-h{font-family:var(--font-poppins),var(--font-inter),sans-serif;font-size:clamp(30px,4.2vw,46px);line-height:1.12;font-weight:700;letter-spacing:-.5px;margin:0}
+.v2h-hl{color:var(--purple2)}
+.v2h-sub{margin:16px 0 0;color:var(--muted);font-size:15px;line-height:1.6;max-width:46ch}
+.v2h-search{margin-top:22px;max-width:440px}
+.v2h-links{margin:16px 0 0;color:var(--muted);font-size:12.5px}
+.v2h-links a{color:var(--purple2);font-weight:600}
+
+/* --- the fanned 3-card stack ------------------------------------------- */
+.v2h-art{position:relative;height:430px;display:flex;align-items:center;justify-content:center;min-width:0}
+.v2h-glow{position:absolute;width:380px;height:380px;border-radius:50%;
+  background:radial-gradient(circle,var(--glow) 0%,transparent 68%);filter:blur(40px);pointer-events:none}
+.v2h-frame{position:relative;display:block;border-radius:14px;overflow:hidden;aspect-ratio:2/3;
+  border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.55),0 0 0 1px rgba(var(--purple-rgb),.05)}
+.v2h-frame img{object-fit:cover}
+.v2h-frame--front{border-radius:16px;border-color:rgba(255,255,255,.14);
+  box-shadow:0 26px 52px rgba(0,0,0,.6),0 0 48px rgba(var(--purple-rgb),.24)}
+.v2h-scrim{position:absolute;inset:0;background:linear-gradient(0deg,rgba(6,8,11,.55) 0%,transparent 32%)}
+.v2h-score{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;
+  background:rgba(6,8,11,.82);color:#ffcf4d;font-weight:600;font-size:11px;padding:3px 8px;border-radius:6px}
+.v2h-score--r{left:auto;right:10px;top:10px}
+.v2h-tag{position:absolute;top:10px;left:10px;background:var(--purple);color:#fff;
+  font-weight:700;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:6px}
+.v2h-side{position:absolute;top:50%;z-index:1;opacity:.8;width:176px;transition:opacity .15s}
+.v2h-side:hover{opacity:1}
+.v2h-side--l{left:calc(50% - 178px);transform:translateY(-50%) rotate(-9deg) scale(.84)}
+.v2h-side--r{left:calc(50% + 6px);transform:translateY(-50%) rotate(9deg) scale(.84)}
+.v2h-front{position:relative;z-index:2;width:220px;display:block}
+.v2h-cap{display:block;margin-top:11px;text-align:center}
+.v2h-cap-t{display:block;font-weight:700;font-size:15px;color:var(--txt)}
+.v2h-cap-m{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+
+@media (max-width:900px){
+  .v2h{grid-template-columns:1fr;gap:0}
+  /* Mobile canvas keeps the fan, smaller and FIRST (art above the question). */
+  .v2h-art{order:-1;height:352px;transform:scale(.72);transform-origin:center 42%;margin-bottom:-8px}
+  .v2h-copy{padding:8px 22px 32px;max-width:none}
+}
+
+/* --- How picks work (static, V2 only; canvas "How Picks Work") ---------- */
+.v2hp{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;
+  border-top:1px solid var(--line);margin:6px 0 40px;padding-top:32px}
+.v2hp-kicker{color:var(--purple2);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
+.v2hp-h{font-family:var(--font-poppins),var(--font-inter),sans-serif;font-size:26px;font-weight:700;margin:0 0 14px;max-width:360px;line-height:1.25}
+.v2hp-sub{font-size:13.5px;color:var(--muted);line-height:1.65;max-width:420px;margin:0 0 18px}
+.v2hp-link{font-size:13px;font-weight:600;color:var(--purple2)}
+.v2hp-steps{display:flex;flex-direction:column;gap:22px}
+.v2hp-step{display:flex;gap:18px}
+.v2hp-n{font-family:var(--font-poppins),var(--font-inter),sans-serif;color:var(--purple2);font-size:17px;font-weight:700;width:26px;flex:none}
+.v2hp-step strong{font-size:14.5px}
+.v2hp-step p{font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.55}
+@media (max-width:900px){.v2hp{grid-template-columns:1fr;gap:26px}}
