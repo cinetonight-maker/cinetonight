@@ -169,3 +169,4 @@
 .v2g-rowm{display:block;font-size:11.5px;color:var(--muted2);margin-top:3px}
 .v2g-arrow{color:var(--purple2);font-size:15px;flex:none}
 @media (max-width:900px){.v2g{grid-template-columns:1fr}.v2g-feat{min-height:280px}}
+@media (max-width:600px){.v2mc-steps{flex-direction:column;gap:7px}}

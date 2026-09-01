@@ -359,8 +359,10 @@ export default function MovieDetailV2({
                 </div>
                 <Link className="v2m-more" href="/trending">See all <Icon name="chevr" size={13} /></Link>
               </div>
+              {/* One clean row — an orphan wrapping card reads as a mistake;
+                  See all carries the rest. */}
               <div className="grid">
-                {suggestions.map((s) => <MovieCard key={s.id} movie={toCard(s)} />)}
+                {suggestions.slice(0, 5).map((s) => <MovieCard key={s.id} movie={toCard(s)} />)}
               </div>
             </section>
           )}
@@ -368,8 +370,10 @@ export default function MovieDetailV2({
           {/* 5.16 community layer — existing honest reviews module */}
           <CommentsSection movie={movie} />
 
-          {/* 5.15 RELATED GUIDES — bottom of page (founder decision) */}
-          <BlogSection count={3} />
+          {/* 5.15 GUIDES — bottom of page (founder decision). Same honest
+              heading as the homepage: these are the site's decision guides,
+              not guides claiming to be about THIS title. */}
+          <BlogSection count={3} title="What to Watch Guides" sub="Written guides to help you decide" />
         </div>
 
         {/* ============================== ASIDE ============================= */}
