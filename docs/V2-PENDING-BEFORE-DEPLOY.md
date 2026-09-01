@@ -19,6 +19,11 @@ remains; tick items here as they complete.
       discard. The working tree must be clean before the release build.
 
 ## Phase 7 launch checks (run all AFTER the above, BEFORE deploy)
+> DRY RUN 1 Sep 2026 (container mirror, V2 flag on): predeploy-check 4/4,
+> golden-URL sweep all 200 (junk 404s, /p/* 308s correct), canonicals
+> present, JS-off movie page renders identity + availability + honest
+> rating label. Re-run everything on the founder's machine before the
+> real deploy — the boxes below stay unticked until then.
 - [ ] `npm test` — 286/286.
 - [ ] `npm run predeploy-check` — 4/4.
 - [ ] Golden-URL suite: every existing URL still 200 with unchanged
