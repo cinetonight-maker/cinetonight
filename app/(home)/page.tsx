@@ -16,7 +16,7 @@ import { getHomepageConfig } from "@/lib/homepage";
 import { getDiscoveryConfig } from "@/lib/discovery";
 import { enabledMoods, enabledQuickPicks, enabledExploreTabs, enabledProviders } from "@/lib/discoveryConfig";
 import { visibleSections, type SectionId } from "@/lib/homepageConfig";
-import { trendingLiveTmdb, bollywoodTmdb, southIndianTmdb, koreanTmdb, tmdbConfigured, preferCurated } from "@/lib/tmdb";
+import { trendingLiveTmdb, bollywoodTmdb, southIndianTmdb, koreanTmdb, tmdbConfigured, preferCurated, parseTmdbId, fetchTitle } from "@/lib/tmdb";
 import { mixDiscovery, industryOf } from "@/lib/industry";
 import { discoveryFilter } from "@/lib/quality";
 import { toCard, toPick, type Movie } from "@/lib/types";
@@ -89,9 +89,26 @@ export default async function HomePage() {
   // the old rotating hero carousel is gone - the admin still chooses the first
   // thing a visitor sees. Both getMovies() and getSiteConfig() were already
   // being read, so this costs no extra request.
-  const chosen = site.hero.slides
-    .map((id) => movies.find((m) => m.id === id))
-    .filter((m): m is Movie => Boolean(m?.posterPath));
+  // URL-freeze rule (settled 1 Sep 2026): a hero slide may be ANY title, not
+  // just a catalogued one. Resolution order per slide id, cheapest first:
+  // catalogue row (already in memory) → the trending list already fetched
+  // above (zero extra requests) → a fetchTitle detail read, which shares the
+  // movie page's own long-TTL cache entry, so across a whole TTL window this
+  // adds at most three underlying TMDB calls — and only when the admin
+  // features titles that are neither catalogued nor currently trending.
+  const chosen = (
+    await Promise.all(
+      site.hero.slides.map(async (id) => {
+        const local = movies.find((m) => m.id === id);
+        if (local) return local;
+        const parsed = parseTmdbId(id);
+        if (!parsed) return undefined;
+        const inPool = trending.find((m) => m.id === id || (m.tmdbId && String(m.tmdbId) === parsed.id && m.kind === parsed.kind));
+        if (inPool) return inPool;
+        return (await fetchTitle(parsed.kind, parsed.id).catch(() => null)) ?? undefined;
+      }),
+    )
+  ).filter((m): m is Movie => Boolean(m?.posterPath));
   const heroArt = (chosen.length >= 3 ? chosen : pool.filter((m) => m.posterPath)).slice(0, 3);
   // toPick() strips the cast array - PickStudio is a client component, so
   // everything handed to it is serialised into the page HTML.

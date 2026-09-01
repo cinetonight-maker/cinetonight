@@ -275,8 +275,25 @@ function SyncTab({ reload }: { reload: () => void }) {
 }
 
 /* ------------------------------- hero ---------------------------------- */
+/** URL-freeze era (settled 1 Sep 2026): the hero may feature ANY title —
+ *  catalogued or live-TMDB — without ever minting a new movie URL. This
+ *  turns a pasted TMDB link (themoviedb.org/movie/123-…, /tv/123-…), a
+ *  site tmdb-* address, or a bare tmdb-m-123 id into the canonical slide
+ *  id the homepage resolves. Returns null for anything unrecognisable. */
+function tmdbSlideId(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return null;
+  const direct = /tmdb-(m|t)-(\d+)/.exec(v);
+  if (direct) return `tmdb-${direct[1]}-${direct[2]}`;
+  const themoviedb = /themoviedb\.org\/(movie|tv)\/(\d+)/.exec(v);
+  if (themoviedb) return `tmdb-${themoviedb[1] === "tv" ? "t" : "m"}-${themoviedb[2]}`;
+  return null;
+}
+
 function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; save: (patch: HomePatch) => void }) {
   const slides = site.hero?.slides ?? [];
+  const [tmdbInput, setTmdbInput] = useState("");
+  const [tmdbErr, setTmdbErr] = useState(false);
   const toggle = (id: string) => {
     save((base) => {
       const cur = base.hero?.slides ?? [];
@@ -325,6 +342,38 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
             hero no longer rotates, so the setting controlled nothing. The
             intervalMs field stays in the data model (harmless, and old rows
             still carry it) - only the dead UI is gone. */}
+      </section>
+
+      <section className="ad__panel">
+        <h2>Add any TMDB title</h2>
+        <p className="ad__hint">
+          Paste a TMDB link (themoviedb.org/movie/… or /tv/…) or a site address containing <b>tmdb-m-</b>/<b>tmdb-t-</b>.
+          The title is featured live from TMDB — nothing is added to the catalogue and no new URL is created.
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <input
+            className="ad__search"
+            style={{ flex: 1, marginBottom: 0 }}
+            value={tmdbInput}
+            placeholder="https://www.themoviedb.org/movie/157336-interstellar"
+            onChange={(e) => { setTmdbInput(e.target.value); setTmdbErr(false); }}
+          />
+          <button
+            className="ad__btn ad__btn--primary"
+            onClick={() => {
+              const id = tmdbSlideId(tmdbInput);
+              if (!id) { setTmdbErr(true); return; }
+              save((base) => {
+                const cur = base.hero?.slides ?? [];
+                return cur.includes(id) ? {} : { hero: { ...base.hero, slides: [...cur, id] } };
+              });
+              setTmdbInput("");
+            }}
+          >
+            Add
+          </button>
+        </div>
+        {tmdbErr && <p className="ad__hint" style={{ color: "var(--purple2)" }}>Could not read a TMDB id from that — paste the title&apos;s TMDB page link.</p>}
       </section>
 
       <section className="ad__panel">

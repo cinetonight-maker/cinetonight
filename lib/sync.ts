@@ -1,6 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import { trendingLiveTmdb, fetchTitle, parseTmdbId, tmdbConfigured } from "@/lib/tmdb";
+import { trendingLiveTmdb, fetchTitle, tmdbConfigured } from "@/lib/tmdb";
 import type { Movie, MovieKind } from "@/lib/types";
 
 /** One sync engine for the whole catalogue, shared by the daily cron and the
@@ -8,8 +8,11 @@ import type { Movie, MovieKind } from "@/lib/types";
  *
  *  A run does three things, each bounded so a single run can never flood the
  *  catalogue or blow through TMDB rate limits:
- *   1. ADD    - pulls TMDB's current global trending list and adds any titles
- *               the catalogue is missing (full details, like a dashboard add).
+ *   1. (retired) ADD - the sync USED to insert missing trending titles into
+ *               the catalogue, minting a new clean URL for each. SETTLED
+ *               1 Sep 2026 (founder): the site never creates a new movie URL
+ *               again — new titles live on their tmdb-* address. The
+ *               catalogue is a frozen VIP list; nothing is auto-added.
  *   2. FRESHEN - re-pulls the STALEST existing titles (oldest updated_at)
  *               so ratings, votes, artwork and trailers stay current forever.
  *               Custom poster/backdrop uploads are never touched.
@@ -19,11 +22,8 @@ import type { Movie, MovieKind } from "@/lib/types";
  *  Every run is recorded in sync_log so the dashboard can show what happened.
  *  Nothing is ever deleted by a sync. */
 
-const MAX_NEW_PER_RUN = 8;
 const MAX_FRESHEN_PER_RUN = 15;
 const HERO_SLIDES = 5;
-
-const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 
 export type SyncResult = {
   ok: boolean;
@@ -34,15 +34,6 @@ export type SyncResult = {
   heroMode: "auto" | "manual";
   errors: string[];
 };
-
-function toRow(m: Movie) {
-  return {
-    id: m.id, tmdb_id: m.tmdbId ?? null, title: m.title, year: m.year, genres: m.genres, kind: m.kind,
-    rating: m.rating, votes: m.votes ?? null, runtime: m.runtime, cert: m.cert, language: m.language,
-    director: m.director, writers: m.writers, cast_list: m.cast, description: m.desc,
-    poster_path: m.posterPath ?? null, backdrop_path: m.backdropPath ?? null, trailer_key: m.trailerKey ?? null,
-  };
-}
 
 function freshenPatch(fresh: Movie) {
   return {
@@ -76,28 +67,9 @@ export async function syncCatalogue(trigger: "cron" | "manual"): Promise<SyncRes
     const byTmdbId = new Map<number, string>();
     for (const r of existingRows ?? []) if (r.tmdb_id) byTmdbId.set(Number(r.tmdb_id), r.id);
 
-    /* -- 2 - add missing trending titles (bounded) ----------------------- */
-    let added = 0;
-    for (const t of trending) {
-      if (added >= MAX_NEW_PER_RUN) break;
-      if (!t.tmdbId || byTmdbId.has(t.tmdbId)) continue;
-      const parsed = parseTmdbId(t.id);
-      if (!parsed) continue;
-      try {
-        const full = await fetchTitle(parsed.kind, parsed.id);
-        if (!full?.tmdbId) continue;
-        let slug = slugify(full.title) || `title-${full.tmdbId}`;
-        const { data: clash } = await admin.from("movies").select("id").eq("id", slug).maybeSingle();
-        if (clash) slug = `${slug}-${full.year || full.tmdbId}`;
-        const { error: insErr } = await admin.from("movies").insert(toRow({ ...full, id: slug }));
-        if (insErr) throw insErr;
-        byTmdbId.set(full.tmdbId, slug);
-        result.added.push(`${full.title} (${full.year})`);
-        added++;
-      } catch (e) {
-        result.errors.push(`add "${t.title}": ${(e as Error).message}`);
-      }
-    }
+    /* -- 2 - URL FREEZE: no titles are ever auto-added to the catalogue.
+       (Settled 1 Sep 2026 — no new movie URLs, clean or otherwise. The old
+       bounded ADD loop lived here; result.added now always stays empty.) */
 
     /* -- 3 - freshen the stalest existing titles (bounded) --------------- */
     const stalest = (existingRows ?? [])
@@ -121,8 +93,11 @@ export async function syncCatalogue(trigger: "cron" | "manual"): Promise<SyncRes
       const heroIds: string[] = [];
       for (const t of trending) {
         if (heroIds.length >= HERO_SLIDES) break;
+        // Catalogued title -> its existing clean id; anything else -> its
+        // tmdb-* id, which the homepage now resolves live (URL-freeze rule:
+        // featuring a title never requires cataloguing it).
         const localId = t.tmdbId ? byTmdbId.get(t.tmdbId) : undefined;
-        if (localId && t.backdropPath) heroIds.push(localId);
+        if (t.backdropPath && t.posterPath) heroIds.push(localId ?? t.id);
       }
       if (heroIds.length >= 3) {
         const { error: heroErr } = await admin
