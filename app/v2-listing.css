@@ -7,7 +7,14 @@
    route or logic changes. With the flag off, none of this applies.
    ========================================================================== */
 
-body.v2 .page--listing .page__head h1{font-size:32px;letter-spacing:-.4px}
+/* Consistent V2 page identity on every hub (genres, blog, channels,
+   free-movies, listings): the 32px head from the canvas. */
+body.v2 .page__head h1{font-size:32px;letter-spacing:-.4px}
+
+/* Channel/provider pages: the head becomes a contained card, matching the
+   movie hero's contained-card grammar. */
+body.v2 .chan__head{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+body.v2 .chan__regionnote{margin:12px 0 20px}
 
 /* Filter bar becomes the contained card from the canvas. */
 body.v2 .page--listing .chip-row--desktop{flex:1 1 100%;background:var(--card);
