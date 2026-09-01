@@ -11,7 +11,7 @@
 - [x] Phase 2 built & committed — `fbfa6fb` (MovieDetailV2, movie_intel.sql, lib/intel.ts, honest ratings)
 - [x] Phase 3 built & committed — `152f752` (SeriesFacts + Commitment panel, EpisodePicker wiring)
 - [x] Phase 4 built & committed — `a1462f9` (grouped search + recovery; factual person layout, fabricated bio line removed)
-- [ ] Phase 5 — not started
+- [~] Phase 5 — homepage done & committed — `0cf7d50` (fanned card-stack hero, chooser untouched, How-picks-work section); remaining families (catalogue/genre/trending/provider/blog) one per session, per plan
 - [ ] Phase 6 — founder-driven (needs `supabase/movie_intel.sql` run once)
 - [ ] Phase 7 — launch (founder deploys)
 
