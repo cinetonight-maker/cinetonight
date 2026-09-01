@@ -37,6 +37,30 @@ import type { Movie } from "@/lib/types";
 
 type Kind = "any" | "movie" | "series";
 
+/** Build-time V2 switch (docs/V2-BUILD-PATH.md Phase 5): inlined into the
+ *  client bundle at build, so both themes never ship together and the ISR
+ *  HTML matches the hydrated output. Same rule as the server templates. */
+const V2 = process.env.NEXT_PUBLIC_V2_THEME === "1";
+
+/** "2h 23m" → 143. Null when the string carries no parsable duration. */
+function runtimeMinutes(rt: string | undefined): number | null {
+  if (!rt) return null;
+  const h = /(\d+)\s*h/.exec(rt); const m = /(\d+)\s*m/.exec(rt);
+  if (!h && !m) return null;
+  return (h ? parseInt(h[1], 10) * 60 : 0) + (m ? parseInt(m[1], 10) : 0);
+}
+
+/** Factual kicker for an "Also Consider" row: lead genre plus an honest
+ *  runtime comparison against the current pick. Never invented adjectives —
+ *  only facts we hold (STAB rules: nothing editorial without editorial data). */
+function altKicker(alt: Movie, lead: Movie): string {
+  const parts: string[] = [];
+  if (alt.genres[0]) parts.push(alt.genres[0]);
+  const a = runtimeMinutes(alt.runtime); const l = runtimeMinutes(lead.runtime);
+  if (a != null && l != null && Math.abs(a - l) >= 15) parts.push(a < l ? "Shorter" : "Longer");
+  return parts.join(" · ");
+}
+
 /** Fisher-Yates, CLIENT-side only.
  *
  *  This is what makes the picker feel alive again. The API returns each pool
@@ -145,6 +169,23 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   }, []);
 
   const scrollToPick = () => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // V2 chooser card extras. The initial pool is remembered so Reset can
+  // honestly return to the popularity-based state the page rendered with —
+  // clearing the labels while keeping a mood-filtered pool on screen would
+  // break the "the subtitle describes the pick" rule.
+  const initialPoolRef = useRef<Movie[]>(seed ? [seed, ...seedPool] : seedPool);
+  const resetChooser = () => {
+    setQuickPickId(null); setMoodId(null); setKind("any");
+    setPool(initialPoolRef.current); setIndex(0); setFailed(false);
+    attemptRef.current = 0;
+  };
+  const chooseSurprise = () => {
+    setQuickPickId(null); setMoodId(null);
+    trackPickerStarted({ surface: "homepage" });
+    loadPool({ moodId: "surprise", kind });
+    scrollToPick();
+  };
 
   const chooseQuickPick = (q: QuickPick) => {
     const next = quickPickId === q.id ? null : q.id;
@@ -261,6 +302,79 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
       </section>
 
       {/* ---------------------------------------------------------------- */}
+      {V2 ? (
+        /* V2 chooser card (canvas Main: "Tell us how tonight should feel").
+           SAME engine: mood chips call the same chooseMood, the media-type
+           control is the same chooseKind, Surprise is the hero's surprise
+           flow. Only refinements the engine actually applies are offered —
+           the canvas's country/company selects are left out until real
+           logic exists behind them (rule one: nothing decorative that
+           pretends to filter). */
+        <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
+          <div className="v2mc">
+            <div className="v2mc-head">
+              <h2 id="moods-h" className="v2mc-h">Tell us how tonight should feel</h2>
+              <button type="button" className="v2mc-reset" onClick={resetChooser}>Reset</button>
+            </div>
+            <div className="v2mc-steps" aria-hidden="true">
+              <span className={!moodId && !quickPickId ? "on" : undefined}>1 · Choose a feeling</span>
+              <span>2 · Add details if needed</span>
+              <span className={moodId || quickPickId ? "on" : undefined}>3 · Get your explained pick</span>
+            </div>
+            <p className="v2mc-q"><strong>How should the movie feel?</strong> Choose one — you can change it anytime.</p>
+            <div className="v2mc-chips" role="group" aria-label="Choose your mood">
+              <button type="button" className="v2mc-chip v2mc-chip--surprise" onClick={chooseSurprise}>
+                🎲 Surprise Me
+              </button>
+              {(discovery
+                ? discovery.moods
+                    .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
+                    .filter((m): m is (typeof MOODS)[number] => !!m)
+                : MOODS
+              ).map((m) => {
+                const on = moodId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`v2mc-chip${on ? " on" : ""}`}
+                    aria-pressed={on}
+                    onClick={() => chooseMood(m.id)}
+                  >
+                    <span aria-hidden="true">{m.emoji}</span> {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="v2mc-refine">
+              <p className="v2mc-q"><strong>Refine your pick</strong> — films, series or anything</p>
+              <div className="v2mc-kinds" role="group" aria-label="Films or series">
+                {([["any", "Anything"], ["movie", "Films"], ["series", "Series"]] as [Kind, string][]).map(([k, label]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className={`v2mc-kind${kind === k ? " on" : ""}`}
+                    aria-pressed={kind === k}
+                    onClick={() => chooseKind(k)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="v2mc-foot">
+              <p className="v2mc-note"><strong>No account required.</strong> You&apos;ll get one lead choice and two useful alternatives.</p>
+              <button
+                type="button"
+                className="v2mc-go"
+                onClick={() => { if (moodId || quickPickId) scrollToPick(); else chooseSurprise(); }}
+              >
+                Show my picks →
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
       <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
         <div className="sec__head">
           <div className="sec__titles">
@@ -292,6 +406,7 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
           })}
         </div>
       </section>
+      )}
 
       {/* ---------------------------------------------------------------- */}
       <section className="sec pstudio__sec" id="tonights-pick" ref={sectionRef} aria-labelledby="pick-h">
@@ -304,6 +419,9 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
                 : "Based on what is popular right now"}
             </p>
           </div>
+          {/* V2 moves the media-type control into the chooser card and the
+              "another" action into the Also Consider column. */}
+          {!V2 && (
           <div className="pstudio__tools">
             <div className="kindtoggle" role="group" aria-label="Films or series">
               {([["any", "Anything"], ["movie", "Films"], ["series", "Series"]] as [Kind, string][]).map(([k, label]) => (
@@ -322,6 +440,7 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
               <Icon name="sparkle" size={14} /> Another pick
             </button>
           </div>
+          )}
         </div>
 
         {loading && (
@@ -342,7 +461,97 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
           </p>
         )}
 
-        {!loading && pick && (
+        {!loading && pick && V2 && (() => {
+          /* V2 pick panel (canvas "Your Pick for Tonight"): blurred-backdrop
+             hero card — poster + badge, facts, the honest why, the real
+             WhereToWatch island, and an Also Consider column built from the
+             NEXT TWO candidates of the pool that is already in memory (zero
+             extra fetches; kickers are factual: genre + runtime comparison). */
+          const alts = pool.length >= 3
+            ? [pool[(index + 1) % pool.length], pool[(index + 2) % pool.length]]
+            : pool.length === 2 ? [pool[(index + 1) % 2]] : [];
+          return (
+          <article className="v2pk">
+            <span className="v2pk-bg" aria-hidden="true" style={{ backgroundImage: `url(${backdrop(pick, "w780")})` }} />
+            <span className="v2pk-tint" aria-hidden="true" />
+            <div className="v2pk-grid">
+              <Link className="v2pk-poster" href={`/movie/${pick.id}`} aria-label={`${pick.title} details`}>
+                <Image fill alt={`${pick.title} poster`} src={poster(pick, "w342")} sizes="(max-width: 900px) 40vw, 230px" />
+                <span className="v2pk-badge">Tonight&apos;s Pick</span>
+              </Link>
+
+              <div className="v2pk-main">
+                <h3 className="v2pk-title"><Link href={`/movie/${pick.id}`}>{pick.title}</Link></h3>
+                <div className="v2pk-chips">
+                  <span className="v2pk-chip">{pick.kind === "series" ? "Series" : "Film"}</span>
+                  {pick.genres.slice(0, 2).map((g) => <span className="v2pk-chip" key={g}>{g}</span>)}
+                </div>
+                <div className="v2pk-meta">
+                  {pick.year > 0 && <span>{pick.year}</span>}
+                  {pick.runtime && <span>{pick.runtime}</span>}
+                  {pick.rating > 0 && (
+                    <span className="v2pk-rate"><Icon name="star" size={11} /> {pick.rating.toFixed(1)}</span>
+                  )}
+                </div>
+                {pick.desc && <p className="v2pk-desc">{pick.desc}</p>}
+
+                <div className="v2pk-why">
+                  <span className="v2pk-whyh"><Icon name="sparkle" size={13} /> Why this fits</span>
+                  <p>{why}</p>
+                </div>
+
+                <div className="v2pk-watch">
+                  <WhereToWatch movie={{ id: pick.id, tmdbId: pick.tmdbId, kind: pick.kind, title: pick.title }} surface="homepage" />
+                </div>
+
+                <div className="v2pk-acts">
+                  <Link className="v2pk-btn v2pk-btn--primary" href={`/movie/${pick.id}`}>View Details</Link>
+                  <WatchlistButton id={pick.id} kind={pick.kind} surface="homepage" />
+                  <button
+                    type="button"
+                    className="v2pk-trailerbtn"
+                    onClick={() => {
+                      trackTrailerPlayed({ surface: "homepage", media_type: toMediaType(pick.kind), tmdb_id: pick.tmdbId });
+                      openPlayer({ title: pick.title, trailerKey: pick.trailerKey ?? null, mode: "trailer" });
+                    }}
+                  >
+                    <Icon name="play" size={13} /> Play Trailer
+                  </button>
+                </div>
+              </div>
+
+              <aside className="v2pk-aside" aria-label="Also consider">
+                <span className="v2pk-asideh">Also Consider</span>
+                {alts.map((a, i) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className="v2pk-alt"
+                    onClick={() => {
+                      track("alternative_selected", { surface: "homepage", attempt_number: i + 1 });
+                      setIndex(pool.indexOf(a));
+                    }}
+                  >
+                    <span className="v2pk-altposter">
+                      <Image fill alt="" src={poster(a, "w342")} sizes="64px" />
+                    </span>
+                    <span className="v2pk-altbody">
+                      {altKicker(a, pick) && <span className="v2pk-altk">{altKicker(a, pick)}</span>}
+                      <span className="v2pk-altt">{a.title}</span>
+                      {a.runtime && <span className="v2pk-altm">{a.runtime}</span>}
+                    </span>
+                  </button>
+                ))}
+                <button type="button" className="v2pk-again" onClick={anotherPick} disabled={loading || pool.length < 2}>
+                  ↻ Give me another choice
+                </button>
+              </aside>
+            </div>
+          </article>
+          );
+        })()}
+
+        {!loading && pick && !V2 && (
           <article className="pcard">
             <Link className="pcard__poster" href={`/movie/${pick.id}`} aria-label={`${pick.title} details`}>
               <Image
