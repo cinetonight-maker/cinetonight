@@ -137,3 +137,6 @@ three admin SERP previews. **Status: built, NOT deployed.**
 - The fate of the expired weekend post
 - Anything about V2
 - Whether to add author `sameAs` links (no real profile URLs supplied)
+
+## 2026-09-01 — URL FREEZE (founder decision, FINAL)
+Never create a new movie URL again — no new clean slugs, no catalogue auto-adds. New titles live on tmdb-m-*/tmdb-t-* addresses. Existing clean URLs stay and are never removed without a redirect. Featuring a title (hero etc.) never requires cataloguing it. Full text in the handover package 00_Project_Control/DECISIONS_AND_OPEN_QUESTIONS.md.

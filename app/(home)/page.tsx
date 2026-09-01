@@ -96,9 +96,15 @@ export default async function HomePage() {
   // movie page's own long-TTL cache entry, so across a whole TTL window this
   // adds at most three underlying TMDB calls — and only when the admin
   // features titles that are neither catalogued nor currently trending.
+  // Audit fix (1 Sep 2026): the Homepage tab's hero picker (home.hero.picks)
+  // was written by the dashboard but never read here, so picking artwork
+  // there silently did nothing. Explicit Homepage-tab picks now win, then
+  // the Sync Center's slides (auto/manual), then trending.
+  const home = await getHomepageConfig();
+  const slideIds = home.hero.picks.length ? home.hero.picks : site.hero.slides;
   const chosen = (
     await Promise.all(
-      site.hero.slides.map(async (id) => {
+      slideIds.map(async (id) => {
         const local = movies.find((m) => m.id === id);
         if (local) return local;
         const parsed = parseTmdbId(id);
@@ -142,7 +148,7 @@ export default async function HomePage() {
   // What the dashboard says this page should show. Reads `live_config` only,
   // and falls back to the shipped default on any problem — a configuration
   // fault can never blank the homepage. See lib/homepage.ts.
-  const home = await getHomepageConfig();
+  // (Fetched above, before the hero art resolution, which reads hero.picks.)
   // Which moods, Quick Picks and Explore tabs to OFFER. One small cached read;
   // no TMDB call and no extra work for the recommendation engine — the config
   // only filters and orders lists that were already in memory.
