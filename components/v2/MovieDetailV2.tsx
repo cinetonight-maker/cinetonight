@@ -14,7 +14,7 @@ import type { WatchPayload } from "@/lib/watchRows";
 import type { MovieIntel } from "@/lib/intel";
 import { hasVerdict, hasTake } from "@/lib/intel";
 import { personId } from "@/lib/data";
-import { personTmdbId, type SeasonInfo } from "@/lib/tmdb";
+import { personTmdbId, type SeasonInfo, type SeriesFacts } from "@/lib/tmdb";
 import { posterLg, profile, backdrop } from "@/lib/images";
 import {
   factualAbout, displayRating, displayRuntime, displayCert, displayField,
@@ -64,7 +64,7 @@ function Kv({ rows }: { rows: [string, string | null][] }) {
 }
 
 export default function MovieDetailV2({
-  movie, seasons = [], suggestions = [], watch = null, intel = null, altMovie = null,
+  movie, seasons = [], suggestions = [], watch = null, intel = null, altMovie = null, seriesFacts = null,
 }: {
   movie: Movie;
   seasons?: SeasonInfo[];
@@ -72,6 +72,7 @@ export default function MovieDetailV2({
   watch?: WatchPayload | null;
   intel?: MovieIntel | null;
   altMovie?: Movie | null;
+  seriesFacts?: SeriesFacts | null;
 }) {
   const isSeries = movie.kind === "series";
   const status = releaseStatus(movie);
@@ -102,6 +103,36 @@ export default function MovieDetailV2({
   const hasBestFor = !!intel && !!(intel.bestForWho || intel.bestForContext || intel.bestForCaution);
   const hasProfile = !!intel && !!(intel.attention || intel.mood || intel.bestForContext);
   const hasAlt = !!intel && !!altMovie && intel.altReasons.length > 0;
+
+  // THE COMMITMENT (series only) — objective facts, spec §6 of the series
+  // page spec: never one assumed runtime × episode count presented as fact
+  // (the total is labelled approximate and only shown when TMDB carries
+  // real typical runtimes); status in plain words or absent; upcoming
+  // seasons never counted as released.
+  const rt = seriesFacts?.runtimes ?? [];
+  const rtRange = rt.length
+    ? (Math.min(...rt) === Math.max(...rt) ? `${rt[0]} min (typical)` : `${Math.min(...rt)}–${Math.max(...rt)} min (typical)`)
+    : null;
+  const catchUp = seriesFacts?.episodes && rt.length
+    ? `≈ ${Math.round((seriesFacts.episodes * (rt.reduce((a, b) => a + b, 0) / rt.length)) / 60)} hours (approx.)`
+    : null;
+  const statusLabel = seriesFacts?.status === "returning" ? "Returning — more episodes coming"
+    : seriesFacts?.status === "ended" ? "Ended — complete story"
+    : seriesFacts?.status === "cancelled" ? "Cancelled"
+    : seriesFacts?.status === "in-production" ? "In production — not yet released"
+    : null;
+  const commitmentRows: [string, string | null][] = isSeries && seriesFacts ? [
+    ["Released", seriesFacts.seasons && seriesFacts.episodes
+      ? `${seriesFacts.seasons} season${seriesFacts.seasons === 1 ? "" : "s"} · ${seriesFacts.episodes} episodes`
+      : seriesFacts.episodes ? `${seriesFacts.episodes} episodes` : null],
+    ["Episode length", rtRange],
+    ["Full catch-up", catchUp],
+    ["Status", statusLabel],
+    ["Latest episode", seriesFacts.lastAirDate
+      ? new Date(seriesFacts.lastAirDate + "T00:00:00Z").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
+      : null],
+  ] : [];
+  const hasCommitment = commitmentRows.some(([, v]) => v);
 
   const details: [string, string | null][] = [
     ["Release Year", validYear(movie.year) ? String(movie.year) : null],
@@ -200,11 +231,17 @@ export default function MovieDetailV2({
 
           {/* ABOUT + intel panels — About always renders; the rest are gated */}
           <section className="v2m-sec">
-            <div className={`v2m-grid2${!hasSnapshot && !hasExpect && !hasBestFor ? " v2m-grid2--solo" : ""}`}>
+            <div className={`v2m-grid2${!hasSnapshot && !hasExpect && !hasBestFor && !hasCommitment ? " v2m-grid2--solo" : ""}`}>
               <div className="v2m-panel">
                 <span className="v2m-kicker">About</span>
                 {about.map((p, i) => <p className="v2m-about" key={i}>{p}</p>)}
               </div>
+              {hasCommitment && (
+                <div className="v2m-panel v2m-panel--commit">
+                  <span className="v2m-kicker v2m-kicker--gold">The Commitment</span>
+                  <Kv rows={commitmentRows} />
+                </div>
+              )}
               {hasSnapshot && (
                 <div className="v2m-panel">
                   <span className="v2m-kicker">CineTonight Snapshot</span>

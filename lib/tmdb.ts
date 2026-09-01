@@ -1003,6 +1003,50 @@ export async function providerTitlesTmdb(providerId: number, kind: MovieKind, li
    lookup falls back episode → season → show before giving up.
    ------------------------------------------------------------------- */
 
+/* ============================================================================
+ * V2 Phase 3 (docs/V2-BUILD-PATH.md): objective series facts for the
+ * Commitment panel — released totals, typical episode length, status.
+ * Reads the SAME /tv/{id} detail the season picker already fetches (the
+ * per-isolate memo collapses the two calls into one request, stable TTL),
+ * so this adds ZERO network cost to the series page. Every field is
+ * nullable: TMDB omits episode_run_time on many modern shows, and the
+ * template hides what it cannot state honestly — never an estimate
+ * presented as fact (SERIES_DETAIL_PAGE.md section 6).
+ * ========================================================================= */
+export interface SeriesFacts {
+  /** Released episode count as TMDB states it. */
+  episodes: number | null;
+  seasons: number | null;
+  /** Typical episode runtimes in minutes (TMDB's episode_run_time). */
+  runtimes: number[];
+  /** Governed release status mapped to plain words, or null when TMDB's
+   *  value is missing/unknown — unknown is shown as nothing, not guessed. */
+  status: "returning" | "ended" | "cancelled" | "in-production" | null;
+  /** Last released episode's air date (YYYY-MM-DD). */
+  lastAirDate: string | null;
+}
+
+export async function fetchSeriesFacts(id: string | number): Promise<SeriesFacts | null> {
+  const d = await get<any>(`/tv/${id}`);
+  if (!d) return null;
+  const raw = String(d.status ?? "");
+  const status: SeriesFacts["status"] =
+    raw === "Returning Series" ? "returning"
+    : raw === "Ended" ? "ended"
+    : raw === "Canceled" ? "cancelled"
+    : raw === "In Production" || raw === "Planned" || raw === "Pilot" ? "in-production"
+    : null;
+  return {
+    episodes: typeof d.number_of_episodes === "number" && d.number_of_episodes > 0 ? d.number_of_episodes : null,
+    seasons: typeof d.number_of_seasons === "number" && d.number_of_seasons > 0 ? d.number_of_seasons : null,
+    runtimes: Array.isArray(d.episode_run_time)
+      ? d.episode_run_time.filter((n: unknown): n is number => typeof n === "number" && n > 0)
+      : [],
+    status,
+    lastAirDate: typeof d.last_air_date === "string" && d.last_air_date ? d.last_air_date : null,
+  };
+}
+
 export interface SeasonInfo { season: number; name: string; episodeCount: number; year: number | null }
 export interface EpisodeInfo { episode: number; name: string; overview: string; stillPath: string | null; airDate: string; runtime: number | null }
 

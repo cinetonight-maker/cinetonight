@@ -7,7 +7,7 @@ import { getIntel } from "@/lib/intel";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
-import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo } from "@/lib/tmdb";
+import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, fetchSeriesFacts, preferCurated, type SeasonInfo, type SeriesFacts } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { buildWatch } from "@/lib/watchRows";
 import { metaDescription } from "@/lib/metaDesc";
@@ -168,6 +168,12 @@ export default async function MoviePage({ params }: Params) {
     m.kind === "series" && m.tmdbId != null && tmdbConfigured
       ? fetchSeasons(m.tmdbId).catch(() => [])
       : Promise.resolve([]);
+  // V2 series Commitment panel — same /tv/{id} detail the seasons call
+  // reads (per-isolate memo: one request), so this is free. Films: null.
+  const seriesFactsPromise: Promise<SeriesFacts | null> =
+    V2_TEMPLATE && m.kind === "series" && m.tmdbId != null && tmdbConfigured
+      ? fetchSeriesFacts(m.tmdbId).catch(() => null)
+      : Promise.resolve(null);
 
   // STAB-03 follow-up: every list below is live TMDB data, so before it
   // becomes a card/link on this page it's passed through preferCurated() -
@@ -197,6 +203,7 @@ export default async function MoviePage({ params }: Params) {
     .slice(0, 6);
 
   const seasons = await seasonsPromise;
+  const seriesFacts = await seriesFactsPromise;
   // Never let an availability hiccup take the page down: on failure the
   // island simply falls back to its old fetch-on-load behaviour.
   const watch = await watchPromise;
@@ -279,7 +286,7 @@ export default async function MoviePage({ params }: Params) {
            the bottom. The old RightRail widgets retire on this route: the
            sidebar's job is decision logistics, and Related lives in More
            Like This. */
-        <MovieDetailV2 movie={m} seasons={seasons} suggestions={suggestions} watch={watch} intel={intel} altMovie={altMovie} />
+        <MovieDetailV2 movie={m} seasons={seasons} suggestions={suggestions} watch={watch} intel={intel} altMovie={altMovie} seriesFacts={seriesFacts} />
       ) : (
       <div className="pagerow">
         <div className="pagemain">

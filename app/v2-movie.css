@@ -141,3 +141,7 @@
 
 /* honest external-score caption under the review score (shared) */
 .revscore__ext{display:block;color:var(--muted2);font-size:9.5px;margin-top:3px}
+
+/* series commitment panel */
+.v2m-panel--commit{border-color:#33261a;background:linear-gradient(135deg,rgba(255,207,77,.06),var(--card) 70%)}
+.v2m-kicker--gold{color:#ffcf4d}
