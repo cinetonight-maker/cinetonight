@@ -7,7 +7,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return listingMetadata({
     path: "/movies",
     baseTitle: "Movies — Trailers, Ratings & Where to Watch",
-    baseDescription: "Browse blockbusters, classics and everything in between — Hollywood and Bollywood movies in HD, filterable by genre.",
+    baseDescription: "Browse blockbusters, classics and everything in between — Hollywood and Bollywood movies with trailers, ratings and where to watch, filterable by genre.",
     genre,
   });
 }

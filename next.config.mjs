@@ -36,6 +36,34 @@ const nextConfig = {
   // site is actually served over HTTPS (true on Vercel by default).
   async headers() {
     return [
+      // STAB-13 stage 1: Content-Security-Policy in REPORT-ONLY mode — logs
+      // violations to the browser console without blocking anything, so the
+      // allowlist below can be observed against real traffic before any
+      // enforcement. Origins inventoried from the code: TMDB images,
+      // Supabase (API + storage), YouTube embeds + thumbs, Internet Archive
+      // players, Google Analytics. 'unsafe-inline' stays for Next's inline
+      // runtime + JSON-LD; tightening to nonces is the enforcement-stage
+      // task, not this one. NOTHING is blocked by this header.
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://image.tmdb.org https://*.supabase.co https://i.ytimg.com https://archive.org https://*.archive.org",
+              "media-src 'self' https://archive.org https://*.archive.org",
+              "frame-src https://www.youtube.com https://www.youtube-nocookie.com https://archive.org https://*.archive.org",
+              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://api.themoviedb.org",
+              "font-src 'self'",
+              "object-src 'none'",
+              "base-uri 'self'",
+            ].join("; "),
+          },
+        ],
+      },
       // /admin already carries a noindex meta tag via its layout; this adds
       // the same directive at the HTTP-header level, which even non-HTML
       // responses and overly eager crawlers respect. robots.txt disallow +

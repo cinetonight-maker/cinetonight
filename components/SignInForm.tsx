@@ -48,11 +48,14 @@ function Form() {
 
   return (
     <form onSubmit={submit}>
-      <label>Email</label>
-      <input type="email" placeholder="you@email.com" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
-      <label>Password</label>
-      <input type="password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
-      {err && <p style={{ color: "#f0a8a8", fontSize: 12.5, marginTop: 10 }}>{err}</p>}
+      {/* STAB-10: labels associated via htmlFor/id, real autocomplete tokens
+          so password managers fill correctly, and the error region is
+          announced to screen readers. */}
+      <label htmlFor="signin-email">Email</label>
+      <input id="signin-email" type="email" autoComplete="email" placeholder="you@email.com" required autoFocus value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
+      <label htmlFor="signin-password">Password</label>
+      <input id="signin-password" type="password" autoComplete="current-password" placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
+      <p role="alert" aria-live="polite" style={{ color: "#f0a8a8", fontSize: 12.5, marginTop: 10, minHeight: 0 }}>{err}</p>
       <button className="auth__btn" type="submit" disabled={busy}>{busy ? "Signing in…" : "Sign In"}</button>
     </form>
   );

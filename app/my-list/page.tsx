@@ -3,7 +3,7 @@ import MyList from "@/components/MyList";
 import { TrendingWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovies } from "@/lib/data";
 
-export const metadata: Metadata = { title: "My List" };
+export const metadata: Metadata = { title: "My List", robots: { index: false, follow: true } };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {

@@ -14,7 +14,7 @@ export const revalidate = 86400;
 // Google's results for it are thin, credible sites.
 const TITLE = "Free Classic Bollywood Movies: Watch Online Legally";
 const DESCRIPTION =
-  "Watch full classic Bollywood movies free and 100% legally: Awaara, Pyaasa, Mughal-e-Azam and more, streaming from the public domain. No signup.";
+  "Watch full classic Bollywood movies free: Awaara, Pyaasa, Mughal-e-Azam and more, streamed from public-domain and officially released sources. No signup.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -103,7 +103,7 @@ export default async function FreeMoviesPage() {
           does). Keyword-bearing by design: "watch old Hindi movies online
           free", "classic Bollywood movies", "public domain", "legally". */}
       <section className="sec fm__explain">
-        <div className="sec__head"><h2>Watch classic Bollywood movies free — here&apos;s why it&apos;s 100% legal</h2></div>
+        <div className="sec__head"><h2>Watch classic Bollywood movies free — here&apos;s why these are free to stream</h2></div>
         <p>
           In India, a film&apos;s copyright lasts <strong>60 years</strong>. That means the entire golden
           age of Hindi cinema — Raj Kapoor and Nargis, Guru Dutt, Madhubala, Dilip Kumar, Dev Anand —

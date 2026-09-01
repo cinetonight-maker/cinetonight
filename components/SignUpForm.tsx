@@ -58,12 +58,14 @@ export default function SignUpForm() {
 
   return (
     <form onSubmit={submit}>
-      <label>Name</label>
-      <input placeholder="Your name" required autoFocus value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
-      <label>Email</label>
-      <input type="email" placeholder="you@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
-      <label>Password</label>
-      <input type="password" placeholder="Create a password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
+      {/* STAB-10: associated labels + autocomplete tokens (new-password lets
+          password managers OFFER a generated password here). */}
+      <label htmlFor="signup-name">Name</label>
+      <input id="signup-name" autoComplete="name" placeholder="Your name" required autoFocus value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
+      <label htmlFor="signup-email">Email</label>
+      <input id="signup-email" type="email" autoComplete="email" placeholder="you@email.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={busy} />
+      <label htmlFor="signup-password">Password</label>
+      <input id="signup-password" type="password" autoComplete="new-password" placeholder="Create a password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} disabled={busy} />
       {err && <p style={{ color: "#f0a8a8", fontSize: 12.5, marginTop: 10 }}>{err}</p>}
       <button className="auth__btn" type="submit" disabled={busy}>{busy ? "Creating account…" : "Create Account"}</button>
     </form>

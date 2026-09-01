@@ -149,10 +149,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <AuthProvider>
           <MaintenanceGate active={settings.maintenanceMode}>
+            {/* STAB-09: first tabbable element; visible only on focus. */}
+            <a className="skiplink" href="#main">Skip to content</a>
             <Header />
             <div className="app">
               <Sidebar />
-              <div className="content">{children}</div>
+              <main id="main" className="content">{children}</main>
             </div>
             <Footer />
             <BottomNav />

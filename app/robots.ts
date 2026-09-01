@@ -7,11 +7,12 @@ import { baseUrl } from "@/lib/site";
 // - 85k hits in one observed day - and every hit wakes the server).
 const COMMON_DISALLOW = [
   "/admin", "/api/", "/account", "/my-list", "/signin", "/signup", "/_next/image",
-  // Internal search results: force-dynamic SSR with an unbounded ?q= space,
-  // so every crawled query is a full render plus a live TMDB call - and
-  // Google explicitly does not want internal search pages indexed anyway
-  // ("search results in search results"). Real visitors are unaffected.
-  "/search",
+  // Internal search QUERIES only (STAB-08): the unbounded ?q= space stays
+  // blocked (each crawled query is a full render plus a live TMDB call),
+  // but the BARE /search page is crawlable on purpose — a crawler must be
+  // able to fetch it to see its noindex,follow meta. A disallowed page's
+  // noindex is invisible, which is how "indexed, though blocked" happens.
+  "/search?",
 ];
 
 export default function robots(): MetadataRoute.Robots {

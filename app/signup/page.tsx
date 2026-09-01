@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import SignUpForm from "@/components/SignUpForm";
-export const metadata: Metadata = { title: "Sign Up" };
+export const metadata: Metadata = { title: "Sign Up", robots: { index: false, follow: true } };
 export default function Page() {
   return (
     <div className="page">
