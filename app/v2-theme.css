@@ -1,0 +1,40 @@
+/* ============================================================================
+ * V2 THEME — the locked dark-red visual system from the design canvas
+ * ("CineTonight V2" artifact; static exports in the handover package under
+ * 06_Design_References/V2_Design_Canvas_Mockup/).
+ *
+ * HOW IT WORKS: app/globals.css defines the whole UI against custom
+ * properties (--bg, --card, --purple, --purple2, --purple-d, their -rgb
+ * channels, --glow...). This file re-points those tokens on `body.v2`, so
+ * every button, badge, gradient and glow follows with zero per-component
+ * edits. The class is added at BUILD TIME in app/layout.tsx when
+ * NEXT_PUBLIC_V2_THEME=1 — never per-visitor, so ISR keeps caching exactly
+ * one variant of each page and no cache key changes.
+ *
+ * "--purple" naming stays even though the value is red: renaming the token
+ * would touch every rule in globals.css for no behavioral gain. The launch
+ * flips an env var; rollback is redeploying the previous Worker version.
+ * ========================================================================= */
+body.v2 {
+  /* surfaces */
+  --bg: #06080b;
+  --bg2: #0a0d12;
+  --card: #12161c;
+  --card2: #181d24;
+  --line: #262c34;
+  /* text */
+  --txt: #f2efe9;
+  --muted: #9a9ea5;
+  --muted2: #6b6f76;
+  /* the decisive red (token names kept from the purple era — see header) */
+  --purple: #e2182b;
+  --purple2: #ff3b48;
+  --purple-d: #8f1220;
+  --purple-rgb: 226, 24, 43;
+  --purple2-rgb: 255, 59, 72;
+  --purple-d-rgb: 143, 18, 32;
+  --glow: rgba(226, 24, 43, 0.45);
+  /* V2 accent roles used by the new movie/series template modules */
+  --gold: #ffcf4d;   /* rating badges — never for actions */
+  --green: #7ed08a;  /* verified availability / positive states only */
+}

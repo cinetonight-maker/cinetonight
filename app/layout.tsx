@@ -13,6 +13,9 @@ import { AuthProvider } from "@/lib/auth";
 import { getSiteSettings } from "@/lib/data";
 import { baseUrl, shortBrandName } from "@/lib/site";
 import "./globals.css";
+// V2 dark-red theme — token overrides on body.v2, applied only when the
+// build-time flag below is set. See app/v2-theme.css and docs/V2-BUILD-PATH.md.
+import "./v2-theme.css";
 
 // Was a render-blocking request to fonts.googleapis.com on every page load
 // (a full extra round trip before text could even paint, straight against
@@ -86,7 +89,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     // two elements ONLY — children still get full hydration checking, so
     // real bugs elsewhere are still caught.
     <html lang="en" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body
+        // Build-time theme switch (docs/V2-BUILD-PATH.md, Phase 1): with
+        // NEXT_PUBLIC_V2_THEME=1 the whole build renders the V2 dark-red
+        // system via app/v2-theme.css. Deliberately NOT per-visitor — ISR
+        // must keep caching a single variant of every page.
+        className={process.env.NEXT_PUBLIC_V2_THEME === "1" ? "v2" : undefined}
+        suppressHydrationWarning>
         {/* Almost every image on the site comes from TMDB's CDN — opening
             the connection early shaves the TLS handshake off the first
             poster paint. (preconnect links are honored in <body>.) */}
