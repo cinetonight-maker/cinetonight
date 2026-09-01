@@ -6,7 +6,7 @@ export default function BrandMark({ size = 30 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
       {/* back triangle — darker, offset for depth */}
-      <path d="M52 36 L52 64 L76 50 Z" fill="#7e22ce" stroke="#7e22ce" strokeWidth="16" strokeLinejoin="round" />
+      <path d="M52 36 L52 64 L76 50 Z" fill="var(--purple-d, #7e22ce)" stroke="var(--purple-d, #7e22ce)" strokeWidth="16" strokeLinejoin="round" />
       {/* front play triangle — brand purple, rounded via round join */}
       <path d="M40 34 L40 66 L68 50 Z" fill="var(--purple2, #a855f7)" stroke="var(--purple2, #a855f7)" strokeWidth="16" strokeLinejoin="round" />
       {/* four-point sparkle overlapping the top-left corner */}
