@@ -2,6 +2,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import MovieCard from "@/components/MovieCard";
 import MovieDetail from "@/components/MovieDetail";
+import MovieDetailV2 from "@/components/v2/MovieDetailV2";
+import { getIntel } from "@/lib/intel";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
@@ -64,6 +66,11 @@ export const revalidate = 259200;
  * any country with data, so a title missing from the US still renders rows,
  * labelled with the country they actually came from. */
 const SSR_WATCH_REGION = "US";
+
+/** Build-time template switch, same flag as the theme (app/v2-theme.css):
+ *  both templates ship in code, exactly one renders per build. Never
+ *  per-visitor — this route's ISR must keep caching a single variant. */
+const V2_TEMPLATE = process.env.NEXT_PUBLIC_V2_THEME === "1";
 
 /** Local catalogue first, then TMDB for ids like "tmdb-m-1234". */
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
@@ -194,6 +201,14 @@ export default async function MoviePage({ params }: Params) {
   // island simply falls back to its old fetch-on-load behaviour.
   const watch = await watchPromise;
 
+  // V2 (docs/V2-BUILD-PATH.md Phase 2): reviewed editorial intelligence for
+  // this title, or null — null renders the sparse/Level-B template state.
+  // Cached + stable-TTL read; failure degrades to null, never a 500. The
+  // alternative title resolves through the SAME curated-first path as the
+  // page itself so its link is always the canonical URL.
+  const intel = V2_TEMPLATE ? await getIntel(m.id) : null;
+  const altMovie = intel?.altId ? await resolve(intel.altId, movies).catch(() => null) : null;
+
   // Structured data (schema.org/Movie) — this is what makes Google eligible
   // to show a "Rich Result" card (poster thumbnail + star rating right in
   // the search listing) instead of a plain blue link. Costs nothing, no
@@ -258,6 +273,14 @@ export default async function MoviePage({ params }: Params) {
       />
       {/* eslint-disable-next-line react/no-danger -- static JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
+      {V2_TEMPLATE ? (
+        /* V2: the locked two-column template — Where to Watch beside the
+           identity, decision modules data-gated on movie_intel, guides at
+           the bottom. The old RightRail widgets retire on this route: the
+           sidebar's job is decision logistics, and Related lives in More
+           Like This. */
+        <MovieDetailV2 movie={m} seasons={seasons} suggestions={suggestions} watch={watch} intel={intel} altMovie={altMovie} />
+      ) : (
       <div className="pagerow">
         <div className="pagemain">
           <MovieDetail movie={m} seasons={seasons} suggestions={suggestions} watch={watch} />
@@ -269,6 +292,7 @@ export default async function MoviePage({ params }: Params) {
           <NewsWidget />
         </aside>
       </div>
+      )}
     </div>
   );
 }

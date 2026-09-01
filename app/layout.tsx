@@ -16,6 +16,7 @@ import "./globals.css";
 // V2 dark-red theme — token overrides on body.v2, applied only when the
 // build-time flag below is set. See app/v2-theme.css and docs/V2-BUILD-PATH.md.
 import "./v2-theme.css";
+import "./v2-movie.css";
 
 // Was a render-blocking request to fonts.googleapis.com on every page load
 // (a full extra round trip before text could even paint, straight against

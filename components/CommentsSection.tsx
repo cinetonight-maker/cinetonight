@@ -77,10 +77,16 @@ export default function CommentsSection({
         <h2>{heading} {comments !== null && <span style={{ color: "var(--muted)", fontWeight: 500 }}>({count})</span>}</h2>
       </div>
       <div className={`revwrap${showScore ? "" : " revwrap--full"}`}>
+        {/* STAB-05 / spec 5.16: this number is TMDB's EXTERNAL score. It
+            used to be captioned "Community rating", which presented an
+            imported aggregate as CineTonight's own members — the exact
+            relabeling the stabilization backlog bans. The score stays
+            useful; the caption now tells the truth, and the member side
+            speaks for itself via the review list's honest empty state. */}
         {showScore && <div className="revscore">
           <div className="revscore__n">{movie.rating.toFixed(1)}</div>
           <div className="revscore__stars"><Stars rating={Math.round(movie.rating / 2)} /></div>
-          <div className="revscore__sub">Community rating</div>
+          <div className="revscore__sub">TMDB rating <span className="revscore__ext">external — not a CineTonight score</span></div>
         </div>}
         <div className="revlist">
           {comments === null && <p style={{ color: "var(--muted)", fontSize: 13 }}>Loading reviews…</p>}
