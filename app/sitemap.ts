@@ -82,7 +82,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { path: "", priority: 1 },
     { path: "/movies", priority: 0.8 },
-    { path: "/tv-shows", priority: 0.8 },
+    // STAB-07: /tv-shows canonicalizes to /web-series (the ranking series
+    // hub) and stays out of the sitemap — the URL itself remains live.
     { path: "/web-series", priority: 0.8 },
     { path: "/trending", priority: 0.7 },
     { path: "/latest", priority: 0.7 },
