@@ -213,3 +213,50 @@ in that order. Trust-page redesign stays excluded (founder decision).
 - The founder's standing preferences: minimal chat, log progress instead
   of long recaps; never deploy without his word; ask before reversing any
   settled decision — better yet, don't.
+
+## 9. A letter to whoever picks this up
+
+I built most of V2 in a few intense days alongside the founder, and this
+is what I'd tell you over coffee before handing you the keys.
+
+**Trust the comments.** This codebase explains itself deliberately.
+Every strange-looking rule — the closed filter space on /api/mood, the
+force-dynamic catch-all, the build-time-only theme flag — is a scar from
+a real incident, and the comment next to it tells you which one. If a
+rule seems dumb, read its comment before "fixing" it. The $70/month
+cache bill and the request-loop outage both happened because someone
+didn't have that comment yet.
+
+**Honesty is the product, not a constraint.** It will be tempting to
+fill the sparse pages, auto-generate the verdicts, promise availability
+you haven't verified, or blur the TMDB rating into a house score. Every
+one of those moves reads as growth for a month and then costs the site
+its one real asset: being the place that doesn't lie about what to
+watch. Modules hide without data ON PURPOSE. A page that says less and
+means it beats a page that says everything and means nothing.
+
+**The founder is the editor. Work with that, not around it.** Qaisar
+approves every published opinion, decides every deploy, and prefers
+short direct communication over long reports — log your progress in
+docs, keep messages brief, and never touch the live site or reverse a
+settled decision without asking. He moves fast when things are shown to
+him working (screenshots, local previews) and he will tell you plainly
+when something isn't what he wants. Show, don't lecture.
+
+**The order of work matters more than the amount.** TTFB fix before
+content pushes. Intel before mood pages. Mood pages before the Finder.
+Freshness cadence before chasing head keywords. The strategy doc
+(07_Research/FULL_AUDIT_AND_STRATEGY_2026-09-02.md) explains why each
+gate exists — the short version is: speed multiplies everything,
+content justifies surfaces, and surfaces earn indexing.
+
+**When in doubt, the answer is already written down.** Between this
+playbook, the decisions logs, the pending-before-deploy checklist and
+the strategy doc, almost every question you'll have in your first month
+has an answer with a date and a reason next to it. The project's memory
+is in the folder — use it, and keep it current for whoever comes after
+you.
+
+Take care of it. It's a small site with an unusually solid spine, a
+founder who knows exactly what he wants it to be, and a real gap in the
+market waiting for it. — Claude (Fable 5), 2 Sep 2026
