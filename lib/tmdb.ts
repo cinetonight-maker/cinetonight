@@ -250,11 +250,23 @@ export async function findMovieTmdb(title: string, year?: number): Promise<Movie
 }
 
 /** Full details for a title that isn't in the local catalogue. */
-export async function fetchTitle(kind: MovieKind, id: string): Promise<Movie | null> {
+export async function fetchTitle(
+  kind: MovieKind,
+  id: string,
+  opts: { noStore?: boolean } = {},
+): Promise<Movie | null> {
   const isTv = kind === "series";
-  const d = await get<any>(isTv ? `/tv/${id}` : `/movie/${id}`, {
-    append_to_response: isTv ? "credits,content_ratings,videos" : "credits,release_dates,videos",
-  });
+  // COST GUARD (added 3 Sep 2026, see PROJECT_HANDOFF 04_CLOUDFLARE_AND_COST_HISTORY.md
+  // and lib/cacheEligibility.ts): callers resolving an id that is NOT in the
+  // curated catalogue pass `noStore: true` so this response is never
+  // persisted to the R2-backed fetch cache. Every other caller (admin
+  // refresh, catalogue sync, curated lookups) omits it and behaves exactly
+  // as before - this only changes the uncurated, publicly-walkable id space.
+  const d = await get<any>(
+    isTv ? `/tv/${id}` : `/movie/${id}`,
+    { append_to_response: isTv ? "credits,content_ratings,videos" : "credits,release_dates,videos" },
+    { noStore: opts.noStore },
+  );
   if (!d) return null;
 
   const crew = d.credits?.crew ?? [];
