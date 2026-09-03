@@ -1,4 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import MovieCard from "@/components/MovieCard";
 import MovieDetail from "@/components/MovieDetail";
@@ -14,6 +15,7 @@ import { metaDescription } from "@/lib/metaDesc";
 import { posterLg } from "@/lib/images";
 import { validYear, displayCert, displayPeople, releaseStatus } from "@/lib/quality";
 import type { Movie } from "@/lib/types";
+import { shouldCacheTitle } from "@/lib/cacheEligibility";
 
 // Next.js 15+ resolves dynamic route params asynchronously (a Promise
 // instead of a plain object) — has to be awaited before use.
@@ -95,7 +97,7 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const numericId = Number(parsed.id);
   const curated = movies.find((m) => m.tmdbId === numericId && m.kind === parsed.kind);
   if (curated) return curated;
-  return fetchTitle(parsed.kind, parsed.id);
+  return fetchTitle(parsed.kind, parsed.id, { noStore: true });
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -143,6 +145,19 @@ export default async function MoviePage({ params }: Params) {
   const movies = await getMovies();
   const m = await resolve(id, movies);
   if (!m) notFound();
+
+  // COST GUARD (added 3 Sep 2026 - see PROJECT_HANDOFF 04_CLOUDFLARE_AND_COST_HISTORY.md
+  // and lib/cacheEligibility.ts for the threshold and its reasoning). A
+  // crawler can mint unlimited R2 writes just by requesting movie ids that
+  // exist on TMDB but that nobody curated or engaged with - this route's ISR
+  // cache (see `revalidate` above) then writes each one to R2 permanently,
+  // even if it is never requested again before the R2 object expires. Below
+  // the bar the page still renders correctly - it just renders fresh on
+  // every request instead of being cached, which spends Worker CPU (deep
+  // inside the free tier) instead of an R2 write (the expensive line item).
+  // Never changes what is served, never a 404 - caching only.
+  const isCurated = movies.some((x) => x.id === m.id);
+  if (!shouldCacheTitle(m, isCurated)) await connection();
 
   // ONE URL PER TITLE. The id parser accepts any trailing slug, so
   // /movie/tmdb-m-1061474, /movie/tmdb-m-1061474-superman and
