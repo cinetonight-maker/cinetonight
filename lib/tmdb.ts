@@ -303,6 +303,60 @@ export async function fetchTitle(
   };
 }
 
+/** Minimal shape generateMetadata() needs for an uncurated /movie|/tv page:
+ *  title, year/releaseDate (released-vs-upcoming wording), a synopsis and a
+ *  poster - deliberately NOT a Movie (no cast, credits or trailer). Paired
+ *  with fetchTitleMeta() below; see resolveMeta() in app/movie/[id]/page.tsx
+ *  for why generateMetadata() uses this instead of the full fetchTitle(). */
+export interface TitleMeta {
+  id: string;
+  title: string;
+  year: number;
+  releaseDate: string | null;
+  desc: string;
+  posterPath: string | null;
+}
+
+/** FIX (4 Sep 2026 - static/dynamic runtime crash, see PROJECT_HANDOFF
+ *  04_CLOUDFLARE_AND_COST_HISTORY.md): fetchTitle() above is deliberately
+ *  `noStore` for uncurated ids, and generateMetadata() calling it (via
+ *  resolve()) is exactly what crashed every uncurated /movie/[id] page -
+ *  "Page changed from static to dynamic at runtime". A `no-store` fetch is a
+ *  dynamic-only operation, and unlike the page body's own render,
+ *  generateMetadata() does not reliably auto-opt a still-believed-static ISR
+ *  route out of static rendering for one before throwing.
+ *
+ *  This is a SEPARATE, small, cacheable TMDB call - no append_to_response,
+ *  so no credits/videos/release_dates - used ONLY for the <title>/meta
+ *  description/OG image on an uncurated title. Deliberately NOT `noStore`:
+ *  a `next: { revalidate }` fetch is a static-safe fetch as far as Next.js
+ *  is concerned, which is what keeps generateMetadata() off the crash path
+ *  without touching cacheEligibility.ts, the page body's own
+ *  shouldCacheTitle()/connection() gate, or fetchTitle()'s noStore
+ *  behaviour - none of that changes.
+ *
+ *  Cost: omitting `opts.ttl` here means ttlFor() applies the SAME tier every
+ *  other /movie|/tv detail call already uses - TTL.stable, 3 days (see
+ *  above) - so this is bounded, infrequent R2 write traffic (one write per
+ *  distinct uncurated title actually requested, at most every 3 days per
+ *  Cloudflare region), not unbounded and not per-request. It is a real,
+ *  small write cost the 3 Sep 2026 cost guard did not have - the tradeoff
+ *  that makes uncurated pages render at all without `force-dynamic`. */
+export async function fetchTitleMeta(kind: MovieKind, id: string): Promise<TitleMeta | null> {
+  const isTv = kind === "series";
+  const d = await get<any>(isTv ? `/tv/${id}` : `/movie/${id}`, {});
+  if (!d) return null;
+  const date = String(isTv ? d.first_air_date : d.release_date ?? "");
+  return {
+    id: tmdbId(kind, id, (isTv ? d.name : d.title) || undefined),
+    title: (isTv ? d.name : d.title) || "Untitled",
+    year: Number(date.slice(0, 4)) || 0,
+    releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    desc: d.overview || "No synopsis available yet.",
+    posterPath: d.poster_path || null,
+  };
+}
+
 /** Resolve a cast member's TMDB person id by name — for cast rows that came
  *  from the local catalogue (or an older sync) without a stored tmdbId, so
  *  their person page can still be filled out with real, live filmography

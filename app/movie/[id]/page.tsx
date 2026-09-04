@@ -6,7 +6,7 @@ import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
-import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo } from "@/lib/tmdb";
+import { parseTmdbId, fetchTitle, fetchTitleMeta, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo, type TitleMeta } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { buildWatch } from "@/lib/watchRows";
 import { metaDescription } from "@/lib/metaDesc";
@@ -67,15 +67,18 @@ export const revalidate = 259200;
  * labelled with the country they actually came from. */
 const SSR_WATCH_REGION = "US";
 
-/** Local catalogue first, then TMDB for ids like "tmdb-m-1234". */
-async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
+/** Local/DB/curated-catalogue lookup shared by resolve() and resolveMeta()
+ *  below - identical to what resolve() always did, just factored out so the
+ *  two callers can diverge ONLY on how they fetch a truly uncurated title. */
+type CuratedLookup = { curated: Movie } | { parsed: { kind: Movie["kind"]; id: string } };
+async function resolveCurated(id: string, movies: Movie[]): Promise<CuratedLookup | null> {
   const local = movies.find((m) => m.id === id);
-  if (local) return local;
+  if (local) return { curated: local };
   // getMovie checks the database row AND the built-in catalogue snapshot —
   // without this, a curated id missing from the DB (rows deleted, table
   // reseeded, etc.) 404s even though the id exists in the shipped JSON.
   const catalogued = await getMovie(id);
-  if (catalogued) return catalogued;
+  if (catalogued) return { curated: catalogued };
   const parsed = parseTmdbId(id);
   if (!parsed) return null;
   // A curated title is ALSO reachable by its raw tmdb-{m|t}-{id}-{slug} form
@@ -89,14 +92,66 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   // existing redirect instead of needing a new mechanism.
   const numericId = Number(parsed.id);
   const curated = movies.find((m) => m.tmdbId === numericId && m.kind === parsed.kind);
-  if (curated) return curated;
-  return fetchTitle(parsed.kind, parsed.id, { noStore: true });
+  if (curated) return { curated };
+  return { parsed };
+}
+
+/** Local catalogue first, then TMDB for ids like "tmdb-m-1234". Used by the
+ *  page body, which renders the full title (cast, credits, trailer). Not
+ *  used by generateMetadata() any more - see resolveMeta() below for why.
+ *
+ *  FIX (4 Sep 2026, part 2 - supersedes the noStore version this line had
+ *  for a few hours today): tried making this fetch noStore + calling
+ *  connection() right before it (matching the 3 Sep 2026 cost-guard
+ *  commit's intent). Confirmed live, twice, in a real production build:
+ *  a connection() call from inside a nested helper like this one does NOT
+ *  reliably stop Next.js 16.3 from crashing on the no-store fetch that
+ *  follows it ("Page changed from static to dynamic at runtime" /
+ *  DYNAMIC_SERVER_USAGE) - both for this call and for the equivalent one
+ *  generateMetadata() used to make. Before 3 Sep 2026 this fetch was NOT
+ *  noStore at all and never crashed - that plain cacheable fetch is
+ *  restored here. shouldCacheTitle()/connection() further down (unchanged)
+ *  is what now does the ONLY job it can safely do: opt a low-signal
+ *  uncurated title's PAGE out of the ISR cache after the fact. The fetch
+ *  itself being cacheable again means its response CAN be written to the
+ *  R2 fetch cache for any uncurated title actually requested, high-signal
+ *  or not - bounded by the same 3-day TTL every other detail call uses,
+ *  not per-request and not unbounded, but a real, wider cost than the
+ *  3 Sep 2026 commit intended. Documented, not silently reverted - see the
+ *  chat history around 4 Sep 2026 for the two failed connection() attempts
+ *  and the R2-cost reasoning before deciding to narrow this again. */
+async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
+  const r = await resolveCurated(id, movies);
+  if (!r) return null;
+  if ("curated" in r) return r.curated;
+  return fetchTitle(r.parsed.kind, r.parsed.id);
+}
+
+/** generateMetadata()'s own resolution path. Same local/DB/curated checks as
+ *  resolve() above (via resolveCurated()), but a truly uncurated title's
+ *  fallback here is fetchTitleMeta() (see lib/tmdb.ts) - a small, cacheable
+ *  TMDB call - instead of resolve()'s heavy, noStore fetchTitle(). Calling
+ *  fetchTitle()'s noStore fetch from generateMetadata() is exactly what
+ *  crashed every uncurated /movie/[id] page on 4 Sep 2026 ("Page changed
+ *  from static to dynamic at runtime"): a no-store fetch is a dynamic-only
+ *  operation, and generateMetadata() does not reliably auto-opt a
+ *  still-believed-static ISR route out of static rendering for one before
+ *  throwing, unlike the page body's own render (whose resolve() call above,
+ *  and its existing shouldCacheTitle()/connection() gate below, are
+ *  unaffected and unchanged). Curated titles are unaffected either way -
+ *  they return from resolveCurated() before either function's fallback
+ *  fetch ever runs. */
+async function resolveMeta(id: string, movies: Movie[]): Promise<Movie | TitleMeta | null> {
+  const r = await resolveCurated(id, movies);
+  if (!r) return null;
+  if ("curated" in r) return r.curated;
+  return fetchTitleMeta(r.parsed.kind, r.parsed.id);
 }
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const movies = await getMovies();
-  const m = await resolve(id, movies);
+  const m = await resolveMeta(id, movies);
   if (!m) return NOT_FOUND_META;
   // "Cast, Trailer & Where to Watch" targets the exact long-tail phrasing
   // people actually type into Google for a specific title, instead of just
