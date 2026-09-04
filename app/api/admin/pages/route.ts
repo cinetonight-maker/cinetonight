@@ -224,7 +224,7 @@ export async function PUT(request: Request) {
       action: wentLive ? "publish" : wentDark ? "unpublish" : "update",
       targetId: id, targetLabel: upd.data?.title ?? before.title,
       before, after: upd.data,
-      note: newSlug !== before.slug ? `Address changed from /${before.slug} to /${newSlug} — existing links to the old address now break` : undefined,
+      note: newSlug !== before.slug ? `Address changed from /${before.slug} to /${newSlug} - existing links to the old address now break` : undefined,
     });
     return NextResponse.json({ ok: true, page: upd.data, revalidated });
   } catch (e) {
@@ -250,7 +250,7 @@ export async function DELETE(request: Request) {
       await recordAudit({
         module: "pages", action: "delete",
         targetId: id, targetLabel: gone?.title ?? null, before: gone, after: null,
-        note: "Deleted permanently — this cannot be undone",
+        note: "Deleted permanently - this cannot be undone",
       });
       return NextResponse.json({ ok: true, permanent: true, revalidated });
     }

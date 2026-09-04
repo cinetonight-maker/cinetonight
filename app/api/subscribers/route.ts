@@ -22,7 +22,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function POST(request: Request) {
   try {
     if (isRateLimited(clientKey(request), "subscribers", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-      return NextResponse.json({ error: "Too many attempts — please wait a minute and try again." }, { status: 429 });
+      return NextResponse.json({ error: "Too many attempts - please wait a minute and try again." }, { status: 429 });
     }
 
     const body = await request.json();

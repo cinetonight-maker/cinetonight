@@ -59,13 +59,13 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [], wat
 
   return (
     <>
-      {/* Inline trailer banner — plays IN PLACE at the top of the page
+      {/* Inline trailer banner - plays IN PLACE at the top of the page
           (reference-mock pattern), no fullscreen modal takeover. */}
       <InlineTrailer movie={movie} />
 
       {/* Compact reference-style detail bar under the trailer: small
           poster, title + genre chips + one meta line, actions to the
-          right. The long synopsis lives in "About" further down — this
+          right. The long synopsis lives in "About" further down - this
           block's job is identification + actions, in as little vertical
           space as possible. */}
       <section className="dbar">
@@ -88,7 +88,7 @@ export default function MovieDetail({ movie, seasons = [], suggestions = [], wat
           </div>
         </div>
         <div className="dbar__acts">
-          {/* No Watch Now button here — the inline trailer right above IS
+          {/* No Watch Now button here - the inline trailer right above IS
               the play action; a second play button was redundant. */}
           <WatchlistButton id={movie.id} kind={movie.kind} surface={movie.kind === "series" ? "series_detail" : "movie_detail"} />
           <TicketStub movie={movie} />

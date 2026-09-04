@@ -51,7 +51,7 @@ export default function SignUpForm() {
   if (needsConfirm) {
     return (
       <p style={{ color: "var(--txt)", fontSize: 14, lineHeight: 1.6 }}>
-        Almost there — we sent a confirmation link to <b>{email}</b>. Click it, then come back and sign in.
+        Almost there - we sent a confirmation link to <b>{email}</b>. Click it, then come back and sign in.
       </p>
     );
   }

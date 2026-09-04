@@ -23,7 +23,7 @@ export function addRecentSearch(term: string) {
   const q = term.trim();
   if (q.length < 2 || typeof window === "undefined") return;
   const next = [q, ...getRecentSearches().filter((s) => s.toLowerCase() !== q.toLowerCase())].slice(0, MAX);
-  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* storage full/blocked — not worth breaking search over */ }
+  try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* storage full/blocked - not worth breaking search over */ }
   window.dispatchEvent(new Event(EVENT));
 }
 

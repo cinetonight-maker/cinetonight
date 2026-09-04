@@ -28,7 +28,7 @@ interface Item {
 interface Totals { files: number; bytes: number; unusedFiles: number; unusedBytes: number; scanned: number }
 
 const size = (b: number | null) =>
-  b == null ? "—"
+  b == null ? "-"
   : b >= 1_048_576 ? `${(b / 1_048_576).toFixed(1)} MB`
   : `${Math.max(1, Math.round(b / 1024))} KB`;
 
@@ -94,7 +94,7 @@ export default function MediaManager() {
     const warning =
       `Delete ${chosen.length} file${chosen.length === 1 ? "" : "s"} permanently (${size(bytes)})?\n\n` +
       (usedCount
-        ? `${usedCount} of them ${usedCount === 1 ? "is" : "are"} STILL USED on the site — those pages will show a broken image.\n\n`
+        ? `${usedCount} of them ${usedCount === 1 ? "is" : "are"} STILL USED on the site - those pages will show a broken image.\n\n`
         : "None of them are used anywhere on the site.\n\n") +
       "This cannot be undone.";
     if (!confirm(warning)) return;
@@ -192,7 +192,7 @@ export default function MediaManager() {
         <p className="ad__hintline">
           &ldquo;Unused&rdquo; means the file name appears nowhere in your posts, pages, catalogue artwork or homepage
           and discovery settings. Matching is on the file name rather than the full address, so an image referenced
-          through a slightly different URL still counts as used — this report would rather keep a file than tell you it
+          through a slightly different URL still counts as used - this report would rather keep a file than tell you it
           is safe to delete something a page is still showing.
         </p>
       </section>

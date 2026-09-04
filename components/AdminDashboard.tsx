@@ -96,7 +96,7 @@ export default function AdminDashboard({ section }: { section?: string } = {}) {
 
   return (
     <div className={section ? "ad ad--embedded" : "ad"}>
-      {/* Legacy chrome — only when this component is used standalone. Inside
+      {/* Legacy chrome - only when this component is used standalone. Inside
           the Stage 1 admin shell the sidebar owns navigation and the top bar
           owns the title, so the tab strip and heading are hidden; the save
           status pill stays, because it belongs to this component's writes. */}
@@ -104,7 +104,7 @@ export default function AdminDashboard({ section }: { section?: string } = {}) {
         <div className="ad__head">
           <div>
             <h1>Dashboard</h1>
-            <p>Everything here is live — changes save straight to your site, no rebuild or redeploy needed.</p>
+            <p>Everything here is live - changes save straight to your site, no rebuild or redeploy needed.</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div className={`ad__status ad__status--${status.kind}`}>
@@ -316,13 +316,13 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
       <section className="ad__panel">
         <h2>Hero picks <span className="ad__count">{slides.length}</span></h2>
         <p className="ad__hint">
-          The redesigned homepage has no rotating carousel any more — your <b>first three picks here</b> become
+          The redesigned homepage has no rotating carousel any more - your <b>first three picks here</b> become
           the big poster artwork in the hero, in this order. Fewer than three picks (or picks without poster art)
           and the site falls back to the current trending titles. Heads up: if Hero mode in the Sync Center is set to
           <b> Auto</b>, the daily sync replaces these with the current trending titles. Switch it to <b>Manual</b> there
           to keep your picks.
         </p>
-        {slides.length === 0 && <div className="ad__empty">No slides yet — pick titles below.</div>}
+        {slides.length === 0 && <div className="ad__empty">No slides yet - pick titles below.</div>}
         <div className="ad__list">
           {slides.map((id, i) => {
             const m = movies.find((x) => x.id === id);
@@ -348,7 +348,7 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
         <h2>Add any TMDB title</h2>
         <p className="ad__hint">
           Paste a TMDB link (themoviedb.org/movie/… or /tv/…) or a site address containing <b>tmdb-m-</b>/<b>tmdb-t-</b>.
-          The title is featured live from TMDB — nothing is added to the catalogue and no new URL is created.
+          The title is featured live from TMDB - nothing is added to the catalogue and no new URL is created.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
           <input
@@ -373,7 +373,7 @@ function HeroTab({ site, movies, save }: { site: HomeConfig; movies: Movie[]; sa
             Add
           </button>
         </div>
-        {tmdbErr && <p className="ad__hint" style={{ color: "var(--purple2)" }}>Could not read a TMDB id from that — paste the title&apos;s TMDB page link.</p>}
+        {tmdbErr && <p className="ad__hint" style={{ color: "var(--accent2)" }}>Could not read a TMDB id from that - paste the title&apos;s TMDB page link.</p>}
       </section>
 
       <section className="ad__panel">
@@ -455,7 +455,7 @@ function ImagePicker({ url, onChange, label }: { url: string | null | undefined;
         <div className="ad__panel" style={{ marginTop: 10, padding: 12 }}>
           {libraryErr && <div className="ad__err">{libraryErr}</div>}
           {!library && !libraryErr && <div className="empty">Loading…</div>}
-          {library && !library.length && <div className="ad__empty">Nothing uploaded yet — use “{label}” to add your first image.</div>}
+          {library && !library.length && <div className="ad__empty">Nothing uploaded yet - use “{label}” to add your first image.</div>}
           {library && library.length > 0 && (
             <div className="ad__picker ad__picker--sm">
               {library.map((m) => (
@@ -584,7 +584,7 @@ function BlogTab() {
     load();
   };
 
-  if (err && !posts.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (err && !posts.length && !loading) return <div className="ad__err">{err} - is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -615,10 +615,10 @@ function BlogTab() {
               <textarea rows={2} value={draft.excerpt} onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })} /></label>
             <label className="ad__field">
               <span>
-                Body — one paragraph per blank-line-separated block. Structure: start a line
+                Body - one paragraph per blank-line-separated block. Structure: start a line
                 with <b>##&nbsp;</b> for a section heading (H2) or <b>###&nbsp;</b> for a
                 sub-heading (H3). Google reads that outline, so give every post 3–6 <b>##</b> sections;
-                the post title is already the H1 — never repeat it as a heading.
+                the post title is already the H1 - never repeat it as a heading.
               </span>
               <textarea rows={9} value={(draft.body ?? []).join("\n\n")}
                 onChange={(e) => setDraft({ ...draft, body: e.target.value.split(/\n{2,}/).map((s) => s.trim()).filter(Boolean) })} /></label>
@@ -810,7 +810,7 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
     setRefreshingAll(true);
     let done = 0;
     for (const m of withTmdb) {
-      setRefreshProgress(`${done + 1}/${withTmdb.length} — ${m.title}`);
+      setRefreshProgress(`${done + 1}/${withTmdb.length} - ${m.title}`);
       await fetch("/api/admin/catalogue/refresh", {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: m.id }),
       }).catch(() => null);
@@ -827,7 +827,7 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
         <div className="ad__panelhead"><h2>Add a title</h2>
           <button className="ad__btn" disabled={busy} onClick={addManual}><Icon name="plus" size={14} /> Add manually</button>
         </div>
-        <p className="ad__hint">Search TMDB and add it to your catalogue — full details and artwork come with it. Not on TMDB? Use “Add manually” and fill in every field yourself.</p>
+        <p className="ad__hint">Search TMDB and add it to your catalogue - full details and artwork come with it. Not on TMDB? Use “Add manually” and fill in every field yourself.</p>
         <form className="ad__search" onSubmit={search}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search TMDB for a film or show…" />
           <button className="ad__btn ad__btn--primary" disabled={busy}><Icon name="search" size={14} /> Search</button>
@@ -894,7 +894,7 @@ function CatalogueTab({ movies, reload }: { movies: Movie[]; reload: () => void 
             <Icon name="sparkle" size={14} /> {refreshingAll ? (refreshProgress ?? "Refreshing…") : "Refresh all from TMDB"}
           </button>
         </div>
-        <p className="ad__hint">Editing changes are yours to keep — “Refresh from TMDB” re-pulls title/year/rating/cast/etc. from TMDB but never touches a custom poster or backdrop you've uploaded.</p>
+        <p className="ad__hint">Editing changes are yours to keep - “Refresh from TMDB” re-pulls title/year/rating/cast/etc. from TMDB but never touches a custom poster or backdrop you've uploaded.</p>
         <div className="ad__list">
           {movies.map((m) => (
             <div className="ad__row" key={m.id}>
@@ -989,7 +989,7 @@ function ClassicsTab() {
   const draftVerify = verify[`${draft.source_type}:${draft.source_id.trim()}`];
 
   if (err && !films.length && !loading) {
-    return <div className="ad__err">{err} — is the classics table set up? Run <code>supabase/classics.sql</code> in Supabase&apos;s SQL Editor, then <code>node scripts/sync-classics.mjs</code>.</div>;
+    return <div className="ad__err">{err} - is the classics table set up? Run <code>supabase/classics.sql</code> in Supabase&apos;s SQL Editor, then <code>node scripts/sync-classics.mjs</code>.</div>;
   }
 
   return (
@@ -1001,7 +1001,7 @@ function ClassicsTab() {
         </div>
         <p className="ad__hint">
           Full films visitors can legally watch at <code>/free-movies</code>. Only add public-domain films
-          (archive.org) or official rights-holder uploads (YouTube) — never a fan upload of a copyrighted
+          (archive.org) or official rights-holder uploads (YouTube) - never a fan upload of a copyrighted
           movie. Always hit <strong>Verify</strong> before publishing: it confirms the source exists and
           actually contains video.
         </p>
@@ -1021,11 +1021,11 @@ function ClassicsTab() {
                   <option value="youtube">YouTube (official upload)</option>
                 </select></label>
               <label className="ad__field">
-                <span>{draft.source_type === "archive" ? "Archive identifier — from archive.org/details/<this-part>" : "YouTube video ID — from watch?v=<this-part>"}</span>
+                <span>{draft.source_type === "archive" ? "Archive identifier - from archive.org/details/<this-part>" : "YouTube video ID - from watch?v=<this-part>"}</span>
                 <input value={draft.source_id} onChange={(e) => setDraft({ ...draft, source_id: e.target.value })} placeholder={draft.source_type === "archive" ? "night-of-the-living-dead_1968" : "dQw4w9WgXcQ"} /></label>
             </div>
             <div className="ad__grid2">
-              <label className="ad__field"><span>TMDB id (optional — pulls real poster/rating/cast)</span>
+              <label className="ad__field"><span>TMDB id (optional - pulls real poster/rating/cast)</span>
                 <input value={String(draft.tmdb_id)} onChange={(e) => setDraft({ ...draft, tmdb_id: e.target.value })} placeholder="10331" /></label>
               <label className="ad__field"><span>Genre · Runtime (optional)</span>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -1035,7 +1035,7 @@ function ClassicsTab() {
             </div>
             <label className="ad__field"><span>Description</span>
               <textarea rows={3} value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} /></label>
-            <label className="ad__field"><span>Curation note (private — e.g. why this is public domain)</span>
+            <label className="ad__field"><span>Curation note (private - e.g. why this is public domain)</span>
               <input value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} /></label>
             <label className="ad__field">
               <span>Status</span>
@@ -1076,7 +1076,7 @@ function ClassicsTab() {
                 </div>
               );
             })}
-            {!films.length && <div className="ad__empty">No films yet — hit “Add film”.</div>}
+            {!films.length && <div className="ad__empty">No films yet - hit “Add film”.</div>}
           </div>
         )}
       </section>
@@ -1123,7 +1123,7 @@ function PagesTab() {
     load();
   };
 
-  if (err && !pages.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (err && !pages.length && !loading) return <div className="ad__err">{err} - is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -1132,17 +1132,17 @@ function PagesTab() {
           <h2>Pages <span className="ad__count">{pages.length}</span></h2>
           <button className="ad__btn" onClick={startNew}><Icon name="plus" size={14} /> New page</button>
         </div>
-        <p className="ad__hint">Published pages are live immediately at <code>/&lt;slug&gt;</code> — e.g. an "About" page becomes <code>/about</code>.</p>
+        <p className="ad__hint">Published pages are live immediately at <code>/&lt;slug&gt;</code> - e.g. an "About" page becomes <code>/about</code>.</p>
 
         {editing !== null && (
           <div className="ad__card ad__card--edit">
             <div className="ad__grid2">
               <label className="ad__field"><span>Title</span>
                 <input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="About Us" /></label>
-              <label className="ad__field"><span>Slug (optional — auto from title)</span>
+              <label className="ad__field"><span>Slug (optional - auto from title)</span>
                 <input value={draft.slug} onChange={(e) => setDraft({ ...draft, slug: e.target.value })} placeholder="about" /></label>
             </div>
-            <label className="ad__field"><span>Content — Markdown: **bold**, *italic*, [links](url), - lists. Headings: use ## for sections and ### for sub-sections (the page title above is already the H1, so never use a single #).</span>
+            <label className="ad__field"><span>Content - Markdown: **bold**, *italic*, [links](url), - lists. Headings: use ## for sections and ### for sub-sections (the page title above is already the H1, so never use a single #).</span>
               <textarea rows={14} value={draft.content} onChange={(e) => setDraft({ ...draft, content: e.target.value })} /></label>
             <label className="ad__field">
               <span>Status</span>
@@ -1180,9 +1180,9 @@ function PagesTab() {
 /* ------------------------------- menus ----------------------------------- */
 type NavLink = { id: string; location: string; label: string; url: string; sort_order: number; is_external: boolean };
 const LOCATIONS: [string, string][] = [
-  ["footer_explore", "Footer — Explore"],
-  ["footer_support", "Footer — Support"],
-  ["footer_legal", "Footer — Legal"],
+  ["footer_explore", "Footer - Explore"],
+  ["footer_support", "Footer - Support"],
+  ["footer_legal", "Footer - Legal"],
   ["header", "Header"],
 ];
 const EMPTY_LINK = { location: "footer_support", label: "", url: "", sort_order: 0, is_external: false };
@@ -1211,7 +1211,7 @@ function MenusTab() {
     load();
   };
 
-  if (err && !links.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (err && !links.length && !loading) return <div className="ad__err">{err} - is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -1306,7 +1306,7 @@ function MediaTab() {
 
   const copy = (url: string) => navigator.clipboard?.writeText(url).catch(() => {});
 
-  if (loadErr && !items.length && !loading) return <div className="ad__err">{loadErr} — is the Supabase schema + storage bucket set up? See <code>supabase/schema.sql</code>.</div>;
+  if (loadErr && !items.length && !loading) return <div className="ad__err">{loadErr} - is the Supabase schema + storage bucket set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">
@@ -1318,7 +1318,7 @@ function MediaTab() {
             <input type="file" multiple hidden disabled={busy} onChange={(e) => upload(e.target.files)} />
           </label>
         </div>
-        <p className="ad__hint">Uploaded files are public — copy a URL to use it anywhere (a page, a blog post, etc.).</p>
+        <p className="ad__hint">Uploaded files are public - copy a URL to use it anywhere (a page, a blog post, etc.).</p>
         {uploadErr && <div className="ad__err" style={{ marginTop: 10 }}>{uploadErr}</div>}
 
         {loading ? <div className="empty">Loading…</div> : (
@@ -1365,7 +1365,7 @@ function SettingsTab() {
     if (res.ok) setTimeout(() => setStatus({ kind: "idle" }), 1800);
   };
 
-  if (status.kind === "err" && !s) return <div className="ad__err">{status.msg} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (status.kind === "err" && !s) return <div className="ad__err">{status.msg} - is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
   if (!s) return <div className="empty">Loading…</div>;
 
   return (
@@ -1432,7 +1432,7 @@ function CommentsTab() {
 
   const visible = items.filter((c) => filter === "all" || c.status === filter);
 
-  if (err && !items.length && !loading) return <div className="ad__err">{err} — is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
+  if (err && !items.length && !loading) return <div className="ad__err">{err} - is the Supabase schema set up? See <code>supabase/schema.sql</code>.</div>;
 
   return (
     <div className="ad__body ad__body--one">

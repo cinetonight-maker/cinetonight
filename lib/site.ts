@@ -24,7 +24,7 @@ export function baseUrl(): string {
       "[cinetonight] NEXT_PUBLIC_SITE_URL is not set in production. " +
         "Canonical tags, OpenGraph URLs, and the sitemap are falling back to " +
         (process.env.VERCEL_URL ? `the Vercel deployment URL (${process.env.VERCEL_URL})` : "http://localhost:3000") +
-        " — set NEXT_PUBLIC_SITE_URL to your real domain to fix this."
+        " - set NEXT_PUBLIC_SITE_URL to your real domain to fix this."
     );
   }
 

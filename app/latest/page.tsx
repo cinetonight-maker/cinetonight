@@ -7,7 +7,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return listingMetadata({
     path: "/latest",
     baseTitle: "Latest Movies & New OTT Releases",
-    baseDescription: "Fresh off the reel — the newest movie and web series releases, updated as they drop.",
+    baseDescription: "Fresh off the reel - the newest movie and web series releases, updated as they drop.",
     genre,
   });
 }

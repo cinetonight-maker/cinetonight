@@ -132,8 +132,8 @@ export const BUILTIN = {
  *  than one that has none. */
 export const RULE_SUMMARY = {
   moods: {
-    happy: "Comedy, Family, Music, Adventure, Animation — never Horror, Crime, War or Thriller",
-    romantic: "Romance — never Horror, War or Crime",
+    happy: "Comedy, Family, Music, Adventure, Animation - never Horror, Crime, War or Thriller",
+    romantic: "Romance - never Horror, War or Crime",
     relaxed: "Gentle, low-tension genres",
     stressed: "Calming picks, tension excluded",
     excited: "Action, Adventure, Thriller",

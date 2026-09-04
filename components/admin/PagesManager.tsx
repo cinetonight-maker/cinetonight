@@ -139,7 +139,7 @@ export default function PagesManager() {
     const next: Draft = { ...draft, ...(opts.status ? { status: opts.status } : {}) };
     if (!next.title.trim()) { setErr("Give the page a title first."); return; }
     if (next.status === "published" && !next.content.trim()) {
-      setErr("The page is empty — write something before publishing it."); return;
+      setErr("The page is empty - write something before publishing it."); return;
     }
     if (slugChanged && !confirm(
       `You are changing this page's address from /${originalSlug} to /${slugify(next.slug)}.\n\n` +
@@ -174,7 +174,7 @@ export default function PagesManager() {
     // Same rule as the blog screen: the save is confirmed; cache freshness is
     // reported separately and never presented as a failure.
     const cache = cacheNote(res.data.revalidated ?? null);
-    setNote(next.status === "published" ? `Saved and published.${cache}` : "Saved as a draft — it is not on the site.");
+    setNote(next.status === "published" ? `Saved and published.${cache}` : "Saved as a draft - it is not on the site.");
     load();
   };
 
@@ -195,7 +195,7 @@ export default function PagesManager() {
     if (!res.ok) { setErr(res.data.error ?? "Could not restore that version."); return; }
     if (res.data.page) startEdit(res.data.page);
     setRevisions(null); setShowHistory(false);
-    setNote("Restored. Nothing was lost — the previous text is in history.");
+    setNote("Restored. Nothing was lost - the previous text is in history.");
     load();
   };
 
@@ -244,7 +244,7 @@ export default function PagesManager() {
             <div className="ad__notice">
               <div>
                 A newer autosaved draft exists{recovered.at ? ` from ${new Date(recovered.at).toLocaleString()}` : ""}.
-                It has not been published — you can load it or throw it away.
+                It has not been published - you can load it or throw it away.
               </div>
               <div className="ad__actions">
                 <button className="ad__mini" onClick={() => { setDraft((d) => ({ ...d, content: recovered.content })); setRecovered(null); }}>Load the draft</button>
@@ -289,7 +289,7 @@ export default function PagesManager() {
             {slugChanged && (
               <div className="ad__notice ad__notice--warn">
                 <b>Careful.</b> You are changing a published page&rsquo;s address from <code>/{originalSlug}</code> to
-                {" "}<code>/{slugify(draft.slug)}</code>. Every link that points at the old address will break — including
+                {" "}<code>/{slugify(draft.slug)}</code>. Every link that points at the old address will break - including
                 links inside your own posts. Check <b>Internal Links</b> after saving.
               </div>
             )}
@@ -325,8 +325,8 @@ export default function PagesManager() {
             <label className="ad__field">
               <span>Status</span>
               <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as "draft" | "published" })}>
-                <option value="draft">Draft — only you can see it</option>
-                <option value="published">Published — live now</option>
+                <option value="draft">Draft - only you can see it</option>
+                <option value="published">Published - live now</option>
               </select>
             </label>
 
@@ -353,7 +353,7 @@ export default function PagesManager() {
             </div>
             <p className="ad__hintline">
               Your save is stored the instant the button confirms it. The public page is cached for speed, so it can
-              take a few minutes to catch up — use <b>Preview</b> to see the true, current version straight away.
+              take a few minutes to catch up - use <b>Preview</b> to see the true, current version straight away.
             </p>
           </div>
         </section>

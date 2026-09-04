@@ -17,7 +17,7 @@ const RATE_LIMIT_MAX = 60;
  */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (isRateLimited(clientKey(request), "tv", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
 
   const { id } = await params;

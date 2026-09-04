@@ -11,6 +11,8 @@ import { openPlayer } from "@/lib/player";
 import { poster, backdrop } from "@/lib/images";
 import { MOODS } from "@/lib/moods";
 import { QUICK_PICKS, quickPickById, moodById, whyItFits, type QuickPick } from "@/lib/quickPicks";
+import { asBucket, type RegionBucket } from "@/lib/regionBucket";
+import { displayRuntime } from "@/lib/quality";
 import {
   trackPickerStarted, trackMoodSelected, trackQuickPickSelected, trackAnotherPick,
   trackRecommendationViewed, trackRecommendationFailed, trackTrailerPlayed,
@@ -37,10 +39,63 @@ import type { Movie } from "@/lib/types";
 
 type Kind = "any" | "movie" | "series";
 
+/** "How much time have you got?"
+ *
+ *  0 means no limit. Every other value MUST already appear in the route's
+ *  ALLOWED_RUNTIME list (app/api/mood/route.ts) - anything else is dropped
+ *  server-side and the control would silently do nothing. This is the whole
+ *  reason the panel is a fixed list of options and not a free number box:
+ *  each value is a cache key, and the closed set is what keeps them few. */
+const RUNTIME_OPTIONS: { value: number; label: string }[] = [
+  { value: 0, label: "Any length" },
+  { value: 60, label: "About an hour" },
+  { value: 90, label: "90 minutes or less" },
+  { value: 120, label: "Up to 2 hours" },
+  { value: 150, label: "The whole evening" },
+];
+
+/** "Who are you watching with?"
+ *
+ *  Every option resolves to something the engine ALREADY does, on purpose:
+ *  two of them are the Date Night and Family Night Quick Picks under a
+ *  plainer name, and Friends is the Excited mood. Nothing new is invented
+ *  behind this control, which means no new query shapes, no new cache keys,
+ *  and - the part that actually matters - the "why this fits" line stays
+ *  true, because it is still generated from the same criteria those picks
+ *  have always carried.
+ *
+ *  It is a VIEW over the current selection rather than its own piece of
+ *  state: the value is read back from whichever mood or Quick Pick is
+ *  active, so the dropdown and the cards can never disagree about what was
+ *  chosen. */
+type CompanyId = "" | "partner" | "family" | "friends";
+const COMPANY_OPTIONS: { value: CompanyId; label: string; quickPick?: string; mood?: string }[] = [
+  { value: "", label: "Not specified" },
+  { value: "partner", label: "A partner", quickPick: "date-night" },
+  { value: "family", label: "Family", quickPick: "family" },
+  { value: "friends", label: "Friends", mood: "excited" },
+];
+
 /** Build-time V2 switch (docs/V2-BUILD-PATH.md Phase 5): inlined into the
  *  client bundle at build, so both themes never ship together and the ISR
  *  HTML matches the hydrated output. Same rule as the server templates. */
 const V2 = process.env.NEXT_PUBLIC_V2_THEME === "1";
+
+/* RUNTIME ON THE PICK CARD.
+ *
+ * TMDB's discover and trending LIST endpoints do not carry runtime - only the
+ * per-title detail endpoint does - so every title arriving from the picker is
+ * built with the placeholder "—" (fromDiscoverHit, lib/tmdb). The movie pages
+ * never showed a bare dash because they run every field through
+ * displayRuntime() first; this component simply was not doing that, so the
+ * placeholder went straight to the screen.
+ *
+ * Two fixes, and both are needed: run the value through the SAME guard the
+ * movie pages use, and then actually go and fetch the real duration for the
+ * one title on screen (the effect below).
+ *
+ * The filtering was never affected: "Under 90 Minutes" applies
+ * with_runtime.lte at TMDB, which works whether or not the value comes back. */
 
 /** "2h 23m" → 143. Null when the string carries no parsable duration. */
 function runtimeMinutes(rt: string | undefined): number | null {
@@ -53,12 +108,91 @@ function runtimeMinutes(rt: string | undefined): number | null {
 /** Factual kicker for an "Also Consider" row: lead genre plus an honest
  *  runtime comparison against the current pick. Never invented adjectives —
  *  only facts we hold (STAB rules: nothing editorial without editorial data). */
+/** The line under an alternative's title.
+ *
+ *  These three titles come from the same LIST response as everything else in
+ *  the pool, so none of them carries a runtime - and printing `a.runtime`
+ *  directly put the placeholder dash under every one of them. Fetching a real
+ *  duration for each would mean three more requests every time the pick
+ *  changes, for a row of secondary options nobody has clicked yet, which is
+ *  not a trade worth making.
+ *
+ *  So this shows what the list response DOES give us and is genuinely useful
+ *  when choosing between three posters: how old it is, whether it is a film or
+ *  a series, and how it scores. A real runtime is still preferred when the
+ *  title happens to be a catalogue one that has it. */
+function altMeta(a: Movie): string {
+  return [
+    displayRuntime(a.runtime) ?? (a.year > 0 ? String(a.year) : null),
+    a.kind === "series" ? "Series" : "Film",
+  ].filter(Boolean).join(" · ");
+}
+
 function altKicker(alt: Movie, lead: Movie): string {
   const parts: string[] = [];
   if (alt.genres[0]) parts.push(alt.genres[0]);
   const a = runtimeMinutes(alt.runtime); const l = runtimeMinutes(lead.runtime);
   if (a != null && l != null && Math.abs(a - l) >= 15) parts.push(a < l ? "Shorter" : "Longer");
   return parts.join(" · ");
+}
+
+/* ---------------------------------------------------------------------
+   ALREADY-SEEN MEMORY
+
+   The picker used to repeat itself twice over: "Another pick" walks a pool
+   of eight and then wraps back to the start, and every new visit began with
+   an empty head, so yesterday's visitor could be handed yesterday's titles
+   again. This remembers what has actually been PUT ON SCREEN and prefers
+   something else next time.
+
+   Three deliberate choices:
+
+   1. sessionStorage, not localStorage: the memory dies with the tab. A
+      person coming back next week should get the strong titles again rather
+      than only ever being pushed further down the long tail - and nothing
+      about their viewing is left on the device after they leave.
+   2. A rolling window of the newest 30, rather than wiping all 30 at once
+      when it fills. Same promise ("you will not see a repeat for a long
+      time") without the edge where the pick straight after a wipe is the one
+      you just saw. Thirty is roughly four pools' worth of "Another pick" —
+      far more than a real sitting — so the window filling up at all is the
+      exception, not the normal case.
+   3. Only the title actually DISPLAYED is recorded, never the whole fetched
+      pool - marking eight titles as "seen" when the visitor laid eyes on one
+      would burn through the catalogue and hide films nobody was ever shown.
+
+   Every access is wrapped: private mode and storage-disabled browsers throw
+   on the first touch, and a repeated film is never worth breaking the page
+   over. */
+const SEEN_KEY = "cinetonight:seen";
+const SEEN_LIMIT = 30;
+
+function readSeen(): string[] {
+  try {
+    const raw = sessionStorage.getItem(SEEN_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberSeen(id: string): void {
+  try {
+    sessionStorage.setItem(SEEN_KEY, JSON.stringify([id, ...readSeen().filter((v) => v !== id)].slice(0, SEEN_LIMIT)));
+  } catch {
+    /* no storage, no memory - the picker just behaves as it did before */
+  }
+}
+
+/** Drop titles this browser has already shown - unless doing so would leave
+ *  almost nothing, in which case the full pool is better than a dead end.
+ *  Two is the floor because a single-title pool makes "Another pick" a
+ *  button that visibly does nothing. */
+function dropSeen(list: Movie[]): Movie[] {
+  const seen = new Set(readSeen());
+  const unseen = list.filter((m) => !seen.has(m.id));
+  return unseen.length >= 2 ? unseen : list;
 }
 
 /** Fisher-Yates, CLIENT-side only.
@@ -99,12 +233,47 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   const [quickPickId, setQuickPickId] = useState<string | null>(null);
   const [moodId, setMoodId] = useState<string | null>(null);
   const [kind, setKind] = useState<Kind>("any");
+  /** Minutes, 0 for "any". Independent of mood and Quick Pick: it narrows
+   *  whatever else is selected rather than replacing it. */
+  const [runtime, setRuntime] = useState(0);
+  /** Refine panel: OPEN on desktop, CLOSED on a phone.
+   *
+   *  On a wide screen the fields cost nothing and a control nobody can see is
+   *  a control nobody uses. On a phone they stack into a tall column that
+   *  pushes the mood chips off the screen, so it starts shut there.
+   *
+   *  It starts CLOSED in the server HTML and opens on desktop after mount,
+   *  never the other way round. The homepage is one cached document for every
+   *  visitor, so the initial state cannot depend on screen size - and of the
+   *  two possible flashes, a panel quietly expanding on desktop is far less
+   *  jarring than one collapsing under a phone reader's thumb. */
+  const [refineOpen, setRefineOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    if (window.matchMedia("(min-width: 721px)").matches) setRefineOpen(true);
+  }, []);
   const [pool, setPool] = useState<Movie[]>(seed ? [seed, ...seedPool] : seedPool);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const sectionRef = useRef<HTMLElement | null>(null);
   const reqRef = useRef(0);
+  /** Which audience pool this browser is being served (lib/regionBucket.ts).
+   *  Null until the first /api/mood answer tells us — the homepage HTML is
+   *  one shared ISR document for the whole world, so it cannot carry a
+   *  per-visitor region without giving up that cache. The first call of a
+   *  session therefore asks without one and is answered privately; every
+   *  call after it carries the bucket in the URL and is served from the
+   *  shared edge cache. A ref, not state: nothing on screen depends on it,
+   *  so learning it must never trigger a re-render. */
+  const regionRef = useRef<RegionBucket | null>(null);
+  /** Real runtimes, fetched one title at a time for the pick actually on
+   *  screen. Same rule Where to Watch already follows in this component:
+   *  never query for a shelf of titles nobody asked about. /api/title is
+   *  edge-cached for an hour and shares the movie page's own cache entry, so
+   *  a title looked up here is usually already paid for. */
+  const [runtimes, setRuntimes] = useState<Record<string, string>>({});
+  const runtimeAsked = useRef<Set<string>>(new Set());
 
   const pick = pool[index] ?? null;
   const attemptRef = useRef(0); // "another pick" count within the current pool
@@ -127,16 +296,25 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   }, []);
 
   /** Fetch a fresh candidate pool for the current selection. */
-  const loadPool = useCallback(async (opts: { moodId: string; quick?: QuickPick; kind: Kind }) => {
+  const loadPool = useCallback(async (opts: { moodId: string; quick?: QuickPick; kind: Kind; runtime?: number }) => {
     const mine = ++reqRef.current;
     setLoading(true);
     setFailed(false);
     const q = new URLSearchParams({ id: opts.moodId });
+    // Pin the bucket once it is known, so this request joins the shared,
+    // edge-cached path instead of being answered privately again.
+    if (regionRef.current) q.set("region", regionRef.current);
     // An EXPLICIT Films/Series choice beats a Quick Pick's default kind -
     // if someone sets "Series" and then taps "Under 90 Minutes", they mean
     // short series, not the pick's usual films.
     const wantKind = opts.kind !== "any" ? opts.kind : opts.quick?.kind;
-    if (opts.quick?.maxRuntime) q.set("maxRuntime", String(opts.quick.maxRuntime));
+    // Time is the one refinement that COMBINES with a Quick Pick instead of
+    // overriding it, and the STRICTER limit wins. That is an honesty rule as
+    // much as a product one: "Under 90 Minutes" prints the claim "a film
+    // under 90 minutes", so letting a 2-hour choice loosen it would make the
+    // explanation under the recommendation false.
+    const wantRuntime = Math.min(...[opts.runtime, opts.quick?.maxRuntime].filter((v): v is number => Boolean(v)), Infinity);
+    if (Number.isFinite(wantRuntime)) q.set("maxRuntime", String(wantRuntime));
     if (opts.quick?.minRating) q.set("minRating", String(opts.quick.minRating));
     if (opts.quick?.maxVotes) q.set("maxVotes", String(opts.quick.maxVotes));
     if (wantKind) q.set("kind", wantKind);
@@ -144,7 +322,10 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
       const res = await fetch(`/api/mood?${q}`);
       const data = res.ok ? await res.json() : null;
       if (mine !== reqRef.current) return;
-      const results: Movie[] = data?.results ?? [];
+      const results: Movie[] = dropSeen(data?.results ?? []);
+      // The route echoes the bucket it resolved from the visitor's geo
+      // header. asBucket() re-validates rather than trusting the payload.
+      regionRef.current = asBucket(data?.region) ?? regionRef.current;
       if (results.length) {
         setPool(shuffle(results)); setIndex(0);
         attemptRef.current = 0; // fresh pool, fresh attempt counter
@@ -168,6 +349,34 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
     }
   }, []);
 
+  /* Record the title on screen, including the server-rendered seed and every
+   * "Another pick" step. The seed itself is deliberately NOT skipped when it
+   * has been seen before: it is baked into the shared page HTML, and swapping
+   * it out after hydration would make the page visibly change under the
+   * reader for no real gain. It is remembered, so the NEXT pool avoids it. */
+  useEffect(() => {
+    if (pick?.id) rememberSeen(pick.id);
+  }, [pick?.id]);
+
+  // Fill in the duration for the title on screen, once per id per session.
+  useEffect(() => {
+    const id = pick?.id;
+    if (!id || displayRuntime(pick?.runtime) || runtimeAsked.current.has(id)) return;
+    runtimeAsked.current.add(id);
+    let live = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/title?id=${encodeURIComponent(id)}`);
+        if (!res.ok || !live) return;
+        const rt = displayRuntime((await res.json())?.movie?.runtime);
+        if (rt && live) setRuntimes((m) => ({ ...m, [id]: rt }));
+      } catch {
+        /* a missing duration is not worth surfacing an error for */
+      }
+    })();
+    return () => { live = false; };
+  }, [pick?.id, pick?.runtime]);
+
   const scrollToPick = () => sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   // V2 chooser card extras. The initial pool is remembered so Reset can
@@ -176,14 +385,23 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   // break the "the subtitle describes the pick" rule.
   const initialPoolRef = useRef<Movie[]>(seed ? [seed, ...seedPool] : seedPool);
   const resetChooser = () => {
-    setQuickPickId(null); setMoodId(null); setKind("any");
+    setQuickPickId(null); setMoodId(null); setKind("any"); setRuntime(0);
+    setPool(initialPoolRef.current); setIndex(0); setFailed(false);
+    attemptRef.current = 0;
+  };
+
+  /** Clear the mood/Quick Pick axis ONLY, leaving the refinements alone.
+   *  "Watching with -> Not specified" means "I did not say who", not "undo
+   *  the fact that I have 90 minutes and want a film". */
+  const clearMoodSelection = () => {
+    setQuickPickId(null); setMoodId(null);
     setPool(initialPoolRef.current); setIndex(0); setFailed(false);
     attemptRef.current = 0;
   };
   const chooseSurprise = () => {
     setQuickPickId(null); setMoodId(null);
     trackPickerStarted({ surface: "homepage" });
-    loadPool({ moodId: "surprise", kind });
+    loadPool({ moodId: "surprise", kind, runtime });
     scrollToPick();
   };
 
@@ -193,7 +411,7 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
     trackQuickPickSelected({ quick_pick: q.id, surface: "homepage" });
     if (next) {
       setMoodId(null);
-      loadPool({ moodId: q.moodId, quick: q, kind });
+      loadPool({ moodId: q.moodId, quick: q, kind, runtime });
       scrollToPick();
     }
   };
@@ -204,7 +422,7 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
     trackMoodSelected({ mood: id, surface: "homepage", media_type: kind === "any" ? undefined : kind });
     if (next) {
       setQuickPickId(null);
-      loadPool({ moodId: id, kind });
+      loadPool({ moodId: id, kind, runtime });
       scrollToPick();
     }
   };
@@ -224,9 +442,45 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
     if (next === kind) return;
     setKind(next);
     track("media_type_selected", { media_type: toMediaType(next === "any" ? undefined : next), surface: "homepage" });
-    if (activeQuickPick) loadPool({ moodId: activeQuickPick.moodId, quick: activeQuickPick, kind: next });
-    else if (moodId) loadPool({ moodId, kind: next });
-    else if (next !== "any") loadPool({ moodId: "surprise", kind: next });
+    if (activeQuickPick) loadPool({ moodId: activeQuickPick.moodId, quick: activeQuickPick, kind: next, runtime });
+    else if (moodId) loadPool({ moodId, kind: next, runtime });
+    else if (next !== "any") loadPool({ moodId: "surprise", kind: next, runtime });
+  };
+
+  /** How much time the visitor has. Narrows whatever is already selected —
+   *  and on its own it is still a real request, because "I have 90 minutes"
+   *  is a complete answer to "what should I watch" by itself. */
+  const chooseRuntime = (next: number) => {
+    if (next === runtime) return;
+    setRuntime(next);
+    track("runtime_selected", { runtime: next || undefined, surface: "homepage" });
+    if (activeQuickPick) loadPool({ moodId: activeQuickPick.moodId, quick: activeQuickPick, kind, runtime: next });
+    else if (moodId) loadPool({ moodId, kind, runtime: next });
+    else if (next) loadPool({ moodId: "surprise", kind, runtime: next });
+  };
+
+  /** Read the company answer back OUT of the current selection, so this
+   *  control can never claim something the engine is not actually doing. */
+  const company: CompanyId =
+    COMPANY_OPTIONS.find((o) => (o.quickPick && o.quickPick === quickPickId) || (o.mood && o.mood === moodId))?.value ?? "";
+
+  const chooseCompany = (next: CompanyId) => {
+    const opt = COMPANY_OPTIONS.find((o) => o.value === next);
+    if (!opt) return;
+    track("company_selected", { company: next || undefined, surface: "homepage" });
+    if (opt.quickPick) {
+      const q = quickPickById(opt.quickPick);
+      if (!q) return;
+      setQuickPickId(q.id); setMoodId(null);
+      loadPool({ moodId: q.moodId, quick: q, kind, runtime });
+      scrollToPick();
+    } else if (opt.mood) {
+      setMoodId(opt.mood); setQuickPickId(null);
+      loadPool({ moodId: opt.mood, kind, runtime });
+      scrollToPick();
+    } else {
+      clearMoodSelection();
+    }
   };
 
   // The hero's buttons live outside this island; they ask for a pick by
@@ -235,7 +489,7 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   useEffect(() => {
     const surprise = () => {
       setQuickPickId(null); setMoodId(null);
-      loadPool({ moodId: "surprise", kind: "any" });
+      loadPool({ moodId: "surprise", kind: "any", runtime: 0 });
       scrollToPick();
     };
     const focusMoods = () => {
@@ -258,156 +512,26 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
   const appliedQuickPick = stale ? undefined : activeQuickPick;
   const appliedMood = stale ? undefined : activeMood;
 
+  /** Did ANY filter actually run? Drives the heading: calling an unfiltered
+   *  popularity result "Why this fits" promises reasoning that never
+   *  happened, which is what made the box read as filler. */
+  const explained = Boolean(appliedQuickPick || appliedMood || kind !== "any" || (!stale && runtime));
+
   const why = whyItFits({
     quickPick: appliedQuickPick,
     mood: appliedMood,
     kind,
+    // Only claim the time limit when a request carrying it actually
+    // succeeded - same rule as the mood and Quick Pick above.
+    maxRuntime: stale ? undefined : runtime || undefined,
     titleRating: pick?.rating,
+    // Lets the line name the genres this title ACTUALLY matched on, rather
+    // than repeating the button that was pressed.
+    titleGenres: pick?.genres,
   });
 
   return (
     <>
-      {/* ---------------------------------------------------------------- */}
-      <section className="sec pstudio__sec" aria-labelledby="quick-picks-h">
-        <div className="sec__head">
-          <div className="sec__titles">
-            <h2 id="quick-picks-h"><Icon name="sparkle" size={17} /> Quick Picks</h2>
-            <p className="sec__sub">One tap and we will find something</p>
-          </div>
-        </div>
-        <div className="qpicks" role="group" aria-label="Quick Picks">
-          {(discovery
-            ? discovery.quickPicks
-                .map((d) => { const q = quickPickById(d.id); return q ? { ...q, label: d.label, sub: d.sub, icon: d.icon } : null; })
-                .filter((q): q is QuickPick => !!q)
-            : QUICK_PICKS
-          ).map((q) => {
-            const on = quickPickId === q.id;
-            return (
-              <button
-                key={q.id}
-                type="button"
-                className={`qpick${on ? " on" : ""}`}
-                aria-pressed={on}
-                onClick={() => chooseQuickPick(q)}
-              >
-                <span className="qpick__ic"><Icon name={q.icon} size={18} /></span>
-                <span className="qpick__t">{q.label}</span>
-                <span className="qpick__s">{q.sub}</span>
-                {on && <span className="qpick__check" aria-hidden="true"><Icon name="check" size={12} /></span>}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ---------------------------------------------------------------- */}
-      {V2 ? (
-        /* V2 chooser card (canvas Main: "Tell us how tonight should feel").
-           SAME engine: mood chips call the same chooseMood, the media-type
-           control is the same chooseKind, Surprise is the hero's surprise
-           flow. Only refinements the engine actually applies are offered —
-           the canvas's country/company selects are left out until real
-           logic exists behind them (rule one: nothing decorative that
-           pretends to filter). */
-        <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
-          <div className="v2mc">
-            <div className="v2mc-head">
-              <h2 id="moods-h" className="v2mc-h">Tell us how tonight should feel</h2>
-              <button type="button" className="v2mc-reset" onClick={resetChooser}>Reset</button>
-            </div>
-            <div className="v2mc-steps" aria-hidden="true">
-              <span className={!moodId && !quickPickId ? "on" : undefined}>1 · Choose a feeling</span>
-              <span>2 · Add details if needed</span>
-              <span className={moodId || quickPickId ? "on" : undefined}>3 · Get your explained pick</span>
-            </div>
-            <p className="v2mc-q"><strong>How should the movie feel?</strong> Choose one — you can change it anytime.</p>
-            <div className="v2mc-chips" role="group" aria-label="Choose your mood">
-              <button type="button" className="v2mc-chip v2mc-chip--surprise" onClick={chooseSurprise}>
-                🎲 Surprise Me
-              </button>
-              {(discovery
-                ? discovery.moods
-                    .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
-                    .filter((m): m is (typeof MOODS)[number] => !!m)
-                : MOODS
-              ).map((m) => {
-                const on = moodId === m.id;
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    className={`v2mc-chip${on ? " on" : ""}`}
-                    aria-pressed={on}
-                    onClick={() => chooseMood(m.id)}
-                  >
-                    <span aria-hidden="true">{m.emoji}</span> {m.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="v2mc-refine">
-              <p className="v2mc-q"><strong>Refine your pick</strong> — films, series or anything</p>
-              <div className="v2mc-kinds" role="group" aria-label="Films or series">
-                {([["any", "Anything"], ["movie", "Films"], ["series", "Series"]] as [Kind, string][]).map(([k, label]) => (
-                  <button
-                    key={k}
-                    type="button"
-                    className={`v2mc-kind${kind === k ? " on" : ""}`}
-                    aria-pressed={kind === k}
-                    onClick={() => chooseKind(k)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="v2mc-foot">
-              <p className="v2mc-note"><strong>No account required.</strong> You&apos;ll get one lead choice and two useful alternatives.</p>
-              <button
-                type="button"
-                className="v2mc-go"
-                onClick={() => { if (moodId || quickPickId) scrollToPick(); else chooseSurprise(); }}
-              >
-                Show my picks →
-              </button>
-            </div>
-          </div>
-        </section>
-      ) : (
-      <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
-        <div className="sec__head">
-          <div className="sec__titles">
-            <h2 id="moods-h">Choose Your Mood</h2>
-            <p className="sec__sub">Tell us how tonight feels and we will match it</p>
-          </div>
-        </div>
-        <div className="moodgrid" role="group" aria-label="Choose your mood">
-          {(discovery
-            ? discovery.moods
-                .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
-                .filter((m): m is (typeof MOODS)[number] => !!m)
-            : MOODS
-          ).map((m) => {
-            const on = moodId === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                className={`moodtile${on ? " on" : ""}`}
-                aria-pressed={on}
-                onClick={() => chooseMood(m.id)}
-              >
-                <span className="moodtile__emoji" aria-hidden="true">{m.emoji}</span>
-                <span className="moodtile__label">{m.label}</span>
-                {on && <span className="moodtile__on" aria-hidden="true"><Icon name="check" size={12} /></span>}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-      )}
-
       {/* ---------------------------------------------------------------- */}
       <section className="sec pstudio__sec" id="tonights-pick" ref={sectionRef} aria-labelledby="pick-h">
         <div className="sec__head">
@@ -488,7 +612,9 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
                 </div>
                 <div className="v2pk-meta">
                   {pick.year > 0 && <span>{pick.year}</span>}
-                  {pick.runtime && <span>{pick.runtime}</span>}
+                  {(displayRuntime(pick.runtime) ?? runtimes[pick.id]) && (
+                    <span>{displayRuntime(pick.runtime) ?? runtimes[pick.id]}</span>
+                  )}
                   {pick.rating > 0 && (
                     <span className="v2pk-rate"><Icon name="star" size={11} /> {pick.rating.toFixed(1)}</span>
                   )}
@@ -496,13 +622,13 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
                 {pick.desc && <p className="v2pk-desc">{pick.desc}</p>}
 
                 <div className="v2pk-why">
-                  <span className="v2pk-whyh"><Icon name="sparkle" size={13} /> Why this fits</span>
+                  <span className="v2pk-whyh">
+                    <Icon name={explained ? "sparkle" : "info"} size={13} />
+                    {explained ? " Why this fits" : " Tonight's starting point"}
+                  </span>
                   <p>{why}</p>
                 </div>
 
-                <div className="v2pk-watch">
-                  <WhereToWatch movie={{ id: pick.id, tmdbId: pick.tmdbId, kind: pick.kind, title: pick.title }} surface="homepage" />
-                </div>
 
                 <div className="v2pk-acts">
                   <Link className="v2pk-btn v2pk-btn--primary" href={`/movie/${pick.id}`}>View Details</Link>
@@ -538,7 +664,15 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
                     <span className="v2pk-altbody">
                       {altKicker(a, pick) && <span className="v2pk-altk">{altKicker(a, pick)}</span>}
                       <span className="v2pk-altt">{a.title}</span>
-                      {a.runtime && <span className="v2pk-altm">{a.runtime}</span>}
+                      <span className="v2pk-altm">
+                        {altMeta(a)}
+                        {a.rating > 0 && (
+                          <>
+                            {" · "}
+                            <span className="v2pk-rate"><Icon name="star" size={10} /> {a.rating.toFixed(1)}</span>
+                          </>
+                        )}
+                      </span>
                     </span>
                   </button>
                 ))}
@@ -546,6 +680,17 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
                   ↻ Give me another choice
                 </button>
               </aside>
+
+              {/* Where to Watch spans the FULL width under both columns.
+                  It used to sit inside the middle column, wedged between the
+                  synopsis and the buttons, where a row of provider logos had
+                  the least horizontal room of anywhere in the card. Its own
+                  band at the bottom gives it the width it actually needs and
+                  keeps the reading order intact: what it is, why it fits,
+                  then where to watch it. */}
+              <div className="v2pk-watch">
+                <WhereToWatch movie={{ id: pick.id, tmdbId: pick.tmdbId, kind: pick.kind, title: pick.title }} surface="homepage" />
+              </div>
             </div>
           </article>
           );
@@ -614,6 +759,194 @@ export default function PickStudio({ seed, seedPool, discovery }: PickStudioProp
           </article>
         )}
       </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {V2 ? (
+        /* V2 chooser card (canvas Main: "Tell us how tonight should feel").
+           SAME engine: mood chips call the same chooseMood, the media-type
+           control is the same chooseKind, Surprise is the hero's surprise
+           flow. Only refinements the engine actually applies are offered.
+           Time and company now have real logic behind them (see
+           RUNTIME_OPTIONS and COMPANY_OPTIONS); the canvas's COUNTRY select
+           is still left out, because availability is resolved per title in
+           Where to Watch and a country here would filter nothing while
+           looking like it did (rule one: nothing decorative that pretends
+           to filter). */
+        <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
+          <div className="v2mc">
+            <div className="v2mc-head">
+              <h2 id="moods-h" className="v2mc-h">Tell us how tonight should feel</h2>
+              <button type="button" className="v2mc-reset" onClick={resetChooser}>Reset</button>
+            </div>
+            <div className="v2mc-steps" aria-hidden="true">
+              <span className={!moodId && !quickPickId ? "on" : undefined}>1 · Choose a feeling</span>
+              <span>2 · Add details if needed</span>
+              <span className={moodId || quickPickId ? "on" : undefined}>3 · Get your explained pick</span>
+            </div>
+            <p className="v2mc-q"><strong>How should the movie feel?</strong> Choose one - you can change it anytime.</p>
+            <div className="v2mc-chips" role="group" aria-label="Choose your mood">
+              <button type="button" className="v2mc-chip v2mc-chip--surprise" onClick={chooseSurprise}>
+                🎲 Surprise Me
+              </button>
+              {(discovery
+                ? discovery.moods
+                    .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
+                    .filter((m): m is (typeof MOODS)[number] => !!m)
+                : MOODS
+              ).map((m) => {
+                const on = moodId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    className={`v2mc-chip${on ? " on" : ""}`}
+                    aria-pressed={on}
+                    onClick={() => chooseMood(m.id)}
+                  >
+                    <span aria-hidden="true">{m.emoji}</span> {m.label}
+                  </button>
+                );
+              })}
+            </div>
+            <details
+              className="v2mc-refine"
+              open={refineOpen}
+              onToggle={(e) => setRefineOpen((e.currentTarget as HTMLDetailsElement).open)}
+            >
+              <summary className="v2mc-refine__sum">
+                Refine your picks
+                <span>Time, company and media type</span>
+              </summary>
+              <div className="v2mc-fields">
+                <label className="v2mc-field">
+                  <span className="v2mc-field__l">How long have you got?</span>
+                  <select
+                    className="v2mc-select"
+                    value={runtime}
+                    onChange={(e) => chooseRuntime(Number(e.target.value))}
+                  >
+                    {RUNTIME_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="v2mc-field">
+                  <span className="v2mc-field__l">Watching with</span>
+                  <select
+                    className="v2mc-select"
+                    value={company}
+                    onChange={(e) => chooseCompany(e.target.value as CompanyId)}
+                  >
+                    {COMPANY_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="v2mc-field">
+                  <span className="v2mc-field__l">Films or series</span>
+                  <div className="v2mc-kinds" role="group" aria-label="Films or series">
+                    {([["any", "Anything"], ["movie", "Films"], ["series", "Series"]] as [Kind, string][]).map(([k, label]) => (
+                      <button
+                        key={k}
+                        type="button"
+                        className={`v2mc-kind${kind === k ? " on" : ""}`}
+                        aria-pressed={kind === k}
+                        onClick={() => chooseKind(k)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </details>
+            <div className="v2mc-foot">
+              <p className="v2mc-note"><strong>No account required.</strong> You&apos;ll get one lead choice and two useful alternatives.</p>
+              <button
+                type="button"
+                className="v2mc-go"
+                onClick={() => { if (moodId || quickPickId) scrollToPick(); else chooseSurprise(); }}
+              >
+                Show my picks ↑
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : (
+      <section className="sec pstudio__sec" id="choose-your-mood" aria-labelledby="moods-h">
+        <div className="sec__head">
+          <div className="sec__titles">
+            <h2 id="moods-h">Choose Your Mood</h2>
+            <p className="sec__sub">Tell us how tonight feels and we will match it</p>
+          </div>
+        </div>
+        <div className="moodgrid" role="group" aria-label="Choose your mood">
+          {(discovery
+            ? discovery.moods
+                .map((d) => { const m = moodById(d.id); return m ? { ...m, label: d.label, emoji: d.icon } : null; })
+                .filter((m): m is (typeof MOODS)[number] => !!m)
+            : MOODS
+          ).map((m) => {
+            const on = moodId === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                className={`moodtile${on ? " on" : ""}`}
+                aria-pressed={on}
+                onClick={() => chooseMood(m.id)}
+              >
+                <span className="moodtile__emoji" aria-hidden="true">{m.emoji}</span>
+                <span className="moodtile__label">{m.label}</span>
+                {on && <span className="moodtile__on" aria-hidden="true"><Icon name="check" size={12} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      )}
+
+      {/* ---------------------------------------------------------------- */}
+      <section className="sec pstudio__sec" aria-labelledby="quick-picks-h">
+        <div className="sec__head">
+          <div className="sec__titles">
+            <h2 id="quick-picks-h"><Icon name="sparkle" size={17} /> Quick Picks</h2>
+            <p className="sec__sub">One tap and we will find something</p>
+          </div>
+        </div>
+        <div className="qpicks" role="group" aria-label="Quick Picks">
+          {(discovery
+            ? discovery.quickPicks
+                .map((d) => { const q = quickPickById(d.id); return q ? { ...q, label: d.label, sub: d.sub, icon: d.icon } : null; })
+                .filter((q): q is QuickPick => !!q)
+            : QUICK_PICKS
+          ).map((q) => {
+            const on = quickPickId === q.id;
+            return (
+              <button
+                key={q.id}
+                type="button"
+                className={`qpick${on ? " on" : ""}`}
+                aria-pressed={on}
+                onClick={() => chooseQuickPick(q)}
+              >
+                {/* .qpick__art is the future image slot (real per-pick movie art
+                    lands here later) -- an <Image> can replace qpick__ic
+                    directly inside it without any other markup changes. */}
+                <span className="qpick__art">
+                  <span className="qpick__ic"><Icon name={q.icon} size={20} /></span>
+                </span>
+                <span className="qpick__body">
+                  <span className="qpick__t">{q.label}</span>
+                  <span className="qpick__s">{q.sub}</span>
+                </span>
+                {on && <span className="qpick__check" aria-hidden="true"><Icon name="check" size={12} /></span>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
     </>
   );
 }

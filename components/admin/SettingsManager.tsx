@@ -32,7 +32,7 @@ interface Loaded {
 }
 
 const when = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
 export default function SettingsManager() {
   const [data, setData] = useState<Loaded | null>(null);
@@ -93,7 +93,7 @@ export default function SettingsManager() {
     });
     setBusy(false);
     if (!res.ok) { setErr(res.data.error ?? "Could not publish."); return; }
-    setNote("Settings published. They appear on each page the next time it rebuilds — usually within the hour.");
+    setNote("Settings published. They appear on each page the next time it rebuilds - usually within the hour.");
     setAutoState("idle"); load();
   };
 
@@ -107,7 +107,7 @@ export default function SettingsManager() {
   };
 
   const rollback = async (id: string, label: string) => {
-    if (!confirm(`Load the settings from ${label}?\n\nThey come back as a DRAFT — nothing changes until you publish.`)) return;
+    if (!confirm(`Load the settings from ${label}?\n\nThey come back as a DRAFT - nothing changes until you publish.`)) return;
     const res = await api<{ note?: string; error?: string }>("/api/admin/settings", {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "rollback", revisionId: id }),
@@ -148,7 +148,7 @@ export default function SettingsManager() {
         {problems.length > 0 && (
           <div className="ad__notice ad__notice--warn">
             <b>Worth a second look.</b> {problems.join(" ")}
-            <p className="aud__foot" style={{ marginTop: 6 }}>These are warnings, not blocks — you can still publish.</p>
+            <p className="aud__foot" style={{ marginTop: 6 }}>These are warnings, not blocks - you can still publish.</p>
           </div>
         )}
         {err && <div className="ad__err" style={{ marginTop: 10 }}>{err}</div>}
@@ -162,7 +162,7 @@ export default function SettingsManager() {
         </div>
         <p className="ad__hintline">
           These appear on every page of the site, so they are not saved live as you type. Publishing clears the cached
-          copy of the values; each page picks them up the next time it rebuilds — usually within the hour. Deliberate:
+          copy of the values; each page picks them up the next time it rebuilds - usually within the hour. Deliberate:
           rebuilding every page at once for a text change is exactly the kind of bulk work the site is tuned to avoid.
         </p>
       </section>
@@ -187,7 +187,7 @@ export default function SettingsManager() {
       <section className="ad__panel">
         <div className="ad__panelhead"><h2>Search and sharing</h2></div>
         <label className="ad__field">
-          <span>Site title ({draft.siteTitle.length} of 60) — the headline Google shows for the home page</span>
+          <span>Site title ({draft.siteTitle.length} of 60) - the headline Google shows for the home page</span>
           <input maxLength={70} value={draft.siteTitle} onChange={(e) => set({ siteTitle: e.target.value })} />
         </label>
         <label className="ad__field">
@@ -195,7 +195,7 @@ export default function SettingsManager() {
           <textarea rows={2} maxLength={170} value={draft.siteDescription} onChange={(e) => set({ siteDescription: e.target.value })} />
         </label>
         <label className="ad__field">
-          <span>Keywords (comma separated) — Google ignores these; some other services still read them</span>
+          <span>Keywords (comma separated) - Google ignores these; some other services still read them</span>
           <input value={draft.metaKeywords} onChange={(e) => set({ metaKeywords: e.target.value })} />
         </label>
 
@@ -209,7 +209,7 @@ export default function SettingsManager() {
       <section className="ad__panel">
         <div className="ad__panelhead"><h2>Contact and social</h2></div>
         <label className="ad__field">
-          <span>Contact email — shown on the site and used for replies</span>
+          <span>Contact email - shown on the site and used for replies</span>
           <input type="email" value={draft.contactEmail} onChange={(e) => set({ contactEmail: e.target.value })} />
         </label>
         <div className="ad__grid2">
@@ -232,8 +232,8 @@ export default function SettingsManager() {
         <label className="ad__field" style={{ maxWidth: 320 }}>
           <span>State</span>
           <select value={draft.maintenanceMode ? "on" : "off"} onChange={(e) => set({ maintenanceMode: e.target.value === "on" })}>
-            <option value="off">Off — the site is open as normal</option>
-            <option value="on">On — visitors see a maintenance notice</option>
+            <option value="off">Off - the site is open as normal</option>
+            <option value="on">On - visitors see a maintenance notice</option>
           </select>
         </label>
         {draft.maintenanceMode && (

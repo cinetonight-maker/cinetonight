@@ -29,7 +29,7 @@ export default async function DiscoveryPreview() {
     <div className="ad__body ad__body--one">
       <div className="ad__notice">
         <div>
-          <b>Draft preview</b> — read from the database right now, with no caching.
+          <b>Draft preview</b> - read from the database right now, with no caching.
           {missing
             ? " The Discovery Manager table is not set up yet, so this is the shipped default."
             : changed
@@ -76,7 +76,7 @@ export default async function DiscoveryPreview() {
         <h3 className="ad__h3">Tonight&rsquo;s Pick rules</h3>
         <p className="ov__empty">
           {t.preferMood === "any" && t.minRating === 0 && t.kind === "any"
-            ? "Open to everything — the engine picks freely."
+            ? "Open to everything - the engine picks freely."
             : [
                 t.preferMood === "any" ? null : `Leans towards ${draft.moods.entries[t.preferMood].label}`,
                 t.minRating > 0 ? `rating ${t.minRating} and above` : null,

@@ -8,7 +8,7 @@ import { img } from "@/lib/images";
 export const metadata: Metadata = {
   alternates: { canonical: "/blog" },
   title: "Blog",
-  description: "Guides, spotlights and streaming news — what to watch next and why.",
+  description: "Guides, spotlights and streaming news - what to watch next and why.",
 };
 // Cached (ISR): rendered once, reused for 300s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.

@@ -321,13 +321,13 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
 
   // Structure the article actually has, as opposed to a valid hierarchy.
   const sections = bodyHeadings(post.body);
-  add("sections", `Article sections — ${sections.length}`,
+  add("sections", `Article sections - ${sections.length}`,
     sections.length >= 2 ? "ok" : sections.length === 1 ? "warn" : "fail",
     sections.length >= 2 ? ""
-      : "Break the article into H2 sections. An FAQ heading on its own is not structure — readers cannot scan the piece and Google cannot see what it covers.");
+      : "Break the article into H2 sections. An FAQ heading on its own is not structure - readers cannot scan the piece and Google cannot see what it covers.");
 
   const words = wordCountOf(post.body);
-  add("length", `Length — ${words} words`,
+  add("length", `Length - ${words} words`,
     words >= 600 ? "ok" : words >= 300 ? "warn" : "fail",
     words >= 600 ? "" : "Short articles rarely rank. Aim for 600+ words of real substance.");
 
@@ -335,7 +335,7 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
   if (!kw) {
     add("focus", "Focus keyword", "fail", "Set the one phrase this article should rank for. Every check below depends on it.");
   } else {
-    add("focus", `Focus keyword — "${kw}"`, "ok");
+    add("focus", `Focus keyword - "${kw}"`, "ok");
     add("kw-title", "Focus keyword in the title",
       contains(effectiveTitle, kw) ? "ok" : "warn",
       "Google weighs the title heavily. Work the phrase in naturally, ideally near the start.");
@@ -344,24 +344,24 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
       "It is bolded in the results page, which lifts click-through.");
     add("kw-slug", "Focus keyword in the URL",
       slugContains(post.slug, kw) ? "ok" : "warn",
-      "Only worth changing before the first publish — renaming a live URL breaks every link to it.");
+      "Only worth changing before the first publish - renaming a live URL breaks every link to it.");
     add("kw-intro", "Focus keyword in the opening paragraph",
       contains(firstParagraph(post.body), kw) ? "ok" : "warn",
       "Confirm the topic in the first sentence or two, for readers as much as for Google.");
     const inHeading = headingsOf(post.body).some((h) => h.level >= 2 && contains(h.text, kw));
     add("kw-heading", "Focus keyword in at least one H2",
       inHeading ? "ok" : "warn",
-      "One section heading should carry the phrase. One is enough — more reads as stuffing.");
+      "One section heading should carry the phrase. One is enough - more reads as stuffing.");
   }
 
   /* ---- the snippet ---- */
   const tLen = effectiveTitle.length;
-  add("title-length", `SEO title — ${tLen} characters`,
+  add("title-length", `SEO title - ${tLen} characters`,
     tLen === 0 ? "fail" : tLen <= 60 ? "ok" : "warn",
     tLen === 0 ? "Add a title." : tLen > 60 ? "Over 60 characters is usually truncated in results." : "");
 
   const dLen = effectiveDesc.length;
-  add("desc-length", `Meta description — ${dLen} characters`,
+  add("desc-length", `Meta description - ${dLen} characters`,
     dLen === 0 ? "fail" : dLen >= 120 && dLen <= 160 ? "ok" : "warn",
     dLen === 0 ? "Add a meta description, or an excerpt to fall back on."
       : dLen < 120 ? "Under 120 characters wastes space Google would have given you."
@@ -369,7 +369,7 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
 
   add("desc-complete", "Meta description ends cleanly",
     looksTruncated(effectiveDesc) ? "warn" : "ok",
-    "This looks cut off rather than written to length. Finish the sentence — a description that stops mid-word makes the whole result look broken.");
+    "This looks cut off rather than written to length. Finish the sentence - a description that stops mid-word makes the whole result look broken.");
 
   /* ---- artwork ---- */
   add("image", "Featured image",
@@ -385,7 +385,7 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
     "Pick the closest existing category, or add one if nothing fits.");
 
   const links = internalLinksOf(post.body);
-  add("internal-links", `Internal links — ${links.length}`,
+  add("internal-links", `Internal links - ${links.length}`,
     links.length >= 2 ? "ok" : links.length === 1 ? "warn" : "fail",
     links.length >= 2 ? "" : "Link to at least two relevant CineTonight pages, e.g. /discover, /movies, /free-movies.");
 
@@ -395,7 +395,7 @@ export function seoChecklist(post: BlogSeoInput): Check[] {
     add("unique-title", "No competing post",
       competing.length ? "warn" : "ok",
       competing.length
-        ? `Very close to ${competing.length === 1 ? "an existing post" : `${competing.length} existing posts`}: ${competing.map((t) => `"${t}"`).join(", ")}. Two posts on one topic split the ranking between them — Google picks one and buries the other. Merge them, or make each answer a clearly different question.`
+        ? `Very close to ${competing.length === 1 ? "an existing post" : `${competing.length} existing posts`}: ${competing.map((t) => `"${t}"`).join(", ")}. Two posts on one topic split the ranking between them - Google picks one and buries the other. Merge them, or make each answer a clearly different question.`
         : "");
   }
 
@@ -427,6 +427,6 @@ export const countByStatus = (checks: Check[]) => ({
 export function checklistSummary(checks: Check[]): string {
   const { ok, warn, fail } = countByStatus(checks);
   if (fail) return `${fail} to fix, ${warn} to review`;
-  if (warn) return `Ready — ${warn} worth reviewing`;
+  if (warn) return `Ready - ${warn} worth reviewing`;
   return `All ${ok} checks pass`;
 }

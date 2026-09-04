@@ -89,7 +89,7 @@ export default function RedirectsManager() {
     if (!res.ok) { setErr(res.data.error ?? "Could not save that redirect."); return; }
     setNote(
       res.data.flattened
-        ? "Saved, switched off. The new address already redirected somewhere else, so this rule was pointed straight at the final destination — one hop, never a chain."
+        ? "Saved, switched off. The new address already redirected somewhere else, so this rule was pointed straight at the final destination - one hop, never a chain."
         : "Saved, switched off. Test it below, then switch it on.",
     );
     setFrom(""); setTo(""); setRuleNote(""); load();
@@ -115,7 +115,7 @@ export default function RedirectsManager() {
   const promote = (r: Rule) => {
     if (!confirm(
       `Make this redirect PERMANENT?\n\n${r.from_path} → ${r.to_path}\n\n` +
-      "Permanent redirects are remembered by browsers, so this is hard to take back — " +
+      "Permanent redirects are remembered by browsers, so this is hard to take back - " +
       "a visitor who has seen it may keep being redirected even after you delete the rule.\n\n" +
       "Only do this once you are sure the new address is the right one.",
     )) return;
@@ -173,11 +173,11 @@ export default function RedirectsManager() {
 
         <div className="ad__grid2">
           <label className="ad__field">
-            <span>Old address — the one that no longer works</span>
+            <span>Old address - the one that no longer works</span>
             <input value={from} placeholder="/blog/old-post-name" onChange={(e) => setFrom(e.target.value)} />
           </label>
           <label className="ad__field">
-            <span>New address — where visitors should end up</span>
+            <span>New address - where visitors should end up</span>
             <input value={to} placeholder="/blog/new-post-name" onChange={(e) => setTo(e.target.value)} />
           </label>
         </div>
@@ -201,7 +201,7 @@ export default function RedirectsManager() {
         </div>
         <p className="ad__hintline">
           Every new rule is created <b>switched off</b>, and starts as a <b>temporary</b> redirect. Test it below, switch
-          it on, and only make it permanent once you are sure — browsers remember permanent redirects, which makes a
+          it on, and only make it permanent once you are sure - browsers remember permanent redirects, which makes a
           mistake hard to take back. Only addresses on this site are allowed.
         </p>
 
@@ -209,7 +209,7 @@ export default function RedirectsManager() {
           <div className="ad__notice" style={{ marginTop: 12 }}>
             <b>Bulk import</b>
             <p className="aud__foot" style={{ marginTop: 4 }}>
-              One rule per line: <code>old,new</code> — optionally <code>old,new,308</code>. Preview first; nothing is
+              One rule per line: <code>old,new</code> - optionally <code>old,new,308</code>. Preview first; nothing is
               written until you press Import, and everything arrives switched off.
             </p>
             <textarea rows={6} value={csv} onChange={(e) => setCsv(e.target.value)}
@@ -249,7 +249,7 @@ export default function RedirectsManager() {
           <div className={`ad__notice${tested.verdict === "redirect" ? "" : " ad__notice--warn"}`} style={{ marginTop: 10 }}>
             {tested.verdict === "redirect" && <><b>Redirects.</b> {tested.path} → {tested.to} ({statusLabel(tested.status!)})</>}
             {tested.verdict === "disabled" && <><b>Rule exists but is switched off.</b> {tested.path} still shows “page not found”. It would go to {tested.to} once switched on.</>}
-            {tested.verdict === "live" && <><b>That is a live page.</b> It loads normally, and a redirect for it would be refused — the page would disappear.</>}
+            {tested.verdict === "live" && <><b>That is a live page.</b> It loads normally, and a redirect for it would be refused - the page would disappear.</>}
             {tested.verdict === "notfound" && <><b>No rule.</b> {tested.path} shows “page not found”.</>}
             {tested.verdict === "invalid" && <><b>Not a valid address.</b> It has to start with “/” and be on this site.</>}
           </div>
@@ -308,7 +308,7 @@ export default function RedirectsManager() {
 
         <p className="ad__hintline">
           A redirect only does anything for an address that would otherwise show “page not found”, so these rules cost
-          nothing on pages that work. Up to {MAX_ENABLED_RULES} can be switched on at once — the whole set is loaded as a
+          nothing on pages that work. Up to {MAX_ENABLED_RULES} can be switched on at once - the whole set is loaded as a
           single cached lookup, which is what keeps it free.
           {" "}Chains are removed when a rule is saved: if the new address already redirects somewhere else, the rule is
           pointed straight at the final destination.

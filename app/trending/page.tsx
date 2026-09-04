@@ -7,7 +7,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   return listingMetadata({
     path: "/trending",
     baseTitle: "Trending Movies & Shows Today",
-    baseDescription: "What everyone is watching this week — the most popular movies and shows right now.",
+    baseDescription: "What everyone is watching this week - the most popular movies and shows right now.",
     genre,
   });
 }

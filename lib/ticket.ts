@@ -4,22 +4,26 @@ import { posterLg } from "./images";
 /** Digital ticket-stub generator (components/TicketStub.tsx) — draws a
  *  shareable "movie ticket" image for any title onto a <canvas>, entirely
  *  client-side. Built for Instagram/WhatsApp-Status sharing: no backend,
- *  no tokens, nothing to configure. Colors mirror the site's CSS variables
- *  in app/globals.css so the ticket looks like it belongs to CineTonight. */
+ *  no tokens, nothing to configure. Colors are a hand-kept mirror of the site's CSS variables (app/globals.css /
+ *  app/v2-theme.css) so the ticket looks like it belongs to CineTonight --
+ *  <canvas> fillStyle can't read CSS custom properties, so these must be
+ *  updated by hand whenever the theme palette changes. */
 
 const W = 1200;
 const H = 630;
 const STUB_W = 380;
 
 const COLORS = {
-  bg: "#0a0a12",
-  bg2: "#0e0e18",
-  line: "#242433",
-  txt: "#eceaf2",
-  muted: "#8b8798",
-  muted2: "#66647a",
-  purple: "#8b5cf6",
-  purple2: "#a855f7",
+  bg: "#06080b",
+  bg2: "#0a0d12",
+  line: "#262c34",
+  txt: "#f2efe9",
+  muted: "#9a9ea5",
+  muted2: "#6b6f76",
+  accent: "#e2182b",
+  accent2: "#ff3b48",
+  accentD: "#8f1220",
+  gold: "#ffcf4d",
 };
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
@@ -145,8 +149,8 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
     ctx.fillRect(0, 0, STUB_W, H);
   } else {
     const g = ctx.createLinearGradient(0, 0, STUB_W, H);
-    g.addColorStop(0, COLORS.purple);
-    g.addColorStop(1, "#4c1d95");
+    g.addColorStop(0, COLORS.accentD);
+    g.addColorStop(1, "#22050a");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, STUB_W, H);
     ctx.fillStyle = "rgba(255,255,255,.18)";
@@ -186,7 +190,7 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
 
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = COLORS.purple2;
+  ctx.fillStyle = COLORS.accent2;
   ctx.font = "800 20px system-ui, -apple-system, sans-serif";
   ctx.fillText("Cine", padX, 56);
   const movieW = ctx.measureText("Cine").width;
@@ -199,7 +203,7 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   ctx.fillText("ADMIT ONE", W - 40, 30);
   ctx.font = "600 11px system-ui, -apple-system, sans-serif";
   ctx.fillStyle = COLORS.muted2;
-  ctx.fillText("Know what to watch — tonight.", W - 40, 52);
+  ctx.fillText("Know what to watch - tonight.", W - 40, 52);
   ctx.textAlign = "left";
 
   ctx.strokeStyle = COLORS.line;
@@ -220,7 +224,7 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   if (meta) ctx.fillText(meta, padX, metaY);
 
   ctx.font = "700 16px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = COLORS.purple2;
+  ctx.fillStyle = COLORS.gold;
   ctx.fillText(`★ ${movie.rating.toFixed(1)} / 10`, padX, metaY + 30);
 
   const det = ticketDetails(movie);

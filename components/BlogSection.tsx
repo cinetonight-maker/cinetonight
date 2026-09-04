@@ -31,8 +31,14 @@ export default async function BlogSection({
   const blogs = await getBlogs(PUBLIC_TTL.catalogue);
 
   // V2 layout (canvas Main "What to Watch Guides"): one featured guide with
-  // its real cover + numbered compact rows. Same data, same links, nothing
-  // invented — if only one post exists the list side simply stays empty.
+  // its real cover, then compact rows for the rest. Same data, same links,
+  // nothing invented — if only one post exists the list side stays empty.
+  //
+  // The rows carry each guide's OWN cover thumbnail rather than the 01/02/03
+  // badges they used to. Two reasons, and the second is the important one:
+  // the section sits between two image-heavy grids and was the only text-only
+  // block on the page, and a numbered list implies a ranking that does not
+  // exist — these are the most recent guides, not a top three.
   if (process.env.NEXT_PUBLIC_V2_THEME === "1") {
     const [feat, ...rest] = blogs;
     return (
@@ -61,9 +67,11 @@ export default async function BlogSection({
               </span>
             </GuideLink>
             <div className="v2g-list">
-              {rest.slice(0, 3).map((b, i) => (
+              {rest.slice(0, 3).map((b) => (
                 <GuideLink className="v2g-row" href={`/blog/${b.slug}`} slug={b.slug} surface={analyticsSurface} key={b.slug}>
-                  <span className="v2g-n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="v2g-thumb" aria-hidden="true">
+                    <Image fill alt="" src={b.imageUrl || img(`b-${b.slug}`, 240, 240)} sizes="88px" />
+                  </span>
                   <span className="v2g-rowbody">
                     <span className="v2g-kicker">{b.cat}</span>
                     <span className="v2g-rowt">{b.title}</span>

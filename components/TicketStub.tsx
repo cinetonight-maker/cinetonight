@@ -75,7 +75,7 @@ export default function TicketStub({ movie }: { movie: Movie }) {
       const blob = await blobOrFallback();
       const file = new File([blob], `${movie.id}-cinetonight-ticket.png`, { type: "image/png" });
       if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
-        await navigator.share({ files: [file], title: `${movie.title} — CineTonight ticket` });
+        await navigator.share({ files: [file], title: `${movie.title} - CineTonight ticket` });
         // Reached only if the user completed the native share sheet
         // (navigator.share rejects on cancel, landing in catch).
         trackShare({ method: "native_share", content_type: "ticket", item_id: String(movie.tmdbId ?? movie.id) });
@@ -106,7 +106,7 @@ export default function TicketStub({ movie }: { movie: Movie }) {
               {!ready && <div className="tstub__loading">Printing your ticket…</div>}
             </div>
             {ready && !posterEmbedded && (
-              <p className="tstub__note">Poster art couldn't be embedded for download — sharing a text-only ticket instead.</p>
+              <p className="tstub__note">Poster art couldn't be embedded for download - sharing a text-only ticket instead.</p>
             )}
             <div className="tstub__actions">
               <button type="button" className="rmodal__btn rmodal__btn--primary" onClick={download} disabled={!ready}>

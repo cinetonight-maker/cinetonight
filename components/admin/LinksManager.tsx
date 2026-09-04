@@ -73,7 +73,7 @@ export default function LinksManager() {
           <button className="ad__mini" onClick={load}>Re-check</button>
         </div>
         <p className="ad__hintline">
-          These point at pages that do not exist — usually a post that was renamed or moved to Trash.
+          These point at pages that do not exist - usually a post that was renamed or moved to Trash.
           A reader clicking one lands on a “not found” page, and Google counts it against the site. Fix these first.
         </p>
         <div className="ad__list">
@@ -137,7 +137,7 @@ export default function LinksManager() {
           <div className="ad__panelhead"><h2>Not checked <span className="ad__count">{report.unverified.length}</span></h2></div>
           <p className="ad__hintline">
             Links to actor pages, channels and TMDB-only titles. Those pages are built on demand from TMDB, so there
-            is no list to check them against. They are almost certainly fine — shown here only so nothing is hidden.
+            is no list to check them against. They are almost certainly fine - shown here only so nothing is hidden.
           </p>
           <div className="ad__list">
             {report.unverified.slice(0, 25).map((u, i) => (
@@ -155,7 +155,7 @@ export default function LinksManager() {
       <section className="ad__panel">
         <div className="ad__panelhead"><h2>Most linked-to pages</h2></div>
         <p className="ad__hintline">
-          Where your own links point most often. These are the pages you are telling Google matter most —
+          Where your own links point most often. These are the pages you are telling Google matter most -
           worth checking that they are the ones you actually want ranking.
         </p>
         <div className="ad__list">

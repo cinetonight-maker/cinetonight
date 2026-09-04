@@ -25,7 +25,7 @@ import { ImagePicker } from "./shared";
  * ========================================================================= */
 
 const HEADING_HINT =
-  "The post title is already the page's H1 — never add another H1. Use ## for section headings and ### underneath them.";
+  "The post title is already the page's H1 - never add another H1. Use ## for section headings and ### underneath them.";
 
 const KIND_LABEL: Record<LinkTarget["kind"], string> = {
   post: "Blog post", page: "Page", movie: "Movie", series: "Series", free: "Free movie", section: "Section",
@@ -195,14 +195,14 @@ export default function MarkdownEditor({
             {!matches.length && <div className="ad__empty">Nothing matches “{linkQuery}”.</div>}
           </div>
           {links.length > matches.length && !linkQuery && (
-            <p className="mde__note">Showing the first {matches.length} of {links.length} — type to search the rest.</p>
+            <p className="mde__note">Showing the first {matches.length} of {links.length} - type to search the rest.</p>
           )}
         </div>
       )}
 
       {imageOpen && (
         <div className="mde__pop">
-          <div className="mde__popt">Insert an image — it is added where your cursor is</div>
+          <div className="mde__popt">Insert an image - it is added where your cursor is</div>
           <ImagePicker
             url={null}
             label="Upload image"
@@ -212,7 +212,7 @@ export default function MarkdownEditor({
               setImageOpen(false);
             }}
           />
-          <p className="mde__note">Replace “Describe this image” with real alt text — it is what Google reads and what a screen reader says.</p>
+          <p className="mde__note">Replace “Describe this image” with real alt text - it is what Google reads and what a screen reader says.</p>
         </div>
       )}
 
@@ -238,11 +238,11 @@ export default function MarkdownEditor({
       )}
 
       {/* Pages this article already talks about but does not link to. One
-          click adds the link — this is the work the Internal Links screen
+          click adds the link - this is the work the Internal Links screen
           would otherwise ask you to come back and do later. */}
       {suggestions.length > 0 && tab === "write" && (
         <div className="mde__sugg">
-          <span className="mde__suggl">You mention these — link them?</span>
+          <span className="mde__suggl">You mention these - link them?</span>
           {suggestions.map((s) => (
             <button key={s.target.path} type="button" className="mde__suggb" title={`Insert a link to ${s.target.path}`}
               onClick={() => insertLink(s.target)}>
@@ -257,10 +257,10 @@ export default function MarkdownEditor({
         <span>{readingTime(text)} read</span>
         <span>{h2s} section{h2s === 1 ? "" : "s"}</span>
         <span className={internalOut < 2 ? "mde__warn" : undefined}>
-          {internalOut} link{internalOut === 1 ? "" : "s"} to other CineTonight pages{internalOut < 2 ? " — aim for at least 2" : ""}
+          {internalOut} link{internalOut === 1 ? "" : "s"} to other CineTonight pages{internalOut < 2 ? " - aim for at least 2" : ""}
         </span>
-        {h1s > 0 && <span className="mde__warn">Remove the # heading — {HEADING_HINT}</span>}
-        {h1s === 0 && h2s === 0 && words > 120 && <span className="mde__warn">No ## sections yet — add 3–6 so Google can outline the article.</span>}
+        {h1s > 0 && <span className="mde__warn">Remove the # heading - {HEADING_HINT}</span>}
+        {h1s === 0 && h2s === 0 && words > 120 && <span className="mde__warn">No ## sections yet - add 3–6 so Google can outline the article.</span>}
       </div>
     </div>
   );

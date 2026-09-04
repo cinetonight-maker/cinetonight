@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     title: `${a.name}, ${a.role}`,
     description: a.short,
     alternates: { canonical: url, types: { "application/rss+xml": "/rss.xml" } },
-    openGraph: { title: `${a.name} — CineTonight`, description: a.short, type: "profile", url },
+    openGraph: { title: `${a.name} - CineTonight`, description: a.short, type: "profile", url },
   };
 }
 

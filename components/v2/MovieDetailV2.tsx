@@ -13,9 +13,10 @@ import { toCard, type Movie } from "@/lib/types";
 import type { WatchPayload } from "@/lib/watchRows";
 import type { MovieIntel } from "@/lib/intel";
 import { hasVerdict, hasTake } from "@/lib/intel";
+import { tonightFit } from "@/lib/tonightFit";
 import { personId } from "@/lib/data";
 import { personTmdbId, type SeasonInfo, type SeriesFacts } from "@/lib/tmdb";
-import { posterLg, profile, backdrop } from "@/lib/images";
+import { posterLg, profile } from "@/lib/images";
 import {
   factualAbout, displayRating, displayRuntime, displayCert, displayField,
   displayPeople, validYear, releaseStatus,
@@ -85,10 +86,22 @@ export default function MovieDetailV2({
   // the sidebar island receives, honest about fallback regions, silent
   // when the server-side check failed (the island still self-loads).
   const streamingRows = watch?.rows?.length ?? 0;
-  const heroStatus = watch && streamingRows > 0
-    ? watch.fallbackRegion
-      ? `Showing ${watch.countryName} availability — not confirmed for your country yet`
-      : `Streaming in ${watch.countryName} · ${streamingRows} option${streamingRows === 1 ? "" : "s"}`
+  /* NAMES, not a count. "Streaming in India · 3 options" told a reader
+     nothing they could act on; every decision-shaped competitor (JustWatch,
+     PlayPilot, and TMDB now too) leads with WHICH services carry it, above
+     the title. Server-rendered from the same payload the panel below uses,
+     so a crawler reads it too. */
+  const providerNames = (watch?.rows ?? []).map((r) => r.name).filter(Boolean);
+  const availLine = watch && streamingRows > 0
+    ? (() => {
+        const where = watch.fallbackRegion ? `in ${watch.countryName}` : `in ${watch.countryName}`;
+        if (providerNames.length === 1) return `On ${providerNames[0]} ${where}`;
+        if (providerNames.length === 2) return `On ${providerNames[0]} and ${providerNames[1]} ${where}`;
+        return `On ${providerNames[0]}, ${providerNames[1]} and ${providerNames.length - 2} more ${where}`;
+      })()
+    : null;
+  const heroStatus = watch && streamingRows > 0 && watch.fallbackRegion
+    ? `Not confirmed for your country yet - showing ${watch.countryName}`
     : null;
 
   const snapshotRows: [string, string | null][] = intel ? [
@@ -116,10 +129,10 @@ export default function MovieDetailV2({
   const catchUp = seriesFacts?.episodes && rt.length
     ? `≈ ${Math.round((seriesFacts.episodes * (rt.reduce((a, b) => a + b, 0) / rt.length)) / 60)} hours (approx.)`
     : null;
-  const statusLabel = seriesFacts?.status === "returning" ? "Returning — more episodes coming"
-    : seriesFacts?.status === "ended" ? "Ended — complete story"
+  const statusLabel = seriesFacts?.status === "returning" ? "Returning - more episodes coming"
+    : seriesFacts?.status === "ended" ? "Ended - complete story"
     : seriesFacts?.status === "cancelled" ? "Cancelled"
-    : seriesFacts?.status === "in-production" ? "In production — not yet released"
+    : seriesFacts?.status === "in-production" ? "In production - not yet released"
     : null;
   const commitmentRows: [string, string | null][] = isSeries && seriesFacts ? [
     ["Released", seriesFacts.seasons && seriesFacts.episodes
@@ -152,26 +165,21 @@ export default function MovieDetailV2({
         {/* ============================== MAIN ============================== */}
         <div className="v2m-main">
 
-          {/* HERO — contained card; identity + immediate action (5.3) */}
+          {/* IDENTITY BAR - the top of the page.
+              A full-width video embed as the first thing on screen pushed the
+              answer ("where can I watch this") below the fold, which is the
+              one thing this page cannot afford. Rotten Tomatoes and PlayPilot
+              both open dense and short for the same reason. The trailer and
+              the clips now sit in their own section further down, where
+              someone who wants them will look. Clean panel, no background
+              image: it looks identical whether or not TMDB has art. */}
           <section className="v2m-hero">
-            <div className="v2m-hero__bg" aria-hidden="true">
-              <Image fill alt="" src={backdrop(movie, "w1280")} sizes="(max-width: 1200px) 100vw, 1100px" priority />
-            </div>
             <div className="v2m-hero__in">
-              <a className="v2m-hero__poster" href="#trailer" aria-label={`Play ${movie.title} trailer`}>
-                <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 30vw, 216px" priority />
-                {rating && <span className="v2m-hero__badge"><Icon name="star" size={11} /> {rating}</span>}
-                {movie.trailerKey && (
-                  <span className="v2m-hero__play" aria-hidden="true"><Icon name="play" size={18} /></span>
-                )}
-              </a>
+              <div className="v2m-hero__poster">
+                <Image fill alt={`${movie.title} poster`} src={posterLg(movie)} sizes="(max-width: 900px) 22vw, 132px" />
+              </div>
               <div className="v2m-hero__body">
-                <div className="v2m-chips">
-                  {movie.genres.slice(0, 3).map((g) => (
-                    <Link key={g} className="v2m-chip" href={`/movies?genre=${encodeURIComponent(g)}`}>{g}</Link>
-                  ))}
-                  <span className="v2m-chip v2m-chip--type">{isSeries ? "Series" : "Movie"}</span>
-                </div>
+                {availLine && <p className="v2m-hero__avail">{availLine}</p>}
                 <h1 className="v2m-hero__title">{movie.title}</h1>
                 <div className="v2m-hero__meta">
                   {validYear(movie.year) && <span>{movie.year}</span>}
@@ -182,25 +190,87 @@ export default function MovieDetailV2({
                 {rating && (
                   <div className="v2m-hero__rating">
                     <span className="v2m-hero__score"><b>{rating}</b>/10{movie.votes ? ` · ${movie.votes.toLocaleString("en-US")} ratings` : ""}</span>
-                    <span className="v2m-hero__ratenote">(external rating — not a CineTonight score)</span>
+                    <span className="v2m-hero__ratenote">(external rating - not a CineTonight score)</span>
                   </div>
                 )}
+                <div className="v2m-chips">
+                  {movie.genres.slice(0, 3).map((g) => (
+                    <Link key={g} className="v2m-chip" href={`/movies?genre=${encodeURIComponent(g)}`}>{g}</Link>
+                  ))}
+                  <span className="v2m-chip v2m-chip--type">{isSeries ? "Series" : "Movie"}</span>
+                </div>
                 <div className="v2m-hero__acts">
-                  <a className="v2m-btn v2m-btn--primary" href="#watch">See Watching Options</a>
-                  {movie.trailerKey && <a className="v2m-btn" href="#trailer"><Icon name="play" size={14} /> Play Trailer</a>}
+                  {/* Neither "See Watching Options" nor "Play Trailer" survive:
+                      one scrolled away from the page's main question, which now
+                      sits directly below; the other pointed at a player that is
+                      now the first thing on the page. */}
                   <WatchlistButton id={movie.id} kind={movie.kind} surface={isSeries ? "series_detail" : "movie_detail"} />
                   <TicketStub movie={movie} />
                 </div>
                 {heroStatus && (
-                  <div className={`v2m-hero__status${watch?.fallbackRegion ? " is-fallback" : ""}`}>
+                  <div className="v2m-hero__status is-fallback">
                     <i aria-hidden="true" />{heroStatus}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* WHERE TO WATCH, IN THE HERO.
+                It used to sit in the sidebar behind a "See Watching Options"
+                button, so the page's main question was one scroll away - and
+                on a phone the sidebar falls below everything, which put it
+                near the bottom of the page. Every decision-shaped competitor
+                answers this above the fold instead: JustWatch and PlayPilot
+                both put the provider rows directly under the title. Same
+                island, same single request, moved to where it is needed. */}
+            <div className="v2m-hero__watch" id="watch">
+              <WhereToWatch movie={movie} surface={isSeries ? "series_detail" : "movie_detail"} initial={watch} />
+            </div>
           </section>
 
-          {/* 5.4 THE TONIGHT VERDICT — reviewed intel only */}
+          {/* COMPUTED FIT - the ~33k pages with no reviewed intel.
+              Shown ONLY when there is no human Verdict, never alongside it:
+              the two answer the same question and the human one is better, so
+              this stands in rather than competing. Everything in it is derived
+              from values we hold for this title (lib/tonightFit) - no
+              opinions, no generated prose, nothing that needs review. Without
+              it these pages carry only TMDB data, which is on a hundred other
+              sites; with it they carry the one thing that is ours. */}
+          {!hasVerdict(intel) && (() => {
+            const fit = tonightFit(movie);
+            if (!fit.fits.length) return null; // nothing known = nothing claimed
+            return (
+              <section className="v2m-sec v2m-verdict v2m-fit">
+                <span className="v2m-kicker">Tonight Fit</span>
+                <h2>Is {movie.title} right for tonight?</h2>
+                <p className="v2m-fit__note">
+                  Matched from this title&rsquo;s own runtime, genres and rating.
+                  No one has reviewed it yet.
+                </p>
+                <div className="v2m-verdict__grid">
+                  <div className="v2m-verdict__col is-watch">
+                    <div className="v2m-verdict__h">Right for tonight if</div>
+                    <ul>
+                      {fit.fits.map((l) => (
+                        <li key={l.text}>
+                          {l.href ? <Link className="v2m-fit__l" href={l.href}>{l.text}</Link> : l.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="v2m-verdict__col is-skip">
+                    <div className="v2m-verdict__h">Probably not if</div>
+                    <ul>{fit.notFor.map((l) => <li key={l.text}>{l.text}</li>)}</ul>
+                  </div>
+                </div>
+                <Link className="v2m-more" href="/discover">
+                  Find something that fits your night <Icon name="chevr" size={13} />
+                </Link>
+              </section>
+            );
+          })()}
+
+          {/* 5.4 THE TONIGHT VERDICT - reviewed intel only */}
           {hasVerdict(intel) && (
             <section className="v2m-sec v2m-verdict">
               <span className="v2m-kicker">The Tonight Verdict</span>
@@ -229,7 +299,7 @@ export default function MovieDetailV2({
             </section>
           )}
 
-          {/* ABOUT + intel panels — About always renders; the rest are gated */}
+          {/* ABOUT + intel panels - About always renders; the rest are gated */}
           <section className="v2m-sec">
             <div className={`v2m-grid2${!hasSnapshot && !hasExpect && !hasBestFor && !hasCommitment ? " v2m-grid2--solo" : ""}`}>
               <div className="v2m-panel">
@@ -258,7 +328,7 @@ export default function MovieDetailV2({
                       <span className="v2m-kv__v v2m-kv__v--dots">{r.value}<Dots level={r.level} /></span>
                     </div>
                   ))}
-                  <div className="v2m-finenote">Editorial judgment in plain words — never a fake score.</div>
+                  <div className="v2m-finenote">Editorial judgment in plain words - never a fake score.</div>
                 </div>
               )}
               {hasBestFor && (
@@ -272,7 +342,7 @@ export default function MovieDetailV2({
             </div>
           </section>
 
-          {/* 5.9 THE CINETONIGHT TAKE — accountable editorial only */}
+          {/* 5.9 THE CINETONIGHT TAKE - accountable editorial only */}
           {hasTake(intel) && (
             <section className="v2m-sec v2m-take">
               <span className="v2m-kicker">The CineTonight Take</span>
@@ -291,11 +361,12 @@ export default function MovieDetailV2({
             </section>
           )}
 
-          {/* TRAILER + DETAILS */}
           <section className="v2m-sec" id="trailer">
             <div className="v2m-trailer-row">
               <div>
-                <div className="v2m-h2row"><h2>Trailer</h2></div>
+                <div className="v2m-h2row">
+                  <h2>{movie.clips?.length ? "Trailer & Clips" : "Trailer"}</h2>
+                </div>
                 <InlineTrailer movie={movie} />
               </div>
               <div>
@@ -318,26 +389,45 @@ export default function MovieDetailV2({
             </section>
           )}
 
-          {/* 5.11 CAST & CREW — director gets standalone prominence */}
+          {/* 5.11 CAST & CREW - director gets standalone prominence */}
           {(movie.cast.length > 0 || firstDirector) && (
             <section className="v2m-sec">
               <div className="v2m-h2row"><h2>Cast &amp; Crew</h2></div>
               {firstDirector && (
                 <div className="v2m-director">
-                  <span className="v2m-director__avatar" aria-hidden="true">
-                    {firstDirector.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}
-                  </span>
+                  {movie.directorProfile ? (
+                    <span className="v2m-director__photo">
+                      <Image fill alt="" src={profile({ name: firstDirector, profilePath: movie.directorProfile })} sizes="56px" />
+                    </span>
+                  ) : (
+                    <span className="v2m-director__avatar" aria-hidden="true">
+                      {firstDirector.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}
+                    </span>
+                  )}
                   <div>
                     <div className="v2m-sub">{isSeries ? "Creator" : "Director"}</div>
                     <div className="v2m-director__name">{directors}</div>
                   </div>
                 </div>
               )}
+              {/* Ten was every credit TMDB returned, each with a 76px circle.
+                  For the long tail most of those circles were the shared
+                  silhouette placeholder, so the row read as a line of grey
+                  dots taking a whole band of the page. Eight now, smaller, and
+                  a member with no photo gets INITIALS - the same treatment the
+                  director already had. A monogram looks deliberate; a stock
+                  silhouette looks broken. */}
               {movie.cast.length > 0 && (
                 <div className="railwrap"><div className="rail castrail">
-                  {movie.cast.map((c) => (
+                  {movie.cast.slice(0, 8).map((c) => (
                     <Link className="castc" href={`/person/${c.tmdbId ? personTmdbId(c.tmdbId, c.name) : personId(c.name)}`} key={c.name}>
-                      <div className="castc__ph"><Image fill alt={c.name} src={profile(c)} sizes="64px" /></div>
+                      {c.profilePath ? (
+                        <div className="castc__ph"><Image fill alt={c.name} src={profile(c)} sizes="60px" /></div>
+                      ) : (
+                        <div className="castc__ph castc__ph--mono" aria-hidden="true">
+                          {c.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("")}
+                        </div>
+                      )}
                       <div className="castc__n">{c.name}</div>
                       <div className="castc__r">as {c.character}</div>
                     </Link>
@@ -347,7 +437,7 @@ export default function MovieDetailV2({
             </section>
           )}
 
-          {/* 5.13 MORE LIKE THIS — real recommendations, no invented reasons.
+          {/* 5.13 MORE LIKE THIS - real recommendations, no invented reasons.
               Editorial similarity reasons arrive with the content pilot
               (Phase 6); until then cards carry facts only. */}
           {suggestions.length > 0 && (
@@ -359,7 +449,7 @@ export default function MovieDetailV2({
                 </div>
                 <Link className="v2m-more" href="/trending">See all <Icon name="chevr" size={13} /></Link>
               </div>
-              {/* One clean row — an orphan wrapping card reads as a mistake;
+              {/* One clean row - an orphan wrapping card reads as a mistake;
                   See all carries the rest. */}
               <div className="grid">
                 {suggestions.slice(0, 5).map((s) => <MovieCard key={s.id} movie={toCard(s)} />)}
@@ -367,20 +457,23 @@ export default function MovieDetailV2({
             </section>
           )}
 
-          {/* 5.16 community layer — existing honest reviews module */}
+          {/* 5.16 community layer - existing honest reviews module */}
           <CommentsSection movie={movie} />
 
-          {/* 5.15 GUIDES — bottom of page (founder decision). Same honest
+          {/* 5.15 GUIDES - bottom of page (founder decision). Same honest
               heading as the homepage: these are the site's decision guides,
               not guides claiming to be about THIS title. */}
           <BlogSection count={3} title="What to Watch Guides" sub="Written guides to help you decide" />
         </div>
 
         {/* ============================== ASIDE ============================= */}
-        <aside className="v2m-aside" id="watch">
+        {/* The sidebar is now OPTIONAL. With Where to Watch moved into the
+            hero, a page with no reviewed intel has nothing left to put here -
+            and an empty 308px column beside the content is worse than no
+            column at all. Main is flex:1, so it simply takes the width. */}
+        {(hasProfile || hasAlt) && (
+        <aside className="v2m-aside">
           <div className="v2m-aside__sticky">
-            <WhereToWatch movie={movie} surface={isSeries ? "series_detail" : "movie_detail"} initial={watch} />
-
             {hasProfile && (
               <div className="v2m-panel v2m-side">
                 <h3>Tonight Profile</h3>
@@ -415,11 +508,12 @@ export default function MovieDetailV2({
                 <Link className="v2m-btn v2m-btn--primary v2m-btn--block" href={`/movie/${altMovie.id}`}>
                   Watch {altMovie.title} Instead
                 </Link>
-                <div className="v2m-finenote v2m-center">Based on this title&apos;s genre and runtime — not a personal claim.</div>
+                <div className="v2m-finenote v2m-center">Based on this title&apos;s genre and runtime - not a personal claim.</div>
               </div>
             )}
           </div>
         </aside>
+        )}
       </div>
     </div>
   );

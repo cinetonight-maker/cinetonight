@@ -23,7 +23,7 @@ const RATE_LIMIT_MAX = 60;
  *  the only place that can produce results. */
 export async function GET(request: Request) {
   if (isRateLimited(clientKey(request), "browse", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
 
   const url = new URL(request.url);

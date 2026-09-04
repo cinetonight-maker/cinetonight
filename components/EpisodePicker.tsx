@@ -65,7 +65,7 @@ export default function EpisodePicker({
     } catch { /* fall through to the show trailer below */ }
     setPlayingEp(null);
     openPlayer({
-      title: `${showTitle} — S${season} E${ep.episode} · ${ep.name}`,
+      title: `${showTitle} - S${season} E${ep.episode} · ${ep.name}`,
       trailerKey: key ?? fallbackTrailerKey,
       mode: "trailer",
     });
@@ -127,7 +127,7 @@ export default function EpisodePicker({
                 <span className="epc__t">{ep.name}</span>
                 <span className="epc__sub">
                   {[ep.airDate ? ep.airDate.slice(0, 4) : null, ep.runtime ? `${ep.runtime}m` : null]
-                    .filter(Boolean).join(" · ") || "—"}
+                    .filter(Boolean).join(" · ") || "-"}
                 </span>
                 {ep.overview && <span className="epc__x">{ep.overview}</span>}
               </span>

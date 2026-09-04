@@ -95,7 +95,7 @@ export function PosterWidget({ title, movies, href = "/movies" }: { title: strin
           <div className="srow__body">
             <div className="srow__t">{m.title}</div>
             <div className="srow__meta">
-              <span className="srow__y"><Icon name="cal" size={11} /> {m.year || "—"}</span>
+              <span className="srow__y"><Icon name="cal" size={11} /> {m.year || "-"}</span>
               {m.rating > 0 && <span className="srow__r"><Icon name="star" size={11} /> {m.rating.toFixed(1)}</span>}
             </div>
             {m.desc && <p className="srow__x">{m.desc}</p>}

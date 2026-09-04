@@ -19,7 +19,7 @@ export async function offerRedirect(oldPath: string, newPath: string, label: str
   if (oldPath === newPath) return null;
   const ok = confirm(
     `The address changed.\n\n  was:  ${oldPath}\n  now:  ${newPath}\n\n` +
-    `Anyone with the old link — and Google — will get a “page not found” unless it is redirected.\n\n` +
+    `Anyone with the old link - and Google - will get a “page not found” unless it is redirected.\n\n` +
     `Add a redirect from the old address to the new one?`,
   );
   if (!ok) return null;
@@ -39,5 +39,5 @@ export async function offerRedirect(oldPath: string, newPath: string, label: str
   if (!enabled.ok) {
     return `Redirect created but not switched on: ${enabled.data.error ?? "unknown error"}. Turn it on in Redirects.`;
   }
-  return `Redirect added: ${oldPath} → ${newPath}. It is temporary for now — make it permanent in Redirects once you are happy.`;
+  return `Redirect added: ${oldPath} → ${newPath}. It is temporary for now - make it permanent in Redirects once you are happy.`;
 }

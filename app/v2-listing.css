@@ -20,7 +20,7 @@ body.v2 .chan__regionnote{margin:12px 0 20px}
 body.v2 .page--listing .chip-row--desktop{flex:1 1 100%;background:var(--card);
   border:1px solid var(--line);border-radius:14px;padding:13px 15px;gap:9px}
 body.v2 .page--listing .fchip{background:var(--card2);padding:9px 16px}
-body.v2 .page--listing .fchip.on{background:var(--purple)}
+body.v2 .page--listing .fchip.on{background:var(--accent)}
 
 /* Desktop: count + sort move up beside the H1 (canvas page-head row). The
    sub line stays short on every listing page, so the corner is free. */

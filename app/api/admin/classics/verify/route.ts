@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     }
     const oembed = `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}&format=json`;
     const res = await fetch(oembed, { cache: "no-store" });
-    if (!res.ok) return NextResponse.json({ ok: false, why: `YouTube returned ${res.status} — video missing or private.` });
+    if (!res.ok) return NextResponse.json({ ok: false, why: `YouTube returned ${res.status} - video missing or private.` });
     const data = await res.json();
     return NextResponse.json({ ok: true, why: `Found: "${data.title}"` });
   } catch (e) {

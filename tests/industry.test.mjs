@@ -113,3 +113,30 @@ test("quick picks are locked to the Phase 3 six and reference valid moods", () =
   const validMoods = new Set(ALL_MOODS.map((m) => m.id));
   for (const q of QUICK_PICKS) assert.ok(validMoods.has(q.moodId), `quick pick ${q.id} references unknown mood ${q.moodId}`);
 });
+
+/* The homepage now calls mixDiscovery TWICE with the SAME pools object — once
+ * for the recommendation seed (12), once for the Explore "For You" tab (10).
+ * That is only correct because the blend treats its input as read-only. If a
+ * future refactor starts consuming the passed arrays, the second call would
+ * silently receive drained pools and the Explore tab would degrade with no
+ * error anywhere. Lock the property down. */
+test("mixDiscovery never consumes the pools it is handed", () => {
+  const pools = {
+    hollywood: [t("h1", "en"), t("h2", "en"), t("h3", "en")],
+    bollywood: [t("b1", "hi"), t("b2", "hi")],
+    south: [t("s1", "te")],
+    korean: [t("k1", "ko")],
+    international: [t("i1", "fr")],
+  };
+  const before = Object.fromEntries(Object.entries(pools).map(([k, v]) => [k, [...v]]));
+
+  const first = mixDiscovery(pools, 12);
+  for (const [k, arr] of Object.entries(pools)) {
+    assert.deepEqual(arr, before[k], `pool ${k} was mutated by mixDiscovery`);
+  }
+
+  // ...and a second call on the same object still gets the full pools.
+  const second = mixDiscovery(pools, 12);
+  assert.deepEqual(second, first, "same input must give the same blend");
+  assert.ok(first.length > 0, "the blend should not be empty");
+});

@@ -30,7 +30,7 @@ const LIMIT = 10;
 
 export async function GET(request: Request) {
   if (isRateLimited(clientKey(request), "explore", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
   const tab = new URL(request.url).searchParams.get("tab") ?? "";
   if (!TABS.has(tab)) {

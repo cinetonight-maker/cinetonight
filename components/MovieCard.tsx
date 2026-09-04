@@ -34,7 +34,7 @@ export default function MovieCard({ movie, rank, badge, progress, note }: MovieC
           </div>
           <div className="mcard__pt">{movie.title}</div>
           <div className="mcard__pm">
-            <span>{movie.year || "—"}</span>{movie.genres[0] && <><span>•</span><span>{movie.genres[0]}</span></>}
+            <span>{movie.year || "-"}</span>{movie.genres[0] && <><span>•</span><span>{movie.genres[0]}</span></>}
             {movie.rating > 0 && <span className="r"><Icon name="star" size={11} /> {movie.rating.toFixed(1)}</span>}
           </div>
           <div className="mcard__pd">{movie.desc}</div>

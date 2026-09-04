@@ -61,7 +61,7 @@ const when = (iso: string) =>
   });
 
 const val = (v: unknown) =>
-  v === null || v === undefined || v === "" ? "—"
+  v === null || v === undefined || v === "" ? "-"
   : typeof v === "string" ? v
   : JSON.stringify(v);
 
@@ -154,7 +154,7 @@ export default function ActivityLog() {
           <button className="ad__mini" onClick={() => load()}>Refresh</button>
         </div>
         <p className="ad__hintline">
-          Every publish, delete, restore and settings change, newest first. Autosaves are not listed —
+          Every publish, delete, restore and settings change, newest first. Autosaves are not listed -
           they never reach the public site. This log cannot be edited or deleted from the dashboard.
         </p>
 
@@ -267,7 +267,7 @@ export default function ActivityLog() {
                         </table>
                       )}
                       <p className="aud__foot">
-                        Long text is recorded as a size and fingerprint rather than a second copy —
+                        Long text is recorded as a size and fingerprint rather than a second copy -
                         the full version is in that item&rsquo;s History, which is what a rollback reads.
                         {" "}<Link href={`/admin/activity/${e.id}`}>Open the full entry</Link> to see every field and
                         whether this change can be undone.

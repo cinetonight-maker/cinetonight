@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       // Second pass: cross-check every valid row against the site as it is.
       const checked = parsed.map((r) => {
         if (!r.ok) return r;
-        if (live.has(r.from!)) return { ...r, ok: false, error: "That address is a live page — redirecting it would make the page disappear." };
+        if (live.has(r.from!)) return { ...r, ok: false, error: "That address is a live page - redirecting it would make the page disappear." };
         if (existingFrom.has(r.from!)) return { ...r, ok: false, error: "A rule for that address already exists." };
         return r;
       });
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
       await recordAudit({
         module: "redirects", action: "import", targetLabel: `${insert.length} rules`,
         before: null, after: { imported: insert.length, reason },
-        note: `Bulk import — ${insert.length} rules added, all disabled`,
+        note: `Bulk import - ${insert.length} rules added, all disabled`,
       });
       // Nothing is enabled, so nothing public changed: no revalidation.
       return NextResponse.json({ ok: true, imported: insert.length, summary });
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
 
     if (live.has(shape.from!)) {
       return NextResponse.json({
-        error: "That address is a live page. Redirecting it would make the page disappear — " +
+        error: "That address is a live page. Redirecting it would make the page disappear - " +
                "unpublish or delete the page first if that is really what you want.",
       }, { status: 400 });
     }
@@ -208,7 +208,7 @@ export async function POST(request: Request) {
       module: "redirects", action: "create",
       targetId: data.id, targetLabel: `${data.from_path} → ${data.to_path}`,
       before: null, after: data,
-      note: `Created (disabled) — ${data.reason}`,
+      note: `Created (disabled) - ${data.reason}`,
     });
     // Created disabled, so the public site is unchanged: no revalidation.
     return NextResponse.json({ ok: true, rule: data, flattened: plan.rule!.to_path !== normalizePath(body?.to) });
@@ -243,7 +243,7 @@ export async function PUT(request: Request) {
     if (!shape.ok) return NextResponse.json({ error: shape.errors.join(" ") }, { status: 400 });
 
     if (live.has(shape.from!)) {
-      return NextResponse.json({ error: "That address is a live page — redirecting it would make the page disappear." }, { status: 400 });
+      return NextResponse.json({ error: "That address is a live page - redirecting it would make the page disappear." }, { status: 400 });
     }
     if (rows.some((r) => r.id !== id && r.from_path === shape.from)) {
       return NextResponse.json({ error: "Another rule already covers that address." }, { status: 400 });

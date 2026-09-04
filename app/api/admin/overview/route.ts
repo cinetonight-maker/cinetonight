@@ -128,7 +128,7 @@ export async function GET() {
       [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, k).map(([label, n]) => ({ label, n }));
     categories = top(cTally, 5);
     tags = top(tTally, 5);
-  } catch { /* leave empty — the panel hides itself */ }
+  } catch { /* leave empty - the panel hides itself */ }
 
   /* -------- recent changes, from real updated_at values -------- */
   type Activity = { at: string; title: string; where: string; href: string; icon: string };

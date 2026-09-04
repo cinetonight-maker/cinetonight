@@ -10,7 +10,7 @@ import type { Movie } from "@/lib/types";
 export const metadata: Metadata = {
   alternates: { canonical: "/genres" },
   title: "Genres",
-  description: "Browse movies and shows by genre — action, comedy, drama, horror, K-drama, anime and every mood in between.",
+  description: "Browse movies and shows by genre - action, comedy, drama, horror, K-drama, anime and every mood in between.",
 };
 // Cached (ISR): rendered once, reused for 3600s, then refreshed in the
 // background. Turns bot storms into cache hits instead of function runs.
@@ -57,7 +57,7 @@ export default async function GenresPage() {
   const genres = genreTiles(movies);
   return (
     <div className="page">
-      <div className="page__head"><h1>Genres</h1><p>Browse by mood and category — from action and drama to K-drama, anime and C-drama.</p></div>
+      <div className="page__head"><h1>Genres</h1><p>Browse by mood and category - from action and drama to K-drama, anime and C-drama.</p></div>
       <div className="gtiles">
         {genres.map(({ label, names }) => {
           const { src, count } = coverFor(label, names, movies);

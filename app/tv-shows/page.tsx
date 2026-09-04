@@ -12,8 +12,8 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   // sitemap for the same reason.
   return listingMetadata({
     path: "/web-series",
-    baseTitle: "TV Shows — What to Watch on OTT",
-    baseDescription: "Stream live TV and on-demand series — top-rated shows across every genre, updated daily.",
+    baseTitle: "TV Shows - What to Watch on OTT",
+    baseDescription: "Stream live TV and on-demand series - top-rated shows across every genre, updated daily.",
     genre,
   });
 }

@@ -9,7 +9,7 @@ import { trackProviderClicked, toMediaType, type Surface } from "@/lib/analytics
 /** Rows shown before the "Show more" toggle. Defined HERE, not imported from
  *  lib/watchRows: that module is `server-only`, so importing a value from it
  *  into this client component would poison the browser bundle. */
-const VISIBLE_ROWS = 3;
+const VISIBLE_ROWS = 2;
 
 /** "Where to Watch" — a client island over a server-rendered starting state.
  *
@@ -63,7 +63,14 @@ export default function WhereToWatch({ movie, surface = "unknown", initial = nul
     );
   }
 
-  const { rows, live, countryName, affiliate, searchLinks, fallbackRegion } = data;
+  const { rows, live, countryName, affiliate, searchLinks, fallbackRegion, checkedAt } = data;
+
+  /** "2 September 2026". Date only: an exact time would imply a precision the
+   *  cache window does not have. Rendered from the payload, never from a
+   *  clock read during render, so the server and client copies agree. */
+  const checked = checkedAt
+    ? new Date(checkedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   if (!live) {
     return (
@@ -99,7 +106,7 @@ export default function WhereToWatch({ movie, surface = "unknown", initial = nul
       </div>
       {fallbackRegion && (
         <p className="w2w__fallback">
-          Not confirmed for your country yet — showing where it streams in {countryName}.
+          Not confirmed for your country yet - showing where it streams in {countryName}.
           Availability in your region may differ.
         </p>
       )}
@@ -126,7 +133,15 @@ export default function WhereToWatch({ movie, surface = "unknown", initial = nul
             <span className={`w2w__logo${o.squareLogo ? " w2w__logo--sq" : ""}`}>
               {o.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element -- tiny brand image
-                <img src={o.logo} alt={`${o.name} logo`} loading="lazy" />
+                <img
+                  src={o.logo}
+                  alt={`${o.name} logo`}
+                  loading="lazy"
+                  // Apple TV+'s mark is solid black, which on this dark card
+                  // was invisible. Same flag and same treatment the channel
+                  // cards already use (lib/channels.ts logoInvert).
+                  style={o.invert ? { filter: "invert(1) hue-rotate(180deg)" } : undefined}
+                />
               ) : (
                 <span className="w2w__mono" style={{ background: `color-mix(in srgb, ${o.color} 24%, #15151f)`, color: o.color, border: `1px solid color-mix(in srgb, ${o.color} 55%, transparent)` }}>
                   {o.monogram}
@@ -149,6 +164,7 @@ export default function WhereToWatch({ movie, surface = "unknown", initial = nul
         </button>
       )}
       <div className="w2w__note">
+        {checked && <><strong className="w2w__checked">Availability checked {checked}.</strong>{" "}</>}
         Availability may vary by region and plan. Streaming data by JustWatch via TMDB.
         {affiliate && " Some links are affiliate links, and we may earn a commission at no extra cost to you."}
       </div>

@@ -33,7 +33,7 @@ interface Loaded {
 type GroupKey = "moods" | "quickPicks" | "explore" | "providers";
 
 const when = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
 export default function DiscoveryManager() {
   const [data, setData] = useState<Loaded | null>(null);
@@ -123,11 +123,11 @@ export default function DiscoveryManager() {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "discardDraft" }),
     });
-    setNote("Draft discarded — you are back to the live version."); setAutoState("idle"); load();
+    setNote("Draft discarded - you are back to the live version."); setAutoState("idle"); load();
   };
 
   const rollback = async (id: string, label: string) => {
-    if (!confirm(`Load the version from ${label}?\n\nIt comes back as a DRAFT — nothing changes on the site until you press Publish.`)) return;
+    if (!confirm(`Load the version from ${label}?\n\nIt comes back as a DRAFT - nothing changes on the site until you press Publish.`)) return;
     const res = await api<{ note?: string; error?: string }>("/api/admin/discovery", {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "rollback", revisionId: id }),
@@ -158,7 +158,7 @@ export default function DiscoveryManager() {
             <span className="ovh__l">Live now</span>
             <b>{describeConfig(data.live)}</b>
             <span className="ovh__n">
-              {data.usingDefault ? "Never published — showing the shipped default" : `Published ${when(data.publishedAt)}${data.publishedBy ? ` by ${data.publishedBy}` : ""}`}
+              {data.usingDefault ? "Never published - showing the shipped default" : `Published ${when(data.publishedAt)}${data.publishedBy ? ` by ${data.publishedBy}` : ""}`}
             </span>
           </div>
           <div className="hpm__col">
@@ -184,7 +184,7 @@ export default function DiscoveryManager() {
         </div>
         <p className="ad__hintline">
           Nothing here changes the site until you press Publish. Switching something off hides it from visitors but keeps
-          old links to it working — the web addresses never change, which is what keeps the site fast and cheap.
+          old links to it working - the web addresses never change, which is what keeps the site fast and cheap.
         </p>
       </section>
 
@@ -210,13 +210,13 @@ export default function DiscoveryManager() {
         <div className="ad__panelhead"><h2>Tonight&rsquo;s Pick</h2></div>
         <p className="ad__hintline">
           Rules, not a chosen film. A pinned title goes stale within days and makes the &ldquo;why it fits&rdquo; line
-          untrue — so this steers the recommendation instead of replacing it.
+          untrue - so this steers the recommendation instead of replacing it.
         </p>
         <div className="ad__grid2">
           <label className="ad__field">
             <span>Lean towards a mood</span>
             <select value={draft.tonight.preferMood} onChange={(e) => setTonight({ preferMood: e.target.value as MoodId | "any" })}>
-              <option value="any">No preference — pick from everything</option>
+              <option value="any">No preference - pick from everything</option>
               {MOOD_IDS.map((id) => <option key={id} value={id}>{draft.moods.entries[id].label}</option>)}
             </select>
           </label>
@@ -240,7 +240,7 @@ export default function DiscoveryManager() {
       <Group
         title="Moods"
         count={`${enabledMoods(draft).length} of ${draft.moods.order.length} on`}
-        hint="The chips on the homepage picker. You can rename them, change the emoji and reorder them. What each mood actually selects is fixed — shown under each row — because the recommendation explains itself using those rules."
+        hint="The chips on the homepage picker. You can rename them, change the emoji and reorder them. What each mood actually selects is fixed - shown under each row - because the recommendation explains itself using those rules."
         ids={draft.moods.order}
         entry={(id) => draft.moods.entries[id as MoodId]}
         rule={(id) => RULE_SUMMARY.moods[id as MoodId]}
@@ -269,7 +269,7 @@ export default function DiscoveryManager() {
           <h2>Streaming Services <span className="ad__count">{enabledProviders(draft).length} of {draft.providers.order.length} on</span></h2>
         </div>
         <p className="ad__hintline">
-          The provider shortcuts on the homepage. The homepage shows the first eight that are on, in this order — so put
+          The provider shortcuts on the homepage. The homepage shows the first eight that are on, in this order - so put
           the ones your readers actually subscribe to at the top. The web address of each service page never changes.
         </p>
         <div className="hpm__sections">
@@ -327,7 +327,7 @@ export default function DiscoveryManager() {
                   <span className="hpm__pos">{i + 1}</span>
                   <div className="hpm__secmain">
                     <b>{e.label}</b>
-                    <span>Internal name: {id} — fixed, because it is part of the web address</span>
+                    <span>Internal name: {id} - fixed, because it is part of the web address</span>
                   </div>
                   <div className="hpm__secbtns">
                     <button className="ad__mini" disabled={i === 0} onClick={() => move("explore", id, -1)} aria-label="Move up">↑</button>
@@ -379,7 +379,7 @@ function Group({
                 <span className="hpm__pos">{i + 1}</span>
                 <div className="hpm__secmain">
                   <b>{iconField === "emoji" && e.icon ? `${e.icon} ` : ""}{e.label}</b>
-                  <span className="dsm__rule">Fixed rule: {rule(id) ?? "—"}</span>
+                  <span className="dsm__rule">Fixed rule: {rule(id) ?? "-"}</span>
                 </div>
                 <div className="hpm__secbtns">
                   <button className="ad__mini" disabled={i === 0} onClick={() => onMove(id, -1)} aria-label="Move up">↑</button>
@@ -402,7 +402,7 @@ function Group({
                   </label>
                   {hasSub && (
                     <label className="ad__field" style={{ gridColumn: "1 / -1" }}>
-                      <span>Line underneath — describe the rule, not the films</span>
+                      <span>Line underneath - describe the rule, not the films</span>
                       <input value={e.sub ?? ""} onChange={(ev) => onPatch(id, { sub: ev.target.value })} />
                     </label>
                   )}

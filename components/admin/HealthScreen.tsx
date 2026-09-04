@@ -73,7 +73,7 @@ export default function HealthScreen() {
           <button className="ad__mini" onClick={load} disabled={loading}>{loading ? "Checking…" : "Re-check"}</button>
         </div>
         <p className="ad__hintline">
-          Each of these is one file to paste into Supabase → SQL Editor. They only add columns and tables — they change
+          Each of these is one file to paste into Supabase → SQL Editor. They only add columns and tables - they change
           no existing data and are safe to run twice. Until one is run, the dashboard hides that feature and says so;
           nothing on the live site is affected either way.
         </p>
@@ -111,13 +111,13 @@ export default function HealthScreen() {
             value={when(d.services.lastSync.at)} good={d.services.lastSync.ok}
             note={d.services.lastSync.at ? new Date(d.services.lastSync.at).toLocaleString("en-GB") : "Never run"} />
           <Cell icon="check" tone="pink" label="Build"
-            value={d.services.build ? d.services.build.slice(0, 8) : "—"} good={null}
-            note={d.services.build ? "Running version" : "Local — comes from Cloudflare"} />
+            value={d.services.build ? d.services.build.slice(0, 8) : "-"} good={null}
+            note={d.services.build ? "Running version" : "Local - comes from Cloudflare"} />
           <Cell icon="cal" tone="teal" label="Activity entries"
-            value={d.counts.auditEntries === null ? "—" : d.counts.auditEntries.toLocaleString()} good={null}
+            value={d.counts.auditEntries === null ? "-" : d.counts.auditEntries.toLocaleString()} good={null}
             note="Recorded changes" />
           <Cell icon="reply" tone="amber" label="Comments waiting"
-            value={d.counts.comments === null ? "—" : String(d.counts.comments)}
+            value={d.counts.comments === null ? "-" : String(d.counts.comments)}
             good={(d.counts.comments ?? 0) === 0}
             note={(d.counts.comments ?? 0) === 0 ? "Nothing to review" : "Needs review"} />
         </div>
@@ -131,7 +131,7 @@ export default function HealthScreen() {
             {d.instantPublish.purgeConfigured
               ? <><b>Instant.</b> A publish clears the cached copy of exactly the affected pages straight away.</>
               : <><b>Not instant yet.</b> Publishing saves immediately and refreshes the pages, but the copy held at
-                  Cloudflare&rsquo;s edge expires on its own schedule — up to an hour on blog pages. Preview always
+                  Cloudflare&rsquo;s edge expires on its own schedule - up to an hour on blog pages. Preview always
                   shows the true current version.</>}
           </div>
           {!d.instantPublish.purgeConfigured && (
@@ -155,10 +155,10 @@ export default function HealthScreen() {
           <div className="ovh">
             <Cell icon="tv" tone="teal" label="Media library" value={`${d.storage.files} files`} good={null} note={mb(d.storage.bytes)} />
             <Cell icon="film" tone="violet" label="Largest file"
-              value={d.storage.largest ? mb(d.storage.largest.size) : "—"} good={null}
+              value={d.storage.largest ? mb(d.storage.largest.size) : "-"} good={null}
               note={d.storage.largest?.name ?? "No files yet"} />
-            <Cell icon="article" tone="blue" label="Posts" value={String(d.counts.posts ?? "—")} good={null} note="Including drafts" />
-            <Cell icon="grid" tone="green" label="Catalogue" value={String(d.counts.movies ?? "—")} good={null} note="Titles" />
+            <Cell icon="article" tone="blue" label="Posts" value={String(d.counts.posts ?? "-")} good={null} note="Including drafts" />
+            <Cell icon="grid" tone="green" label="Catalogue" value={String(d.counts.movies ?? "-")} good={null} note="Titles" />
           </div>
         ) : <p className="ov__empty">Could not read the media library.</p>}
         <div className="ad__notice" style={{ marginTop: 12 }}>
@@ -168,12 +168,12 @@ export default function HealthScreen() {
             history behind posts and pages. Each saved version holds a full copy of the article, so a heavily-edited
             post adds up fast.
             {" "}Cleanup keeps <b>the 20 newest versions of every post and page</b>, everything from the last 90 days,
-            and <b>180 days of activity log</b>. Your posts, pages, images and settings are never touched — only old
+            and <b>180 days of activity log</b>. Your posts, pages, images and settings are never touched - only old
             history. It runs weekly by itself where the database supports it; this button is for the rest of the time.
           </p>
           <div className="ad__actions">
             <button className="ad__mini" disabled={pruning} onClick={async () => {
-              if (!confirm("Remove history older than the retention window?\n\nPosts, pages, images and settings are not affected — only old saved versions and old activity-log entries.")) return;
+              if (!confirm("Remove history older than the retention window?\n\nPosts, pages, images and settings are not affected - only old saved versions and old activity-log entries.")) return;
               setPruning(true); setPruneNote(null);
               const res = await api<{ removed?: number; error?: string }>("/api/admin/health", {
                 method: "POST", headers: { "content-type": "application/json" },
@@ -181,7 +181,7 @@ export default function HealthScreen() {
               });
               setPruning(false);
               setPruneNote(res.ok
-                ? `Cleanup done — ${res.data.removed ?? 0} old history rows removed.`
+                ? `Cleanup done - ${res.data.removed ?? 0} old history rows removed.`
                 : res.data.error ?? "Cleanup failed.");
               load();
             }}>{pruning ? "Cleaning…" : "Run cleanup now"}</button>
@@ -190,7 +190,7 @@ export default function HealthScreen() {
         </div>
 
         <p className="ad__hintline">
-          This is the media library — the images you upload. <b>R2 usage, request counts and cache
+          This is the media library - the images you upload. <b>R2 usage, request counts and cache
           operations are not shown here</b>: they live in the Cloudflare dashboard, and reading them would mean storing
           a Cloudflare API token in the site purely to draw a number. Check them at{" "}
           <a href="https://dash.cloudflare.com" target="_blank" rel="noreferrer">dash.cloudflare.com</a> → R2 and Workers.

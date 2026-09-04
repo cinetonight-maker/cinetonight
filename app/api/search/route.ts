@@ -15,7 +15,7 @@ const RATE_LIMIT_MAX = 60;
 /** GET /api/search?q=... — local catalogue matches first, then live TMDB results. */
 export async function GET(request: Request) {
   if (isRateLimited(clientKey(request), "search", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
 
   const q = (new URL(request.url).searchParams.get("q") ?? "").trim();

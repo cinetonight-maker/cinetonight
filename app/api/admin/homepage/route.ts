@@ -123,7 +123,7 @@ export async function PUT(request: Request) {
         ok: true, draft, revalidated: null,
         dirty: isDirty(row?.live_config ?? DEFAULT_CONFIG, draft),
         problems: validateConfig(draft),
-        note: "Loaded as a draft. Preview it, then Publish when you are happy — nothing on the site has changed yet.",
+        note: "Loaded as a draft. Preview it, then Publish when you are happy - nothing on the site has changed yet.",
       });
     }
 
@@ -140,7 +140,7 @@ export async function PUT(request: Request) {
       try {
         await admin.from("homepage_revisions").insert({
           config: liveNow, author: actor,
-          note: `replaced on publish — ${describeConfig(liveNow)}`,
+          note: `replaced on publish - ${describeConfig(liveNow)}`,
         });
       } catch { /* history is a nice-to-have; the publish is not */ }
 
@@ -158,7 +158,7 @@ export async function PUT(request: Request) {
         module: "homepage", action: "publish",
         targetId: "homepage", targetLabel: "Homepage",
         before: liveNow, after: draft, actor,
-        note: `Published — ${describeConfig(draft)}`,
+        note: `Published - ${describeConfig(draft)}`,
       });
 
       return NextResponse.json({ ok: true, live: draft, draft, dirty: false, problems: [], revalidated });

@@ -95,7 +95,7 @@ export default function Listing({
         </div>
       </div>
 
-      {/* Mobile filter drawer — same genre/sort state as the desktop chip
+      {/* Mobile filter drawer - same genre/sort state as the desktop chip
           row + select above, just presented as a slide-in panel so it
           doesn't eat vertical space on small screens. */}
       <div className={`fdrawer__overlay${drawerOpen ? " open" : ""}`} onClick={() => setDrawerOpen(false)} />

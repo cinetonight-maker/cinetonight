@@ -14,7 +14,7 @@ const RATE_LIMIT_MAX = 60;
  */
 export async function GET(request: Request) {
   if (isRateLimited(clientKey(request), "trailer", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
 
   const id = (new URL(request.url).searchParams.get("id") ?? "").trim();

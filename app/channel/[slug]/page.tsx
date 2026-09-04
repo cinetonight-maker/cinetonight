@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // phrasing people actually search for a platform's lineup — same
   // strategy as the movie detail pages' titles.
   const title = `${channel.name}: Latest Movies & Shows to Watch`;
-  const description = metaDescription(`${channel.desc}. What's streaming on ${channel.name} now — movies & web series with trailers and ratings, updated live.`);
+  const description = metaDescription(`${channel.desc}. What's streaming on ${channel.name} now - movies & web series with trailers and ratings, updated live.`);
   const url = `${baseUrl()}/channel/${channel.slug}`;
   return {
     title,
@@ -146,7 +146,7 @@ export default async function ChannelPage({ params }: Params) {
         <div className="empty">No live availability data for {channel.name} right now. Check back soon.</div>
       )}
 
-      {/* Cross-links to every other channel — good for visitors (one tap to
+      {/* Cross-links to every other channel - good for visitors (one tap to
           the next platform) and for crawlers (every channel page links to
           every other, so the whole set gets discovered from any one). */}
       <section className="sec">

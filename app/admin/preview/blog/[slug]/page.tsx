@@ -40,7 +40,7 @@ export default async function BlogPreview({ params }: { params: Promise<{ slug: 
     <div className="ad__body ad__body--one">
       <div className="ad__notice">
         <div>
-          <b>Preview</b> — this is the real content from the database, right now.
+          <b>Preview</b> - this is the real content from the database, right now.
           {data.deleted_at
             ? " This post is in Trash, so it is not on the site."
             : live
@@ -61,7 +61,7 @@ export default async function BlogPreview({ params }: { params: Promise<{ slug: 
           <h1 className="article__t">{data.title}</h1>
           <div className="article__meta">By Editorial Desk · {data.date_label} · {readingTime(data.body)} read</div>
           {/* Plain <img>: next/image would optimise and cache an image that is
-             about to change again — pointless work for a preview. */}
+             about to change again - pointless work for a preview. */}
           <div className="article__img"><img alt={data.image_alt || data.title} src={image} /></div>
           {/* eslint-disable-next-line react/no-danger -- sanitized by renderMarkdown, the same renderer the public page uses */}
           <div className="article__body" dangerouslySetInnerHTML={{ __html: renderMarkdown(data.body ?? data.excerpt) }} />

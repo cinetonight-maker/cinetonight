@@ -34,7 +34,7 @@ interface Loaded {
 }
 
 const when = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  iso ? new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "-";
 
 export default function HomepageManager() {
   const [data, setData] = useState<Loaded | null>(null);
@@ -130,12 +130,12 @@ export default function HomepageManager() {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "discardDraft" }),
     });
-    setNote("Draft discarded — you are back to the live version."); setAutoState("idle");
+    setNote("Draft discarded - you are back to the live version."); setAutoState("idle");
     load();
   };
 
   const rollback = async (id: string, label: string) => {
-    if (!confirm(`Load the version from ${label}?\n\nIt comes back as a DRAFT — nothing on the site changes until you press Publish.`)) return;
+    if (!confirm(`Load the version from ${label}?\n\nIt comes back as a DRAFT - nothing on the site changes until you press Publish.`)) return;
     const res = await api<{ note?: string; error?: string }>("/api/admin/homepage", {
       method: "PUT", headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "rollback", revisionId: id }),
@@ -182,7 +182,7 @@ export default function HomepageManager() {
             <span className="ovh__l">Live now</span>
             <b>{describeConfig(data.live)}</b>
             <span className="ovh__n">
-              {data.usingDefault ? "Never published — showing the shipped default" : `Published ${when(data.publishedAt)}${data.publishedBy ? ` by ${data.publishedBy}` : ""}`}
+              {data.usingDefault ? "Never published - showing the shipped default" : `Published ${when(data.publishedAt)}${data.publishedBy ? ` by ${data.publishedBy}` : ""}`}
             </span>
           </div>
           <div className="hpm__col">
@@ -217,7 +217,7 @@ export default function HomepageManager() {
         <section className="ad__panel">
           <div className="ad__panelhead"><h2>Previous homepages <span className="ad__count">{data.revisions.length}</span></h2></div>
           <p className="ad__hintline">
-            Every publish saves the version it replaced. Restoring brings one back as a <b>draft</b> — you preview it and
+            Every publish saves the version it replaced. Restoring brings one back as a <b>draft</b> - you preview it and
             publish it deliberately, so a rollback is never an unpreviewed change.
           </p>
           <div className="ad__list">
@@ -246,7 +246,7 @@ export default function HomepageManager() {
         </div>
         <div className="ad__grid2" style={{ marginBottom: 14 }}>
           <label className="ad__field">
-            <span>Headline (the page&rsquo;s H1 — the last two words are highlighted)</span>
+            <span>Headline (the page&rsquo;s H1 - the last two words are highlighted)</span>
             <input value={draft.hero.title ?? ""} maxLength={120}
               onChange={(e) => setDraft((d) => normalizeConfig({ ...d, hero: { ...d.hero, title: e.target.value } }))} />
           </label>
@@ -257,7 +257,7 @@ export default function HomepageManager() {
           </label>
         </div>
         <p className="ad__hintline">
-          Leave this empty and the hero uses whatever is trending — it never goes stale, which is why it is the default.
+          Leave this empty and the hero uses whatever is trending - it never goes stale, which is why it is the default.
           Pick titles only when you want a specific look for a while. Up to 8.
         </p>
         <input className="ad__search" value={heroSearch} placeholder="Search your catalogue…"
@@ -283,7 +283,7 @@ export default function HomepageManager() {
           <h2>Sections <span className="ad__count">{visibleSections(draft).length} of {ALL_SECTIONS.length} on</span></h2>
         </div>
         <p className="ad__hintline">
-          The order here is the order on the page, top to bottom. The hero question and the picker above them are fixed —
+          The order here is the order on the page, top to bottom. The hero question and the picker above them are fixed -
           they are what the homepage is for.
         </p>
 

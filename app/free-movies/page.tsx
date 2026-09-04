@@ -71,7 +71,7 @@ export default async function FreeMoviesPage() {
         <h1>Watch Free Movies, Legally</h1>
         <p>
           Full classic films you can watch right here, right now. Every title on this page is in the
-          public domain or officially released for free viewing — no signup, no piracy, no catch.
+          public domain or officially released for free viewing - no signup, no piracy, no catch.
         </p>
       </div>
 
@@ -97,29 +97,29 @@ export default async function FreeMoviesPage() {
         <div className="empty">The free classics shelf is being stocked. Check back soon.</div>
       )}
 
-      {/* Plain-language legality explainer — builds visitor trust AND gives
+      {/* Plain-language legality explainer - builds visitor trust AND gives
           this page real, unique text content to rank on (thin pages of pure
           poster grids don't rank; a page that answers "how is this legal?"
           does). Keyword-bearing by design: "watch old Hindi movies online
           free", "classic Bollywood movies", "public domain", "legally". */}
       <section className="sec fm__explain">
-        <div className="sec__head"><h2>Watch classic Bollywood movies free — here&apos;s why these are free to stream</h2></div>
+        <div className="sec__head"><h2>Watch classic Bollywood movies free - here&apos;s why these are free to stream</h2></div>
         <p>
           In India, a film&apos;s copyright lasts <strong>60 years</strong>. That means the entire golden
-          age of Hindi cinema — Raj Kapoor and Nargis, Guru Dutt, Madhubala, Dilip Kumar, Dev Anand —
+          age of Hindi cinema - Raj Kapoor and Nargis, Guru Dutt, Madhubala, Dilip Kumar, Dev Anand -
           is now in the <strong>public domain</strong>: these films belong to everyone, and watching
           them free is every bit as legal as watching a trailer. No piracy, no shady mirrors, no
-          &quot;HD print leaked&quot; nonsense — just heritage cinema that has outlived its copyright.
+          &quot;HD print leaked&quot; nonsense - just heritage cinema that has outlived its copyright.
         </p>
         <p>
           The prints are preserved and streamed by the nonprofit{" "}
           <a href="https://archive.org" target="_blank" rel="noopener noreferrer">Internet Archive</a>{" "}
-          (and, for some titles, the rights holders&apos; own official YouTube channels) — we embed
+          (and, for some titles, the rights holders&apos; own official YouTube channels) - we embed
           their players directly, the same way any YouTube video embeds. Nothing is hosted on our
           servers, no one&apos;s rights are infringed, and you never pay a rupee or make an account.
         </p>
         <p>
-          Every film on this shelf is hand-checked by our editors before it appears — both that the
+          Every film on this shelf is hand-checked by our editors before it appears - both that the
           print actually plays and that the film is genuinely out of copyright. Spot a problem, or think
           a title isn&apos;t public domain in your region? <Link href="/contact">Contact us</Link> and
           we&apos;ll review it promptly.

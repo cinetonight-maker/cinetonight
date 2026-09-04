@@ -195,7 +195,7 @@ export default async function ArticlePage({ params }: Params) {
           {" · "}{b.date} · {b.read} read
         </div>
         <div className="article__img"><Image fill alt={b.imageAlt || b.title} src={image} sizes="(max-width: 900px) 100vw, 760px" priority /></div>
-        {/* Rendered by lib/markdown.ts — the SAME function the admin preview
+        {/* Rendered by lib/markdown.ts - the SAME function the admin preview
             uses, so what an author sees before publishing is what ships.
             That module escapes every "<" before parsing, so no raw HTML from
             the database can reach this page: the only tags here are ones

@@ -113,7 +113,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         url: `${base}/${r.slug}`, changeFrequency: "monthly" as const, priority: 0.4,
       }));
     }
-  } catch { /* pages table missing — skip */ }
+  } catch { /* pages table missing - skip */ }
 
   // Free Classics — the landing page plus every published watch page.
   const classicsList = await getClassics();

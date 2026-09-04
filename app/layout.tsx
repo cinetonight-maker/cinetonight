@@ -69,7 +69,12 @@ export async function generateMetadata(): Promise<Metadata> {
     // a dead localhost link instead of the real image. baseUrl() already
     // knows the Vercel deployment URL / custom domain once one is set.
     metadataBase: new URL(baseUrl()),
-    title: { default: s.siteTitle, template: `%s — ${shortName}` },
+    // A PIPE for the brand suffix, not a second hyphen. Page titles already
+    // use a hyphen inside them ("Hallam Foe (2007) - Cast, Trailer & Where to
+    // Watch"), so appending "- CineTonight" gave two identical separators in
+    // one line and the brand stopped reading as the brand. The pipe is the
+    // ordinary convention for this and keeps the two parts distinct.
+    title: { default: s.siteTitle, template: `%s | ${shortName}` },
     description: s.siteDescription,
     keywords: s.metaKeywords || undefined,
     openGraph: { title: s.siteTitle, description: s.siteDescription, type: "website" },
@@ -99,7 +104,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         // must keep caching a single variant of every page.
         className={process.env.NEXT_PUBLIC_V2_THEME === "1" ? "v2" : undefined}
         suppressHydrationWarning>
-        {/* Almost every image on the site comes from TMDB's CDN — opening
+        {/* Almost every image on the site comes from TMDB's CDN - opening
             the connection early shaves the TLS handshake off the first
             poster paint. (preconnect links are honored in <body>.) */}
         <link rel="preconnect" href="https://image.tmdb.org" crossOrigin="anonymous" />
@@ -127,7 +132,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           }}
         />
         {/* Organization entity: declares WHO runs this site (name, logo,
-            social profiles) — the sameAs links strengthen the brand's
+            social profiles) - the sameAs links strengthen the brand's
             entity graph, which is what AI search engines (Perplexity,
             Gemini, ChatGPT Search) use to recognize and cite a source. */}
         <script
@@ -167,7 +172,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             requests to /_vercel/... that 404'd THROUGH THE WORKER - two
             billable Worker invocations per visit for nothing, plus console
             errors on every page. GA4 below is the analytics stack. */}
-        {/* Google Analytics 4 — activates only when NEXT_PUBLIC_GA_ID is
+        {/* Google Analytics 4 - activates only when NEXT_PUBLIC_GA_ID is
             set (e.g. G-XXXXXXXXXX). GA4 complements Vercel Analytics with
             audience insight (countries, devices, acquisition channels,
             content performance over time) and is what ad/affiliate

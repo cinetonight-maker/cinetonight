@@ -113,7 +113,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({
         ok: true, draft, revalidated: null,
         dirty: settingsDirty(live, draft), problems: validateSettings(draft),
-        note: "Loaded as a draft. Nothing on the site has changed yet — publish when you are happy.",
+        note: "Loaded as a draft. Nothing on the site has changed yet - publish when you are happy.",
       });
     }
 
@@ -128,7 +128,7 @@ export async function PUT(request: Request) {
 
       try {
         await admin.from("settings_revisions").insert({
-          settings: live, author: actor, note: `replaced on publish — ${describeSettings(live)}`,
+          settings: live, author: actor, note: `replaced on publish - ${describeSettings(live)}`,
         });
       } catch { /* history is a nice-to-have; the publish is not */ }
 
@@ -148,7 +148,7 @@ export async function PUT(request: Request) {
         module: "settings", action: "settings",
         targetId: "site", targetLabel: "Site settings",
         before: live, after: draft, actor,
-        note: `Published — ${describeSettings(draft)}`,
+        note: `Published - ${describeSettings(draft)}`,
       });
 
       return NextResponse.json({ ok: true, live: draft, draft, dirty: false, problems, revalidated });

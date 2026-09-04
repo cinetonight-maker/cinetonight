@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
   const classic = await getClassic(slug);
   if (!classic) notFound();
-  const title = `Watch ${classic.title} (${classic.year}) Free Online — Full Movie, Legal`;
+  const title = `Watch ${classic.title} (${classic.year}) Free Online - Full Movie, Legal`;
   // Intent phrase first, snippet-capped — Google truncates ~160 chars.
   const description = metaDescription(`Watch ${classic.title} (${classic.year}) full movie free & legally. ${classic.desc}`);
   const url = `${baseUrl()}/free-movies/${classic.slug}`;
@@ -70,7 +70,7 @@ export default async function ClassicWatchPage({ params }: Params) {
     // report, so the field is dropped rather than patched.
     video: {
       "@type": "VideoObject",
-      name: `${classic.title} (${classic.year}) — Full Movie`,
+      name: `${classic.title} (${classic.year}) - Full Movie`,
       description: classic.desc,
       thumbnailUrl: posterUrl,
       embedUrl: classicEmbedUrl(classic),
@@ -96,15 +96,15 @@ export default async function ClassicWatchPage({ params }: Params) {
         <h1>{classic.title} <span className="fm__year">({classic.year})</span></h1>
         <p>
           {[classic.genre, classic.runtime, movie ? `★ ${movie.rating.toFixed(1)}` : null].filter(Boolean).join(" · ")}
-          {" · "}<span className="fm__legal"><Icon name="check" size={13} /> Free &amp; legal — public domain</span>
+          {" · "}<span className="fm__legal"><Icon name="check" size={13} /> Free &amp; legal - public domain</span>
         </p>
       </div>
 
-      {/* The player IS the page — 16:9, full width of the main column. */}
+      {/* The player IS the page - 16:9, full width of the main column. */}
       <div className="fmplayer">
         <iframe
           src={classicEmbedUrl(classic)}
-          title={`${classic.title} (${classic.year}) — full movie`}
+          title={`${classic.title} (${classic.year}) - full movie`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
           loading="lazy"
@@ -121,8 +121,8 @@ export default async function ClassicWatchPage({ params }: Params) {
             <p>{movie?.desc && movie.desc !== "No synopsis available yet." ? movie.desc : classic.desc}</p>
             <p className="fm__note">
               {classic.source.type === "archive"
-                ? "This film is in the public domain — its copyright has expired — and is streamed here via the nonprofit Internet Archive's player. "
-                : "This film is streamed here via its official YouTube upload — embedded exactly as the rights holder published it. "}
+                ? "This film is in the public domain - its copyright has expired - and is streamed here via the nonprofit Internet Archive's player. "
+                : "This film is streamed here via its official YouTube upload - embedded exactly as the rights holder published it. "}
               Watching it is completely free and completely legal.{" "}
               <Link href="/free-movies">How does that work?</Link>
             </p>

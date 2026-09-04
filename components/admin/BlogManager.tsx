@@ -216,7 +216,7 @@ export default function BlogManager() {
       return `“${d.cat}” is not one of your categories. Add it in Categories below, or pick an existing one.`;
     }
     if (d.status === "scheduled" && !d.publish_at) return "Pick the date and time this post should go live.";
-    if (publishing && !markdownToText(d.body).trim()) return "The article is empty — write something before publishing.";
+    if (publishing && !markdownToText(d.body).trim()) return "The article is empty - write something before publishing.";
     return null;
   };
 
@@ -270,7 +270,7 @@ export default function BlogManager() {
     setNote(
       next.status === "published" ? `Saved and published.${cache}`
       : next.status === "scheduled" ? `Saved. It goes live on ${new Date(next.publish_at!).toLocaleString()}.`
-      : "Saved as a draft — it is not on the site.",
+      : "Saved as a draft - it is not on the site.",
     );
     load();
   };
@@ -314,7 +314,7 @@ export default function BlogManager() {
     });
     if (!res.ok) { setErr(res.data.error ?? "Could not restore that version."); return; }
     if (res.data.post) startEdit(res.data.post);
-    setRevisions(null); setShowHistory(false); setNote("Restored. Nothing was lost — the previous text is in history.");
+    setRevisions(null); setShowHistory(false); setNote("Restored. Nothing was lost - the previous text is in history.");
     load();
   };
 
@@ -376,7 +376,7 @@ export default function BlogManager() {
             <div className="ad__notice">
               <div>
                 A newer autosaved draft exists{recovered.at ? ` from ${new Date(recovered.at).toLocaleString()}` : ""}.
-                It has not been published — you can load it or throw it away.
+                It has not been published - you can load it or throw it away.
               </div>
               <div className="ad__actions">
                 <button className="ad__mini" onClick={() => { setDraft((d) => ({ ...d, body: recovered.body })); setRecovered(null); }}>Load the draft</button>
@@ -405,10 +405,10 @@ export default function BlogManager() {
           )}
 
           <div className="ad__card ad__card--edit">
-            <label className="ad__field"><span>Featured image — 1200 × 675 (16:9) looks right everywhere</span></label>
+            <label className="ad__field"><span>Featured image - 1200 × 675 (16:9) looks right everywhere</span></label>
             <ImagePicker url={draft.image_url} label="Upload image" onChange={(url) => setDraft({ ...draft, image_url: url || null })} />
             <label className="ad__field" style={{ marginTop: 10 }}>
-              <span>Image description (alt text) — what the picture shows, in plain words</span>
+              <span>Image description (alt text) - what the picture shows, in plain words</span>
               <input value={draft.image_alt} placeholder="Reacher season 4 poster with Alan Ritchson"
                 onChange={(e) => setDraft({ ...draft, image_alt: e.target.value })} />
             </label>
@@ -433,7 +433,7 @@ export default function BlogManager() {
                 <input value={draft.date_label} onChange={(e) => setDraft({ ...draft, date_label: e.target.value })} /></label>
             </div>
 
-            <label className="ad__field"><span>Excerpt — the summary on cards and in Google</span>
+            <label className="ad__field"><span>Excerpt - the summary on cards and in Google</span>
               <textarea rows={2} value={draft.excerpt} onChange={(e) => setDraft({ ...draft, excerpt: e.target.value })} /></label>
 
             <label className="ad__field"><span>Article</span></label>
@@ -447,7 +447,7 @@ export default function BlogManager() {
             />
 
             <label className="ad__field" style={{ marginTop: 14 }}>
-              <span>Tags (comma separated) — used to suggest related posts</span>
+              <span>Tags (comma separated) - used to suggest related posts</span>
               <input value={draft.tags} placeholder="reacher, amazon prime, action"
                 onChange={(e) => setDraft({ ...draft, tags: e.target.value })} />
             </label>
@@ -465,7 +465,7 @@ export default function BlogManager() {
               </label>
             </div>
 
-            {/* Google preview — plain text, no network call, no tracking. */}
+            {/* Google preview - plain text, no network call, no tracking. */}
             <div className="ad__serp">
               <div className="ad__serpurl">cinetonight.com › blog › {draft.slug || slugify(draft.title) || "your-post"}</div>
               <div className="ad__serpt">{(draft.meta_title || draft.title || "Post title").slice(0, 60)}</div>
@@ -473,26 +473,26 @@ export default function BlogManager() {
             </div>
 
             <label className="ad__field">
-              <span>Author — who wrote this article</span>
+              <span>Author - who wrote this article</span>
               {/* Blank means the site's default author (lib/authors.ts), which
                   is what every post written before this field existed uses.
                   Stores the SLUG, so renaming a person never orphans a row. */}
               <select value={draft.author} onChange={(e) => setDraft({ ...draft, author: e.target.value })}>
                 <option value="">Default ({authorFor("").name})</option>
                 {AUTHORS.map((a) => (
-                  <option key={a.slug} value={a.slug}>{a.name} — {a.role}</option>
+                  <option key={a.slug} value={a.slug}>{a.name} - {a.role}</option>
                 ))}
               </select>
             </label>
 
             <div className="ad__grid2">
               <label className="ad__field">
-                <span>Focus keyword — the one phrase this article should rank for</span>
+                <span>Focus keyword - the one phrase this article should rank for</span>
                 <input value={draft.focus_keyword} placeholder="can't decide what to watch tonight"
                   onChange={(e) => setDraft({ ...draft, focus_keyword: e.target.value })} />
               </label>
               <label className="ad__field">
-                <span>Secondary keywords (comma separated) — supporting phrases</span>
+                <span>Secondary keywords (comma separated) - supporting phrases</span>
                 <input value={draft.secondary_keywords} placeholder="movies to watch tonight, movies based on mood"
                   onChange={(e) => setDraft({ ...draft, secondary_keywords: e.target.value })} />
               </label>
@@ -500,10 +500,10 @@ export default function BlogManager() {
 
             {/* THE PUBLISH CHECKLIST. Every house rule a machine can check,
                 checked here rather than left to memory. Warnings never block
-                a save — a checklist that refuses to publish is one people
+                a save - a checklist that refuses to publish is one people
                 learn to route around. */}
             <div className="ad__notice" style={{ marginTop: 4 }}>
-              <b>Publish checklist — {checklistSummary(checks)}</b>
+              <b>Publish checklist - {checklistSummary(checks)}</b>
               <div className="ad__list" style={{ marginTop: 8 }}>
                 {checks.map((c) => (
                   <div className="ad__row" key={c.id} style={{ alignItems: "flex-start" }}>
@@ -520,15 +520,15 @@ export default function BlogManager() {
             </div>
 
             <details className="ad__panel" style={{ marginTop: 4, padding: 12 }}>
-              <summary style={{ cursor: "pointer", fontWeight: 700 }}>Advanced SEO — you rarely need these</summary>
+              <summary style={{ cursor: "pointer", fontWeight: 700 }}>Advanced SEO - you rarely need these</summary>
               <div className="ad__grid2" style={{ marginTop: 12 }}>
                 <label className="ad__field">
-                  <span>Social share image — falls back to the featured image</span>
+                  <span>Social share image - falls back to the featured image</span>
                   <input value={draft.og_image} placeholder="https://…  (1200 × 630 works best)"
                     onChange={(e) => setDraft({ ...draft, og_image: e.target.value })} />
                 </label>
                 <label className="ad__field">
-                  <span>Canonical URL — leave blank unless this is a copy of an article published elsewhere</span>
+                  <span>Canonical URL - leave blank unless this is a copy of an article published elsewhere</span>
                   <input value={draft.canonical_url} placeholder="Blank = this article is the original"
                     onChange={(e) => setDraft({ ...draft, canonical_url: e.target.value })} />
                 </label>
@@ -541,8 +541,8 @@ export default function BlogManager() {
                     if (hide && !confirm("Hide this article from Google?\n\nIt stays readable to anyone with the link, but it will not appear in search results at all.")) return;
                     setDraft({ ...draft, noindex: hide });
                   }}>
-                  <option value="yes">Allow — the article can appear in search results</option>
-                  <option value="no">Hide — noindex, keep it out of search results</option>
+                  <option value="yes">Allow - the article can appear in search results</option>
+                  <option value="no">Hide - noindex, keep it out of search results</option>
                 </select>
               </label>
               <p className="ad__hintline">
@@ -556,9 +556,9 @@ export default function BlogManager() {
               <label className="ad__field">
                 <span>Status</span>
                 <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as BlogRow["status"] })}>
-                  <option value="draft">Draft — only you can see it</option>
-                  <option value="published">Published — live now</option>
-                  <option value="scheduled">Scheduled — goes live by itself</option>
+                  <option value="draft">Draft - only you can see it</option>
+                  <option value="published">Published - live now</option>
+                  <option value="scheduled">Scheduled - goes live by itself</option>
                 </select>
               </label>
               {draft.status === "scheduled" && (
@@ -586,7 +586,7 @@ export default function BlogManager() {
               {editing !== "new" && draft.slug && (
                 <>
                   {/* Preview reads straight from the database, so it is never
-                      stale — this is the honest answer to "did my save work?" */}
+                      stale - this is the honest answer to "did my save work?" */}
                   <a className="ad__btn" href={`/admin/preview/blog/${draft.slug}`} target="_blank" rel="noreferrer">Preview</a>
                   <a className="ad__btn" href={`/blog/${draft.slug}`} target="_blank" rel="noreferrer">View on site</a>
                 </>
@@ -595,7 +595,7 @@ export default function BlogManager() {
             </div>
             <p className="ad__hintline">
               Your save is stored the instant the button confirms it. The public page is cached for speed, so it can
-              take a few minutes to catch up — use <b>Preview</b> to see the true, current version straight away.
+              take a few minutes to catch up - use <b>Preview</b> to see the true, current version straight away.
             </p>
           </div>
         </section>
@@ -656,7 +656,7 @@ export default function BlogManager() {
               <button className="ad__mini ad__mini--x" onClick={() => removeCat(c)}>✕</button>
             </div>
           ))}
-          {!cats.length && <div className="ad__empty">No categories yet — add one below.</div>}
+          {!cats.length && <div className="ad__empty">No categories yet - add one below.</div>}
         </div>
         <div className="ad__actions" style={{ marginTop: 10 }}>
           <input value={newCat} placeholder="New category name" style={{ flex: 1 }}

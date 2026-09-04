@@ -279,8 +279,8 @@ export type SiteSettings = {
   social: Record<string, string>; maintenanceMode: boolean;
 };
 const FALLBACK_SETTINGS: SiteSettings = {
-  siteTitle: "CineTonight — What to Watch Tonight: Trailers & OTT Picks",
-  siteDescription: "Know what to watch tonight — trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
+  siteTitle: "CineTonight - What to Watch Tonight: Trailers & OTT Picks",
+  siteDescription: "Know what to watch tonight - trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
   metaKeywords: "",
   contactEmail: "officialcinetonight@gmail.com",
   social: {
@@ -335,7 +335,7 @@ export const creditsOf = (movies: Movie[], name: string) => movies.filter((m) =>
 
 /** Reviews are illustrative, not from TMDB. */
 export const REVIEWS: Review[] = [
-  { name: "Arjun M.", rating: 5, when: "2 days ago", text: "Exactly what I wanted from it — the theatre was howling one minute and dead silent the next.", up: 245, down: 12 },
+  { name: "Arjun M.", rating: 5, when: "2 days ago", text: "Exactly what I wanted from it - the theatre was howling one minute and dead silent the next.", up: 245, down: 12 },
   { name: "Neha V.", rating: 4, when: "5 days ago", text: "Second half is stronger than the first. The supporting cast quietly steals the whole film.", up: 178, down: 8 },
   { name: "Rohit S.", rating: 5, when: "1 week ago", text: "Worth watching with a full crowd. Technically superb and genuinely moving in places.", up: 152, down: 7 },
 ];

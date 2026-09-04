@@ -32,10 +32,10 @@ interface Data {
   supabase: boolean;
 }
 
-const n = (v: number | null | undefined) => (typeof v === "number" ? v.toLocaleString("en-US") : "—");
+const n = (v: number | null | undefined) => (typeof v === "number" ? v.toLocaleString("en-US") : "-");
 
 function when(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   const diff = Date.now() - d.getTime();
   const mins = Math.round(Math.abs(diff) / 60000);
@@ -269,7 +269,7 @@ export default function Overview() {
                       <span className="ovu__m">
                         {u.publish_at
                           ? new Date(u.publish_at).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
-                          : "—"}
+                          : "-"}
                         {" · "}{when(u.publish_at)}
                       </span>
                     </span>
@@ -335,7 +335,7 @@ export default function Overview() {
           <Health icon="tv" tone="teal" label="Media files"
             value={n(d.counts.media)} good={null} note="In the library" />
           <Health icon="check" tone="pink" label="Build"
-            value={d.build ? d.build.slice(0, 8) : "—"} good={null}
+            value={d.build ? d.build.slice(0, 8) : "-"} good={null}
             note={d.build ? "Running version" : "Not reported locally"} />
         </div>
       </section>

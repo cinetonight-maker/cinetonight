@@ -169,7 +169,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 {items.map((i) => {
                   const href = i.slug ? `/admin/${i.slug}` : "/admin";
                   const on = slug === i.slug;
-                  const title = i.planned ? `${i.label} — coming in this update` : i.label;
+                  const title = i.planned ? `${i.label} - coming in this update` : i.label;
                   return i.planned ? (
                     <span key={i.slug} className="adm__item adm__item--soon" title={title} aria-disabled="true">
                       <span className="adm__ico"><Icon name={i.icon} size={17} /></span>

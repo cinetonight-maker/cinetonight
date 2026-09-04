@@ -87,10 +87,10 @@ export default function SearchResults({
         <div className="empty">
           No titles match “{q}”.
           {s.source === "local" && (
-            <><br /><span style={{ fontSize: 13 }}>Live search is off — add TMDB_API_KEY to .env.local to search everything.</span></>
+            <><br /><span style={{ fontSize: 13 }}>Live search is off - add TMDB_API_KEY to .env.local to search everything.</span></>
           )}
           {/* V2 zero-result recovery: a dead end becomes three honest routes
-              onward (spec SEARCH_PAGE.md — "useful zero-result recovery to
+              onward (spec SEARCH_PAGE.md - "useful zero-result recovery to
               Finder, genres and catalogue"). */}
           {V2 && (
             <div className="v2s-recover">

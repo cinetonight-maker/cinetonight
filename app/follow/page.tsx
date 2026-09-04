@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getSiteSettings } from "@/lib/data";
 import { baseUrl } from "@/lib/site";
 
-const TITLE = "Follow CineTonight — Daily Picks, Trailers & OTT Updates";
+const TITLE = "Follow CineTonight - Daily Picks, Trailers & OTT Updates";
 const DESCRIPTION =
   "Follow CineTonight on Instagram, YouTube, TikTok, Facebook and Telegram for daily what-to-watch picks, trailers, Top 10s and new OTT release updates.";
 

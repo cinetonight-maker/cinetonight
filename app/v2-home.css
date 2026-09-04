@@ -10,30 +10,42 @@
    rating badge) so the hero is the site's own card design, fanned.
    ========================================================================== */
 
+/* THREE LAYERS, not one flat panel and not one hard sweep:
+   1. a warm bloom behind the poster fan, top right
+   2. a deeper red wash rising from the bottom left, under the headline
+   3. a base tilt from the page black through the panel to the card grey
+   Each is wide and low-contrast on purpose - the posters and the headline are
+   what should carry the eye, so this reads as depth rather than as a
+   coloured box. All three are token-driven, so the whole thing re-tints if
+   the accent ever changes. */
 .v2h{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:center;
-  margin:8px 0 40px;border:1px solid var(--line);border-radius:22px;background:var(--bg2);overflow:hidden}
+  margin:8px 0 40px;border:1px solid var(--line);border-radius:22px;overflow:hidden;
+  background:
+    radial-gradient(118% 132% at 76% 20%, rgba(var(--accent-rgb),.13) 0%, transparent 56%),
+    radial-gradient(104% 118% at 2% 98%, rgba(var(--accent-d-rgb),.24) 0%, transparent 60%),
+    linear-gradient(114deg, var(--bg) 0%, var(--bg2) 54%, var(--card) 100%)}
 .v2h-copy{position:relative;z-index:2;max-width:560px;padding:44px 8px 44px 40px}
 .v2h-h{font-family:var(--font-poppins),var(--font-inter),sans-serif;font-size:clamp(30px,4.2vw,46px);line-height:1.12;font-weight:700;letter-spacing:-.5px;margin:0}
-.v2h-hl{color:var(--purple2)}
+.v2h-hl{color:var(--accent2)}
 .v2h-sub{margin:16px 0 0;color:var(--muted);font-size:15px;line-height:1.6;max-width:46ch}
 .v2h-search{margin-top:22px;max-width:440px}
 .v2h-links{margin:16px 0 0;color:var(--muted);font-size:12.5px}
-.v2h-links a{color:var(--purple2);font-weight:600}
+.v2h-links a{color:var(--accent-link);font-weight:600}
 
 /* --- the fanned 3-card stack ------------------------------------------- */
 .v2h-art{position:relative;height:430px;display:flex;align-items:center;justify-content:center;min-width:0}
 .v2h-glow{position:absolute;width:380px;height:380px;border-radius:50%;
   background:radial-gradient(circle,var(--glow) 0%,transparent 68%);filter:blur(40px);pointer-events:none}
 .v2h-frame{position:relative;display:block;border-radius:14px;overflow:hidden;aspect-ratio:2/3;
-  border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.55),0 0 0 1px rgba(var(--purple-rgb),.05)}
+  border:1px solid var(--line);box-shadow:0 16px 34px rgba(0,0,0,.55),0 0 0 1px rgba(var(--accent-rgb),.05)}
 .v2h-frame img{object-fit:cover}
 .v2h-frame--front{border-radius:16px;border-color:rgba(255,255,255,.14);
-  box-shadow:0 26px 52px rgba(0,0,0,.6),0 0 48px rgba(var(--purple-rgb),.24)}
+  box-shadow:0 26px 52px rgba(0,0,0,.6),0 0 48px rgba(var(--accent-rgb),.24)}
 .v2h-scrim{position:absolute;inset:0;background:linear-gradient(0deg,rgba(6,8,11,.55) 0%,transparent 32%)}
 .v2h-score{position:absolute;top:8px;left:8px;display:inline-flex;align-items:center;gap:4px;
   background:rgba(6,8,11,.82);color:#ffcf4d;font-weight:600;font-size:11px;padding:3px 8px;border-radius:6px}
 .v2h-score--r{left:auto;right:10px;top:10px}
-.v2h-tag{position:absolute;top:10px;left:10px;background:var(--purple);color:#fff;
+.v2h-tag{position:absolute;top:10px;left:10px;background:var(--gold);color:var(--bg);
   font-weight:700;font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:6px}
 .v2h-side{position:absolute;top:50%;z-index:1;opacity:.8;width:176px;transition:opacity .15s}
 .v2h-side:hover{opacity:1}
@@ -52,18 +64,24 @@
 }
 
 /* --- How picks work (static, V2 only; canvas "How Picks Work") ---------- */
+/* Its own PANEL, not a hairline rule. This block sits between the Quick
+   Picks and the Trending rail, and a single border-top read as just another
+   gap between two content sections - so the explainer looked like it was part
+   of the rail below it. Boxing it (and tinting it faintly) makes it obviously
+   an aside about how the site works, not another shelf of titles. */
 .v2hp{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;
-  border-top:1px solid var(--line);margin:6px 0 40px;padding-top:32px}
-.v2hp-kicker{color:var(--purple2);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
+  margin:16px 0 44px;padding:30px 32px;border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(158deg, color-mix(in srgb, var(--accent-d) 9%, var(--card)) 0%, var(--card) 62%)}
+.v2hp-kicker{color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:0 0 12px}
 .v2hp-h{font-family:var(--font-poppins),var(--font-inter),sans-serif;font-size:26px;font-weight:700;margin:0 0 14px;max-width:360px;line-height:1.25}
 .v2hp-sub{font-size:13.5px;color:var(--muted);line-height:1.65;max-width:420px;margin:0 0 18px}
-.v2hp-link{font-size:13px;font-weight:600;color:var(--purple2)}
+.v2hp-link{font-size:13px;font-weight:600;color:var(--accent-link)}
 .v2hp-steps{display:flex;flex-direction:column;gap:22px}
 .v2hp-step{display:flex;gap:18px}
-.v2hp-n{font-family:var(--font-poppins),var(--font-inter),sans-serif;color:var(--purple2);font-size:17px;font-weight:700;width:26px;flex:none}
+.v2hp-n{font-family:var(--font-poppins),var(--font-inter),sans-serif;color:var(--accent-link);font-size:17px;font-weight:700;width:26px;flex:none}
 .v2hp-step strong{font-size:14.5px}
 .v2hp-step p{font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.55}
-@media (max-width:900px){.v2hp{grid-template-columns:1fr;gap:26px}}
+@media (max-width:900px){.v2hp{grid-template-columns:1fr;gap:26px;padding:24px 20px}}
 
 /* --- V2 chooser card ("Tell us how tonight should feel") ---------------- */
 .v2mc{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px 28px}
@@ -72,36 +90,64 @@
 .v2mc-reset{font-size:12.5px;color:var(--muted);border:1px solid var(--line);background:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-family:inherit}
 .v2mc-reset:hover{color:var(--txt);border-color:var(--muted2)}
 .v2mc-steps{display:flex;gap:22px;font-size:12px;color:var(--muted);margin-bottom:20px;flex-wrap:wrap}
-.v2mc-steps .on{color:var(--purple2);font-weight:700}
+.v2mc-steps .on{color:var(--accent2);font-weight:700}
 .v2mc-q{font-size:12.5px;color:var(--muted);margin:0 0 12px}
 .v2mc-q strong{color:var(--txt)}
 .v2mc-chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
 .v2mc-chip{padding:10px 18px;border-radius:999px;border:1px solid var(--line);background:var(--bg2);color:var(--txt);
   font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s}
-.v2mc-chip:hover{border-color:var(--purple)}
-.v2mc-chip.on,.v2mc-chip--surprise{background:var(--purple);border-color:var(--purple);color:#fff}
-.v2mc-chip--surprise:hover{background:var(--purple2);border-color:var(--purple2)}
-.v2mc-refine{border-top:1px solid var(--line);padding-top:18px;margin-bottom:20px}
+.v2mc-chip:hover{border-color:var(--accent)}
+.v2mc-chip.on,.v2mc-chip--surprise{background:var(--accent);border-color:var(--accent);color:#fff}
+.v2mc-chip--surprise:hover{background:var(--accent2);border-color:var(--accent2)}
+/* Refine your picks — collapsed by default. Six Quick Picks answer most
+   visits in one tap; this is the escape hatch, so it must not compete with
+   them for attention when it is shut. */
+.v2mc-refine{border-top:1px solid var(--line);padding-top:14px;margin-bottom:20px}
+.v2mc-refine__sum{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  padding:6px 0;cursor:pointer;font-size:13px;font-weight:700;color:var(--txt);
+  list-style:none;transition:color .16s}
+.v2mc-refine__sum::-webkit-details-marker{display:none}
+/* Own marker so the affordance survives the list-style reset above. */
+.v2mc-refine__sum::before{content:"";width:0;height:0;flex:none;align-self:center;
+  border-left:5px solid currentColor;border-top:4px solid transparent;border-bottom:4px solid transparent;
+  transition:transform .16s;transform-origin:25% 50%}
+.v2mc-refine[open] .v2mc-refine__sum::before{transform:rotate(90deg)}
+.v2mc-refine__sum:hover{color:var(--accent2)}
+.v2mc-refine__sum span{font-weight:400;font-size:11.5px;color:var(--muted)}
+.v2mc-refine__sum:focus-visible{outline:2px solid var(--accent2);outline-offset:3px;border-radius:6px}
+.v2mc-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:14px 0 4px}
+.v2mc-field{display:grid;gap:7px;align-content:start}
+.v2mc-field__l{font-size:11.5px;color:var(--muted)}
+.v2mc-select{height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg2);color:var(--txt);font:inherit;font-size:13px;cursor:pointer;
+  transition:border-color .16s}
+.v2mc-select:hover{border-color:color-mix(in srgb,var(--accent2) 55%,var(--line))}
+.v2mc-select:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
 .v2mc-kinds{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg2)}
 .v2mc-kind{padding:10px 18px;border:none;background:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
-.v2mc-kind.on{background:var(--purple);color:#fff}
+.v2mc-kind.on{background:var(--accent);color:#fff}
+/* One column on phones: three selects side by side would each be too narrow
+   to read their own option text. */
+@media(max-width:720px){
+  .v2mc-fields{grid-template-columns:1fr}
+}
 .v2mc-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
 .v2mc-note{font-size:12.5px;color:var(--muted);margin:0}
 .v2mc-note strong{color:var(--txt)}
 .v2mc-go{padding:13px 24px;border-radius:11px;border:none;cursor:pointer;font-family:inherit;
-  background:linear-gradient(96deg,var(--purple-d),var(--purple2));color:#fff;font-weight:600;font-size:14px}
+  background:linear-gradient(96deg,var(--accent-d),var(--accent2));color:#fff;font-weight:600;font-size:14px}
 .v2mc-go:hover{filter:brightness(1.08)}
 
 /* --- V2 "Your Pick for Tonight" panel ----------------------------------- */
 .v2pk{position:relative;border-radius:22px;overflow:hidden;border:1px solid var(--line);background:var(--card)}
 .v2pk-bg{position:absolute;inset:0;background-position:center 20%;background-size:cover;
   filter:blur(50px) brightness(.32) saturate(1.1);transform:scale(1.25)}
-.v2pk-tint{position:absolute;inset:0;background:linear-gradient(100deg,rgba(18,22,28,.92) 22%,rgba(var(--purple-d-rgb),.38) 60%,rgba(var(--purple-d-rgb),.2) 100%)}
+.v2pk-tint{position:absolute;inset:0;background:linear-gradient(100deg,rgba(18,22,28,.92) 22%,rgba(var(--accent-d-rgb),.22) 60%,rgba(var(--accent-d-rgb),.12) 100%)}
 .v2pk-grid{position:relative;display:grid;grid-template-columns:230px minmax(0,1fr) 300px;gap:30px;align-items:start;padding:32px}
 .v2pk-poster{position:relative;display:block;aspect-ratio:2/3;border-radius:14px;overflow:hidden;
-  border:1px solid rgba(255,255,255,.14);box-shadow:0 22px 55px rgba(0,0,0,.6),0 0 46px rgba(var(--purple-rgb),.16)}
+  border:1px solid rgba(255,255,255,.14);box-shadow:0 22px 55px rgba(0,0,0,.6),0 0 46px rgba(var(--accent-rgb),.16)}
 .v2pk-poster img{object-fit:cover}
-.v2pk-badge{position:absolute;top:10px;left:10px;background:var(--purple);color:#fff;font-size:10px;font-weight:700;
+.v2pk-badge{position:absolute;top:10px;left:10px;background:var(--gold);color:var(--bg);font-size:10px;font-weight:700;
   letter-spacing:.6px;text-transform:uppercase;padding:5px 11px;border-radius:6px}
 .v2pk-main{min-width:0}
 .v2pk-title{font-size:29px;font-weight:700;line-height:1.15;margin:0}
@@ -114,12 +160,15 @@
 .v2pk-desc{margin:14px 0 0;color:#e2dcdb;font-size:13.5px;line-height:1.65;max-width:52ch;
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .v2pk-why{margin-top:18px;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(6,8,11,.4)}
-.v2pk-whyh{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--purple2)}
+.v2pk-whyh{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--gold)}
 .v2pk-why p{margin:6px 0 0;font-size:13px;line-height:1.6;color:#efeae9}
-.v2pk-watch{margin-top:14px}
+/* Full-width band beneath the poster/main/aside columns - see the note in
+   PickStudio. Separated by a rule rather than a gap so it reads as part of
+   the same card, not a detached strip. */
+.v2pk-watch{grid-column:1/-1;margin-top:6px;padding-top:20px;border-top:1px solid rgba(255,255,255,.12)}
 .v2pk-acts{display:flex;align-items:center;gap:12px;margin-top:18px;flex-wrap:wrap}
 .v2pk-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:11px;font-weight:600;font-size:13.5px}
-.v2pk-btn--primary{background:linear-gradient(96deg,var(--purple-d),var(--purple2));color:#fff}
+.v2pk-btn--primary{background:linear-gradient(96deg,var(--accent-d),var(--accent2));color:#fff}
 .v2pk-btn--primary:hover{filter:brightness(1.08)}
 .v2pk-trailerbtn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font-family:inherit;
   font-size:13px;font-weight:600;color:#e6dfde;padding:12px 6px}
@@ -130,13 +179,13 @@
 .v2pk-altposter{position:relative;width:64px;aspect-ratio:2/3;border-radius:8px;overflow:hidden;flex:none;border:1px solid rgba(255,255,255,.14)}
 .v2pk-altposter img{object-fit:cover}
 .v2pk-altbody{min-width:0}
-.v2pk-altk{display:block;font-size:10.5px;color:var(--purple2);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
+.v2pk-altk{display:block;font-size:10.5px;color:var(--gold);font-weight:700;letter-spacing:.4px;text-transform:uppercase;margin-bottom:4px}
 .v2pk-altt{display:block;font-size:13.5px;font-weight:600;line-height:1.3;color:var(--txt)}
-.v2pk-alt:hover .v2pk-altt{color:var(--purple2)}
+.v2pk-alt:hover .v2pk-altt{color:var(--accent2)}
 .v2pk-altm{display:block;font-size:11.5px;color:var(--muted);margin-top:3px}
 .v2pk-again{margin-top:auto;padding:11px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:none;
   text-align:center;font-size:12.5px;font-weight:600;color:var(--txt);cursor:pointer;font-family:inherit}
-.v2pk-again:hover{border-color:var(--purple2);color:var(--purple2)}
+.v2pk-again:hover{border-color:var(--accent2);color:var(--accent2)}
 .v2pk-again:disabled{opacity:.5;cursor:default}
 @media (max-width:1080px){.v2pk-grid{grid-template-columns:200px minmax(0,1fr)}.v2pk-aside{grid-column:1/-1}}
 @media (max-width:760px){
@@ -149,24 +198,76 @@
 .v2g-feat{position:relative;display:flex;align-items:flex-end;border-radius:16px;overflow:hidden;border:1px solid var(--line);min-height:340px}
 .v2g-feat img{object-fit:cover}
 .v2g-scrim{position:absolute;inset:0;background:linear-gradient(0deg,var(--bg) 8%,rgba(6,8,11,.55) 45%,rgba(6,8,11,.1) 75%)}
-.v2g-flag{position:absolute;top:16px;left:16px;background:var(--purple);color:#fff;font-size:10.5px;font-weight:700;
+.v2g-flag{position:absolute;top:16px;left:16px;background:var(--gold);color:var(--bg);font-size:10.5px;font-weight:700;
   letter-spacing:.6px;text-transform:uppercase;padding:6px 12px;border-radius:6px}
 .v2g-featbody{position:relative;display:block;padding:26px 28px}
-.v2g-kicker{display:block;color:var(--purple2);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.v2g-kicker{display:block;color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
 .v2g-featt{display:block;font-family:var(--font-poppins),var(--font-inter),sans-serif;font-size:23px;font-weight:700;line-height:1.28;margin-bottom:12px;max-width:26ch;color:var(--txt)}
 .v2g-featx{display:block;font-size:13.5px;color:#dcd6d5;line-height:1.6;margin-bottom:16px;max-width:40ch;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .v2g-featmeta{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--muted)}
-.v2g-read{font-size:13px;font-weight:600;color:var(--purple2)}
+.v2g-read{font-size:13px;font-weight:600;color:var(--accent-link)}
+/* The rows STRETCH to finish level with the featured cover beside them.
+   Three fixed-height rows against a 340px card left the right-hand column
+   visibly short, so the section ended on a ragged edge - the main reason
+   this block read as unfinished next to the tidy grids around it. */
 .v2g-list{display:flex;flex-direction:column;gap:12px}
-.v2g-row{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:flex;align-items:center;gap:16px}
-.v2g-row:hover{border-color:var(--purple)}
-.v2g-n{width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;
-  font-family:var(--font-poppins),var(--font-inter),sans-serif;font-weight:700;font-size:13px;color:var(--purple2);border:1px solid var(--line)}
+.v2g-row{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:16px 18px;display:flex;align-items:center;gap:16px;
+  transition:border-color .16s,background .16s,transform .16s}
+.v2g-row:hover{border-color:var(--accent);background:var(--card2);transform:translateX(3px)}
+.v2g-row:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+/* Each guide's own cover, replacing the old 01/02/03 badge. */
+.v2g-thumb{position:relative;width:88px;align-self:stretch;min-height:72px;flex:none;
+  border-radius:11px;overflow:hidden;border:1px solid var(--line);background:var(--card2)}
+.v2g-thumb img{object-fit:cover}
 .v2g-rowbody{flex:1;min-width:0}
 .v2g-rowbody .v2g-kicker{font-size:10.5px;letter-spacing:.5px;margin-bottom:0}
 .v2g-rowt{display:block;font-size:14px;font-weight:600;margin:5px 0 0;line-height:1.35;color:var(--txt)}
 .v2g-rowm{display:block;font-size:11.5px;color:var(--muted2);margin-top:3px}
-.v2g-arrow{color:var(--purple2);font-size:15px;flex:none}
-@media (max-width:900px){.v2g{grid-template-columns:1fr}.v2g-feat{min-height:280px}}
-@media (max-width:600px){.v2mc-steps{flex-direction:column;gap:7px}}
+.v2g-arrow{color:var(--accent-link);font-size:15px;flex:none}
+@media (max-width:900px){
+  .v2g{grid-template-columns:1fr}
+  .v2g-feat{min-height:280px}
+  /* Stacked, the rows have no cover to match heights with, so let them sit
+     at their natural size again instead of stretching. */
+  .v2g-row{flex:0 0 auto}
+}
+@media (max-width:480px){
+  .v2g-thumb{width:64px;min-height:64px}
+  .v2g-row{padding:14px}
+}
+@media (max-width:600px){
+  .v2mc-steps{flex-direction:column;gap:7px}
+  /* 56px of side padding on a 360px screen left the chips barely two across
+     and pushed the fields into a very tall column. */
+  .v2mc{padding:18px 16px;border-radius:14px}
+  .v2mc-h{font-size:17px}
+  .v2mc-head{margin-bottom:12px}
+  .v2mc-steps{margin-bottom:16px}
+  .v2mc-chips{gap:8px;margin-bottom:18px}
+  .v2mc-chip{padding:8px 13px;font-size:12.5px}
+  /* Was inline-flex at a fixed 18px padding per button: three of those
+     overflowed the card on a narrow phone. Thirds of the width instead. */
+  .v2mc-kinds{display:grid;grid-template-columns:repeat(3,1fr);width:100%}
+  .v2mc-kind{padding:11px 4px;font-size:12.5px;text-align:center}
+  .v2mc-refine__sum span{flex-basis:100%}
+  .v2mc-foot{gap:12px}
+  .v2mc-go{width:100%;text-align:center}
+}
+
+/* --- keyboard focus ------------------------------------------------------
+   Nine interactive elements in the V2 homepage had no focus style at all, so
+   anyone driving the page from the keyboard could not see where they were.
+   The V1 controls (.qpick, .moodtile, .svc) already did this; these were
+   simply missed when the V2 modules were written. One shared rule. */
+.v2mc-chip:focus-visible,
+.v2mc-kind:focus-visible,
+.v2mc-reset:focus-visible,
+.v2mc-go:focus-visible,
+.v2pk-alt:focus-visible,
+.v2pk-again:focus-visible,
+.v2pk-btn:focus-visible,
+.v2h-front:focus-visible,
+.v2h-side:focus-visible{outline:2px solid var(--accent2);outline-offset:3px;border-radius:10px}
+.v2h-side:focus-visible,.v2h-front:focus-visible{opacity:1}

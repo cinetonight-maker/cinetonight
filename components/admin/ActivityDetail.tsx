@@ -40,7 +40,7 @@ const ACTION: Record<string, { label: string; tone: string }> = {
 };
 
 const val = (v: unknown) =>
-  v === null || v === undefined || v === "" ? "—" : typeof v === "string" ? v : JSON.stringify(v);
+  v === null || v === undefined || v === "" ? "-" : typeof v === "string" ? v : JSON.stringify(v);
 
 function ago(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -94,7 +94,7 @@ export default function ActivityDetail({ id }: { id: string }) {
         <div className="audd__head">
           <span className={`ovs__ico ovs__ico--${a.tone} audd__ico`}><Icon name="check" size={18} /></span>
           <div className="audd__headtxt">
-            <h2 className="audd__title">{a.label} — {entry.target_label ?? "(untitled)"}</h2>
+            <h2 className="audd__title">{a.label} - {entry.target_label ?? "(untitled)"}</h2>
             <p className="audd__sub">{entry.note ?? "No further detail was recorded."}</p>
           </div>
         </div>
@@ -110,7 +110,7 @@ export default function ActivityDetail({ id }: { id: string }) {
             })}
             hint={ago(entry.created_at)}
           />
-          <Fact label="Item" value={entry.target_label ?? "—"} hint={entry.target_id ?? "no id recorded"} />
+          <Fact label="Item" value={entry.target_label ?? "-"} hint={entry.target_id ?? "no id recorded"} />
           <Fact label="Entry" value={entry.id.slice(0, 8)} hint="Audit entry id" />
         </div>
       </section>
@@ -121,7 +121,7 @@ export default function ActivityDetail({ id }: { id: string }) {
         {rollback ? (
           <div className={`ad__notice${rollback.available ? "" : " ad__notice--warn"}`}>
             <div>
-              <b>{rollback.available ? "Yes — a saved version exists." : "No."}</b> {rollback.reason}
+              <b>{rollback.available ? "Yes - a saved version exists." : "No."}</b> {rollback.reason}
             </div>
             {rollback.available && rollback.editorHref && (
               <>
@@ -171,7 +171,7 @@ export default function ActivityDetail({ id }: { id: string }) {
 
         <p className="aud__foot">
           Long text is recorded as a size and a fingerprint (<code>&lt;5,000 chars · 4dda656d&gt;</code>) rather than a
-          second copy — the fingerprint changes whenever the text does, so an edit that kept the same length is still
+          second copy - the fingerprint changes whenever the text does, so an edit that kept the same length is still
           visible here. The full version lives in that item&rsquo;s History, which is what a rollback reads.
         </p>
       </section>

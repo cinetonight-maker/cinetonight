@@ -29,7 +29,7 @@ export default async function PagePreview({ params }: { params: Promise<{ slug: 
     <div className="ad__body ad__body--one">
       <div className="ad__notice">
         <div>
-          <b>Preview</b> — this is the real content from the database, right now.
+          <b>Preview</b> - this is the real content from the database, right now.
           {data.deleted_at
             ? " This page is in Trash, so it is not on the site."
             : live

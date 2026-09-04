@@ -41,7 +41,7 @@ export const CHANNELS: Channel[] = [
   { slug: "netflix", name: "Netflix", providerId: 8, color: "#e50914", desc: "Trending movies & series streaming on Netflix", logoFile: "netflix.svg" },
   { slug: "prime-video", name: "Prime Video", providerId: 119, color: "#00a8e1", desc: "What's hot on Amazon Prime Video right now", logoFile: "prime-video.svg" },
   { slug: "jiohotstar", name: "JioHotstar", providerId: 2336, color: "#1f80e0", desc: "Blockbusters, live-event tie-ins & originals on JioHotstar", logoFile: "jiohotstar.svg" },
-  { slug: "apple-tv", name: "Apple TV+", providerId: 350, color: "#a9aab0", desc: "Apple Originals — prestige series & films", logoFile: "apple-tv.svg", logoInvert: true },
+  { slug: "apple-tv", name: "Apple TV+", providerId: 350, color: "#a9aab0", desc: "Apple Originals - prestige series & films", logoFile: "apple-tv.svg", logoInvert: true },
   { slug: "zee5", name: "ZEE5", providerId: 232, color: "#8230c6", desc: "Desi originals, movies & serials on ZEE5", logoFile: "zee5.png" },
   { slug: "sony-liv", name: "Sony LIV", providerId: 237, color: "#f2b101", desc: "Sony LIV originals, movies & sports dramas", logoFile: "sony-liv.svg" },
   { slug: "crunchyroll", name: "Crunchyroll", providerId: 283, color: "#f47521", desc: "The biggest anime library on the planet", logoFile: "crunchyroll.svg" },

@@ -133,7 +133,7 @@ export function validateRule(input: {
 
   if (!to) {
     errors.push(
-      "The new address is not a valid internal path. Only addresses on this site are allowed — " +
+      "The new address is not a valid internal path. Only addresses on this site are allowed - " +
       "sending visitors to another domain would hand it your traffic and your ranking.",
     );
   }
@@ -212,7 +212,7 @@ export function planRuleWrite(
   if (settled === from) {
     return {
       ok: false, rewrites: [],
-      errors: ["That would create a redirect loop — the new address leads back here."],
+      errors: ["That would create a redirect loop - the new address leads back here."],
     };
   }
 
@@ -341,7 +341,7 @@ export function parseBulk(text: string, reason: RedirectReason = "migration"): B
       return;
     }
     if (seen.has(v.from!)) {
-      out.push({ line, raw: trimmed, ok: false, error: `Duplicate — ${v.from} appears earlier in this list.` });
+      out.push({ line, raw: trimmed, ok: false, error: `Duplicate - ${v.from} appears earlier in this list.` });
       return;
     }
     seen.add(v.from!);

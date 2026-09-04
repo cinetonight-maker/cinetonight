@@ -49,5 +49,15 @@
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["DOQueueHandler"] }
-  ]
+  ],
+
+  // Enabled 3 Sep 2026 from the dashboard (Workers > Observability) after the
+  // bot-crawl cost spike, so future spikes show exact paths/status codes
+  // instead of relying on sampled Security Analytics logs.
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
+  }
 }

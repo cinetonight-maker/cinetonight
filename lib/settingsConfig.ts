@@ -34,8 +34,8 @@ export const SOCIAL_LABEL: Record<SocialKey, string> = {
 };
 
 export const DEFAULTS: SiteSettingsConfig = {
-  siteTitle: "CineTonight — What to Watch Tonight: Trailers & OTT Picks",
-  siteDescription: "Know what to watch tonight — trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
+  siteTitle: "CineTonight - What to Watch Tonight: Trailers & OTT Picks",
+  siteDescription: "Know what to watch tonight - trailers, ratings, OTT release updates and where to legally stream movies, web series, K-Drama & anime.",
   metaKeywords: "",
   contactEmail: "officialcinetonight@gmail.com",
   social: {},
@@ -76,7 +76,7 @@ export function normalizeSettings(raw: unknown): SiteSettingsConfig {
 /** What would look wrong to a visitor or to Google. */
 export function validateSettings(s: SiteSettingsConfig): string[] {
   const out: string[] = [];
-  if (s.siteTitle.length < 10) out.push("The site title is very short — Google shows it on every page.");
+  if (s.siteTitle.length < 10) out.push("The site title is very short - Google shows it on every page.");
   if (s.siteDescription.length < 50) out.push("The site description is very short. Aim for 120–160 characters.");
   if (s.contactEmail && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s.contactEmail)) out.push("That contact email does not look like an email address.");
   return out;

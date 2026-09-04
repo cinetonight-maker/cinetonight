@@ -4,16 +4,17 @@
  * 06_Design_References/V2_Design_Canvas_Mockup/).
  *
  * HOW IT WORKS: app/globals.css defines the whole UI against custom
- * properties (--bg, --card, --purple, --purple2, --purple-d, their -rgb
+ * properties (--bg, --card, --accent, --accent2, --accent-d, their -rgb
  * channels, --glow...). This file re-points those tokens on `body.v2`, so
  * every button, badge, gradient and glow follows with zero per-component
  * edits. The class is added at BUILD TIME in app/layout.tsx when
  * NEXT_PUBLIC_V2_THEME=1 — never per-visitor, so ISR keeps caching exactly
  * one variant of each page and no cache key changes.
  *
- * "--purple" naming stays even though the value is red: renaming the token
- * would touch every rule in globals.css for no behavioral gain. The launch
- * flips an env var; rollback is redeploying the previous Worker version.
+ * The launch flips an env var; rollback is redeploying the previous Worker
+ * version. Token names were renamed off the old --purple* naming (2 Sep
+ * 2026 cleanup) purely for clarity now that the value is red in both
+ * themes' active state -- values are unchanged, this was rename-only.
  * ========================================================================= */
 body.v2 {
   /* surfaces */
@@ -26,15 +27,22 @@ body.v2 {
   --txt: #f2efe9;
   --muted: #9a9ea5;
   --muted2: #6b6f76;
-  /* the decisive red (token names kept from the purple era — see header) */
-  --purple: #e2182b;
-  --purple2: #ff3b48;
-  --purple-d: #8f1220;
-  --purple-rgb: 226, 24, 43;
-  --purple2-rgb: 255, 59, 72;
-  --purple-d-rgb: 143, 18, 32;
-  --glow: rgba(226, 24, 43, 0.45);
+  /* the decisive red */
+  --accent: #e2182b;
+  --accent2: #ff3b48;
+  --accent-d: #8f1220;
+  /* TYPE ONLY. --accent-d is a fill and a border; as text on these dark
+     panels it measures about 2:1 against the card background, which is
+     unreadable (WCAG wants 4.5:1 for body text). This is the readable brand
+     red: ~5.4:1 on --card, and deliberately softer than --accent2 so links
+     and labels stop shouting the way they did before the red was toned
+     down. Never use --accent-d for text. */
+  --accent-link: #ec5a63;
+  --accent-rgb: 226, 24, 43;
+  --accent2-rgb: 255, 59, 72;
+  --accent-d-rgb: 143, 18, 32;
+  --glow: rgba(226, 24, 43, 0.24);
   /* V2 accent roles used by the new movie/series template modules */
-  --gold: #ffcf4d;   /* rating badges — never for actions */
+  --gold: #ffcf4d;   /* rating badges - never for actions */
   --green: #7ed08a;  /* verified availability / positive states only */
 }

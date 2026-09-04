@@ -103,10 +103,10 @@ export default function Header() {
       </Link>
     </header>
 
-    {/* Mobile nav drawer — rendered as a SIBLING of <header>, not inside it.
+    {/* Mobile nav drawer - rendered as a SIBLING of <header>, not inside it.
         <header> has backdrop-filter (for the frosted-glass effect), and
         backdrop-filter/filter/transform on an ancestor creates a new
-        containing block for position:fixed descendants — so a fixed drawer
+        containing block for position:fixed descendants - so a fixed drawer
         nested inside <header> gets sized relative to the header's own
         ~70px-tall box instead of the viewport, squashing it into a sliver
         instead of a full-height panel. Keeping it outside avoids that.

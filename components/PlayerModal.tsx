@@ -67,13 +67,13 @@ export default function PlayerModal() {
   return (
     <div className={`pmodal${s.open ? " open" : ""}`} onClick={close}>
       <div className="pmodal__box" onClick={(e) => e.stopPropagation()}>
-        {/* A full-bleed player reads better than a small letterboxed card —
+        {/* A full-bleed player reads better than a small letterboxed card -
             the title used to live in a persistent top bar, which on a
             laptop screen left the video itself noticeably smaller than the
             window. It's now an aria-label on the close button (still
             announced to screen readers) instead of a bar that eats space
             from the video on every screen size. */}
-        <button className="pmodal__x" onClick={close} aria-label={`Close ${label}${s.title ? ` — ${s.title}` : ""}`}>
+        <button className="pmodal__x" onClick={close} aria-label={`Close ${label}${s.title ? ` - ${s.title}` : ""}`}>
           <Icon name="x" size={20} />
         </button>
 

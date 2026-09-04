@@ -108,7 +108,7 @@ export async function runPlan(plan: RevalidationPlan): Promise<RevalidationResul
     cdn,
     detail:
       cdn === "purged" ? "Cache cleared for the changed pages."
-      : cdn === "not-configured" ? "Pages refreshed. The CDN edge copy will catch up on its own — set CACHE_PURGE_ZONE_ID and CACHE_PURGE_API_TOKEN to clear it instantly."
+      : cdn === "not-configured" ? "Pages refreshed. The CDN edge copy will catch up on its own - set CACHE_PURGE_ZONE_ID and CACHE_PURGE_API_TOKEN to clear it instantly."
       : cdn === "failed" ? "Pages refreshed, but the CDN purge did not go through."
       : "Pages refreshed.",
   };

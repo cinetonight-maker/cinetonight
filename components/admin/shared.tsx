@@ -79,7 +79,7 @@ export function ImagePicker({ url, onChange, label }: { url: string | null | und
         <div className="ad__panel" style={{ marginTop: 10, padding: 12 }}>
           {libraryErr && <div className="ad__err">{libraryErr}</div>}
           {!library && !libraryErr && <div className="empty">Loading…</div>}
-          {library && !library.length && <div className="ad__empty">Nothing uploaded yet — use “{label}” to add your first image.</div>}
+          {library && !library.length && <div className="ad__empty">Nothing uploaded yet - use “{label}” to add your first image.</div>}
           {library && library.length > 0 && (
             <div className="ad__picker ad__picker--sm">
               {library.map((m) => (
@@ -115,7 +115,7 @@ export function cacheNote(rev: Revalidated): string {
   if (rev.cdn === "purged") return " The live page is updated now.";
   // not-configured / failed / skipped: the pages were refreshed, but the CDN
   // copy expires on its own schedule.
-  return " Cache refresh is catching up — the live page may take a few minutes.";
+  return " Cache refresh is catching up - the live page may take a few minutes.";
 }
 
 /** What the SITE currently does with a post — matches lib/data.ts, which shows

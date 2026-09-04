@@ -3,6 +3,7 @@ import Image from "next/image";
 import SearchBox from "../SearchBox";
 import HeroActions from "./HeroActions";
 import { poster } from "@/lib/images";
+import { displayRuntime } from "@/lib/quality";
 import type { Movie } from "@/lib/types";
 
 /** V2 homepage hero (docs/V2-BUILD-PATH.md Phase 5, canvas Main/Mobile).
@@ -29,7 +30,10 @@ function highlightTail(text: string) {
 }
 
 function meta(m: Movie): string {
-  return [m.year > 0 ? String(m.year) : null, m.genres[0] ?? null, m.runtime || null]
+  // displayRuntime, not `m.runtime ||`: hero art comes from the trending LIST
+  // endpoint, which carries no runtime, so every title arrives holding the
+  // placeholder "—" - a truthy string that printed a bare dash into this line.
+  return [m.year > 0 ? String(m.year) : null, m.genres[0] ?? null, displayRuntime(m.runtime)]
     .filter(Boolean).join(" · ");
 }
 
@@ -74,7 +78,7 @@ export default function HomeHeroV2({ posters, title, sub, badge }: {
               <span className="v2h-frame">
                 <Image fill alt="" src={poster(left, "w342")} sizes="(max-width: 900px) 26vw, 176px" />
                 <span className="v2h-scrim" aria-hidden="true" />
-                {left.rating > 0 && <span className="v2h-score">★ {left.rating.toFixed(1)}</span>}
+                {left.rating > 0 && <span className="v2h-score"><span aria-hidden="true">★</span> {left.rating.toFixed(1)}<span className="sr-only"> rating out of 10</span></span>}
               </span>
             </Link>
           )}
@@ -83,16 +87,19 @@ export default function HomeHeroV2({ posters, title, sub, badge }: {
               <span className="v2h-frame">
                 <Image fill alt="" src={poster(right, "w342")} sizes="(max-width: 900px) 26vw, 176px" />
                 <span className="v2h-scrim" aria-hidden="true" />
-                {right.rating > 0 && <span className="v2h-score">★ {right.rating.toFixed(1)}</span>}
+                {right.rating > 0 && <span className="v2h-score"><span aria-hidden="true">★</span> {right.rating.toFixed(1)}<span className="sr-only"> rating out of 10</span></span>}
               </span>
             </Link>
           )}
-          <Link className="v2h-front" href={`/movie/${front.id}`}>
+          {/* The two side posters carry aria-label; this one did not, so the
+              biggest link in the hero announced itself as its badge and its
+              rating ("Trending Now 8.6") instead of the film it opens. */}
+          <Link className="v2h-front" href={`/movie/${front.id}`} aria-label={front.title}>
             <span className="v2h-frame v2h-frame--front">
               <Image fill alt="" src={poster(front, "w342")} sizes="(max-width: 900px) 34vw, 220px" priority />
               <span className="v2h-scrim" aria-hidden="true" />
               <span className="v2h-tag">{badge}</span>
-              {front.rating > 0 && <span className="v2h-score v2h-score--r">★ {front.rating.toFixed(1)}</span>}
+              {front.rating > 0 && <span className="v2h-score v2h-score--r"><span aria-hidden="true">★</span> {front.rating.toFixed(1)}<span className="sr-only"> rating out of 10</span></span>}
             </span>
             <span className="v2h-cap">
               <span className="v2h-cap-t">{front.title}</span>

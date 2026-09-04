@@ -205,7 +205,7 @@ export default async function PersonPage({ params }: Params) {
           <div className="person__ph"><Image fill alt={p.name} src={profile(p)} sizes="220px" priority /></div>
           <div>
             <h1 className="person__n">{p.name}</h1>
-            {p.character && p.character !== "—" && <div className="person__role">Known for playing {p.character}</div>}
+            {p.character && p.character !== "-" && <div className="person__role">Known for playing {p.character}</div>}
             <div className="person__facts">
               <div><b>{credits.length}</b>Title{credits.length === 1 ? "" : "s"} here</div>
               {years.length > 0 && <div><b>{Math.min(...years)}</b>Earliest</div>}
@@ -241,8 +241,8 @@ export default async function PersonPage({ params }: Params) {
           </p>
           <div className="person__facts">
             <div><b>{credits.length}</b>Titles</div>
-            <div><b>{years.length ? Math.min(...years) : "—"}</b>Earliest</div>
-            <div><b>{avg ?? "—"}</b>Avg. rating</div>
+            <div><b>{years.length ? Math.min(...years) : "-"}</b>Earliest</div>
+            <div><b>{avg ?? "-"}</b>Avg. rating</div>
           </div>
         </div>
       </div>

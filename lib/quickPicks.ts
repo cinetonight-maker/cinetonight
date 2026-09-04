@@ -79,10 +79,23 @@ export const moodById = (id: string) => ALL_MOODS.find((m) => m.id === id);
 
 /** The factual explanation shown under a recommendation.
  *
- *  Built ONLY from criteria the user actually chose plus values we actually
- *  have for the title. It never claims how the film was received, how good it
- *  is, or how audiences reacted - see docs and the site's content rules. If
- *  nothing was selected, it says so plainly rather than inventing a reason. */
+ *  THE RULE HAS NOT CHANGED: every clause is built ONLY from criteria the
+ *  visitor actually chose plus values we actually hold for the title. It
+ *  never says how the film was received, how good it is, or how audiences
+ *  reacted.
+ *
+ *  WHAT CHANGED (2 Sep 2026) is that it now says something. The old line -
+ *  "Matched because you asked for your happy mood." - restated the button the
+ *  visitor had just pressed and told them nothing they did not already know,
+ *  which is why it read as filler. The interesting part was sitting unused in
+ *  lib/moods.ts: "Happy" is a real query for comedy, family, music, adventure
+ *  and animation with horror, crime, war and thrillers excluded. Naming the
+ *  genres this title actually matched on turns the box from a receipt into an
+ *  explanation - and explaining the pick honestly is the thing this site is
+ *  supposed to be better at than a streaming grid.
+ *
+ *  It degrades safely: with no title genres it describes the mood's own
+ *  genres, and with nothing selected at all it says so plainly. */
 export function whyItFits(opts: {
   quickPick?: QuickPick;
   mood?: Mood;
@@ -90,24 +103,69 @@ export function whyItFits(opts: {
   maxRuntime?: number;
   minRating?: number;
   titleRating?: number;
+  /** The genres THIS title carries, used to name the actual overlap with the
+   *  mood. Never used to claim a match that did not happen. */
+  titleGenres?: string[];
 }): string {
-  const parts: string[] = [];
-  if (opts.quickPick) parts.push(...opts.quickPick.criteria);
-  if (opts.mood && opts.mood.genres.length) parts.push(`your ${opts.mood.label.toLowerCase()} mood`);
-  if (opts.kind === "movie") parts.push("films only");
-  if (opts.kind === "series") parts.push("series only");
-  if (opts.maxRuntime && !opts.quickPick?.maxRuntime) parts.push(`under ${opts.maxRuntime} minutes`);
-  if (opts.minRating && !opts.quickPick?.minRating) parts.push(`rated ${opts.minRating} or higher`);
+  const list = (items: string[]): string =>
+    items.length <= 1
+      ? (items[0] ?? "")
+      : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 
-  const unique = Array.from(new Set(parts));
-  if (!unique.length) {
-    return "Picked from what is popular right now. Choose a mood or a Quick Pick above to narrow it down.";
-  }
-  const list = unique.length === 1
-    ? unique[0]
-    : `${unique.slice(0, -1).join(", ")} and ${unique[unique.length - 1]}`;
+  /** Long exclusion sets (Stressed rules out six genres) would swamp the
+   *  sentence, so they are capped. "and more" is vague but true; naming four
+   *  and pretending that is all would not be. */
+  const capped = (items: string[], max = 4): string =>
+    // Comma-join before "and more" - routing it through list() produced
+    // "horror, thriller, crime and war and more", with two ands in a row.
+    items.length > max ? `${items.slice(0, max).join(", ")} and more` : list(items);
+
+  const lower = (g: string[]) => g.map((x) => x.toLowerCase());
   const score = opts.titleRating && opts.titleRating > 0
     ? ` It scores ${opts.titleRating.toFixed(1)} on TMDB.`
     : "";
-  return `Matched because you asked for ${list}.${score}`;
+
+  /* ---- nothing selected -------------------------------------------- */
+  if (!opts.quickPick && !(opts.mood && opts.mood.genres.length)
+      && !opts.maxRuntime && !opts.minRating && (!opts.kind || opts.kind === "any")) {
+    // The first line every visitor reads, now that the recommendation sits at
+    // the top of the page. It leads with the real reason this title is here -
+    // being among the most watched is a genuine reason to care - and puts the
+    // absence of filters second, rather than opening on what we have not done.
+    return `Picked from what most people are watching right now - nothing narrowed down yet.${score} Tell us how tonight should feel below and this line will explain the exact match.`;
+  }
+
+  /* ---- the extra constraints, shared by both paths ------------------ */
+  const extras: string[] = [];
+  // Suppressed when the Quick Pick already restricts the kind - "a film under
+  // 90 minutes, films only" said the same thing twice.
+  if (opts.kind === "movie" && opts.quickPick?.kind !== "movie") extras.push("films only");
+  if (opts.kind === "series" && opts.quickPick?.kind !== "series") extras.push("series only");
+  if (opts.maxRuntime && !opts.quickPick?.maxRuntime) extras.push(`under ${opts.maxRuntime} minutes`);
+  if (opts.minRating && !opts.quickPick?.minRating) extras.push(`rated ${opts.minRating} or higher`);
+
+  /* ---- a mood was chosen -------------------------------------------- */
+  if (opts.mood && opts.mood.genres.length) {
+    const moodGenres = lower(opts.mood.genres);
+    const excludes = lower(opts.mood.exclude ?? []);
+    const matched = lower(
+      (opts.titleGenres ?? []).filter((g) =>
+        opts.mood!.genres.some((mg) => mg.toLowerCase() === g.toLowerCase())),
+    );
+    const ruled = excludes.length ? `, with ${capped(excludes)} ruled out` : "";
+    const tail = extras.length ? ` You also asked for ${list(extras)}.` : "";
+
+    // Name the real overlap when there is one; otherwise describe what the
+    // mood searched for, without claiming this title sits inside it.
+    const head = matched.length
+      ? `Matched on ${list(matched)} - ${matched.length === 1 ? "a genre" : "genres"} your ${opts.mood.label} mood looks for${ruled}.`
+      : `From your ${opts.mood.label} mood, which looks for ${capped(moodGenres, 5)}${ruled}.`;
+    return `${head}${score}${tail}`;
+  }
+
+  /* ---- a Quick Pick (or bare constraints) --------------------------- */
+  const asked = Array.from(new Set([...(opts.quickPick?.criteria ?? []), ...extras]));
+  const genres = lower((opts.titleGenres ?? []).slice(0, 3));
+  const isIt = genres.length ? ` This one is ${list(genres)}.` : "";
+  return `You asked for ${list(asked)}.${isIt}${score}`;
 }

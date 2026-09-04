@@ -158,7 +158,7 @@ export async function GET() {
   return NextResponse.json({
     checkedAt: new Date(now).toISOString(),
     services: {
-      database: { ok: posts.ok, detail: posts.ok ? "Supabase answering" : "Unreachable — check the keys" },
+      database: { ok: posts.ok, detail: posts.ok ? "Supabase answering" : "Unreachable - check the keys" },
       tmdb,
       lastSync,
       build: process.env.OPEN_NEXT_BUILD_ID ?? null,

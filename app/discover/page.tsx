@@ -24,7 +24,7 @@ import { baseUrl } from "@/lib/site";
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
-  title: "Discover — Find Something to Watch Tonight",
+  title: "Discover - Find Something to Watch Tonight",
   description:
     "Every way to find your next watch on CineTonight: by mood, by quick pick, by genre, by industry, or straight from tonight's trending list.",
   alternates: { canonical: "/discover" },
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 const WAYS: { icon: string; title: string; sub: string; href: string }[] = [
   { icon: "sparkle", title: "Pick For Me", sub: "One strong recommendation, chosen for tonight", href: "/#tonights-pick" },
-  { icon: "film", title: "Movies", sub: "Browse films — trending, latest, top rated", href: "/movies" },
+  { icon: "film", title: "Movies", sub: "Browse films - trending, latest, top rated", href: "/movies" },
   { icon: "monitor", title: "Series", sub: "Browse series and web originals", href: "/web-series" },
   { icon: "grid", title: "Genres", sub: "Action to romance, every lane", href: "/genres" },
   { icon: "trend", title: "Trending Tonight", sub: "What the world is watching right now", href: "/trending" },
@@ -81,12 +81,12 @@ export default async function DiscoverPage() {
         <div className="sec__head">
           <div className="sec__titles">
             <h2>By mood</h2>
-            <p className="sec__sub">Tap a mood — the homepage picker takes it from there</p>
+            <p className="sec__sub">Tap a mood - the homepage picker takes it from there</p>
           </div>
         </div>
         <div className="dscchips">
           {/* Which moods are offered, their labels and order, come from the
-              dashboard. The ids and the genre rules behind them do not — see
+              dashboard. The ids and the genre rules behind them do not - see
               lib/discoveryConfig.ts. */}
           {moodChips.map((m) => (
             <Link className="dscchip" href="/#tonights-pick" key={m.id}>

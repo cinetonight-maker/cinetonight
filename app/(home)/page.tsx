@@ -30,8 +30,17 @@ export const metadata = { alternates: { canonical: "/" } };
 /**
  * THE HOMEPAGE IS A DECISION ENGINE, NOT A CATALOGUE.
  *
- * Order: hero question -> quick picks -> mood -> ONE recommendation ->
+ * Order: hero question -> ONE recommendation -> mood -> quick picks ->
  * trending -> streaming services -> explore -> guides -> my list -> newsletter.
+ *
+ * ANSWER FIRST (changed 2 Sep 2026). The recommendation is server-rendered, so
+ * it already exists for a visitor who taps nothing - which made having TWO
+ * choosers stacked above it strange: the page asked you to decide how to
+ * decide, twice, while the answer sat further down. The pick now comes first
+ * and everything under it is "not that? here is how to change it". The mood
+ * card leads that, because it is the richer control; Quick Picks follows as
+ * the one-tap shortcut.
+ *
  * Everything above "trending" exists to get a visitor to a decision. Everything
  * below it is support. Resist adding shelves here: browse pages already exist
  * for that, and this page's job is to end the scrolling, not extend it.
@@ -116,6 +125,40 @@ export default async function HomePage() {
     )
   ).filter((m): m is Movie => Boolean(m?.posterPath));
   const heroArt = (chosen.length >= 3 ? chosen : pool.filter((m) => m.posterPath)).slice(0, 3);
+  /* THE FIRST RECOMMENDATION IS BLENDED, NOT RAW GLOBAL TRENDING.
+   *
+   * `pool` is TMDB's worldwide trending list. Drawing the headline pick
+   * straight from it meant the single most prominent title on the page was
+   * the one thing on it that ignored the site's own audience mix - while the
+   * Explore "For You" tab three sections below was already blended to the
+   * 45/25/20/10 guideline in lib/industry.ts. India is this site's largest
+   * audience by a wide margin (Search Console, Aug 2026), so "what should I
+   * watch tonight" was being answered from the one list that never looked at
+   * that.
+   *
+   * COSTS NOTHING: the Bollywood, South Indian and Korean pools are already
+   * fetched above for Explore, and mixDiscovery is a pure in-memory blend.
+   * No new request, and no new cache entry - mixDiscovery is documented as
+   * deterministic precisely so it is safe on a server-rendered, ISR-cached
+   * page like this one.
+   *
+   * The trending RAIL below is deliberately left alone: a row labelled
+   * "Trending" must keep showing what is actually trending. This changes
+   * what we RECOMMEND, not what we report. */
+  const mixPools = {
+    hollywood: discoveryFilter(pool.filter((m) => industryOf(m) === "hollywood")),
+    bollywood: discoveryFilter(bolly),
+    south: discoveryFilter(south),
+    korean: discoveryFilter(korean),
+    international: discoveryFilter(pool.filter((m) => industryOf(m) === "international")),
+  };
+  // 12 = the seed plus the eleven "Another pick" steps behind it. Falls back
+  // to the unblended pool if the blend comes back thin (sparse regional
+  // pools, or a TMDB hiccup) - a working recommendation always beats a
+  // perfectly balanced empty one.
+  const blended = mixDiscovery(mixPools, 12);
+  const pickPool = blended.length >= 6 ? blended : pool;
+
   // toPick() strips the cast array - PickStudio is a client component, so
   // everything handed to it is serialised into the page HTML.
   //
@@ -125,20 +168,14 @@ export default async function HomePage() {
   // the rail right below it. An hour index is deterministic within each ISR
   // window, so this stays ONE shared cache entry (never use randomness here;
   // per-request randomness is a cache-splitting bug, see docs/CACHING.md).
-  const seedWindow = Math.min(pool.length, 10);
+  const seedWindow = Math.min(pickPool.length, 10);
   const seedIdx = seedWindow > 0 ? new Date().getUTCHours() % seedWindow : 0;
-  const seed = pool[seedIdx] ? toPick(pool[seedIdx]) : null;
-  const seedPool = pool.filter((_, i) => i !== seedIdx).slice(0, 11).map(toPick);
+  const seed = pickPool[seedIdx] ? toPick(pickPool[seedIdx]) : null;
+  const seedPool = pickPool.filter((_, i) => i !== seedIdx).slice(0, 11).map(toPick);
   const trendingRail = pool.slice(0, 12);
   // "For You" Explore blend — deterministic, quality-first (Tier C cannot
   // enter; see mixDiscovery), built entirely from the pools above.
-  const exploreMixed = mixDiscovery({
-    hollywood: discoveryFilter(pool.filter((m) => industryOf(m) === "hollywood")),
-    bollywood: discoveryFilter(bolly),
-    south: discoveryFilter(south),
-    korean: discoveryFilter(korean),
-    international: discoveryFilter(pool.filter((m) => industryOf(m) === "international")),
-  }, 10);
+  const exploreMixed = mixDiscovery(mixPools, 10);
 
   // Client-side comparison against ids it is handed; nothing user-specific is
   // read during server rendering, so the page stays one shared cache entry.
@@ -209,7 +246,7 @@ export default async function HomePage() {
       <NewSinceLastVisit ids={latestIds} titles={latestTitles} />
 
       {/* LOCKED SPINE (Phase 3 §3). The hero question and the picker are what
-          this page is for, so they are not configurable — see
+          this page is for, so they are not configurable - see
           lib/homepageConfig.ts. Everything below them is. */}
       {V2_TEMPLATE ? (
         /* V2 fanned card-stack hero (canvas Main/Mobile). Same inputs, same
@@ -230,7 +267,7 @@ export default async function HomePage() {
           useful (and crawlable) before any JavaScript runs. */}
       <PickStudio seed={seed} seedPool={seedPool} discovery={discovery} />
 
-      {/* V2-only static explainer right after the picker — no data, no fetch. */}
+      {/* V2-only static explainer right after the picker - no data, no fetch. */}
       {V2_TEMPLATE && <HowPicksWorkV2 />}
 
       {/* Order, on/off, headings and counts all come from the dashboard. */}

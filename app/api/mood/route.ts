@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { ALL_MOODS } from "@/lib/moods";
-import { moodPoolTmdb, discoverPoolTmdb, trendingLiveTmdb, tmdbConfigured } from "@/lib/tmdb";
+import { moodPoolTmdb, discoverPoolTmdb, trendingPoolForBucket, tmdbConfigured } from "@/lib/tmdb";
 import { discoveryFilter } from "@/lib/quality";
 import { clientKey, isRateLimited } from "@/lib/rateLimit";
+import { visitorRegion } from "@/lib/region";
+import { asBucket, bucketFor, type RegionBucket } from "@/lib/regionBucket";
 
 export const runtime = "nodejs";
 
@@ -20,7 +22,7 @@ const RATE_LIMIT_MAX = 30;
  */
 export async function GET(request: Request) {
   if (isRateLimited(clientKey(request), "mood", { windowMs: RATE_LIMIT_WINDOW_MS, max: RATE_LIMIT_MAX })) {
-    return NextResponse.json({ error: "Too many requests — please slow down." }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests - please slow down." }, { status: 429 });
   }
 
   const sp = new URL(request.url).searchParams;
@@ -40,11 +42,35 @@ export async function GET(request: Request) {
   const rawRating = Number(sp.get("minRating"));
   const rawMaxVotes = Number(sp.get("maxVotes"));
   const rawKind = sp.get("kind");
+
+  /* REGION (lib/regionBucket.ts). Two ways in, and the difference is entirely
+   * about who is allowed to reuse the response:
+   *
+   *  - ?region=IN|GLOBAL — an explicit bucket, so the bucket is part of the
+   *    URL and therefore part of the edge-cache key. This response is shared
+   *    with every visitor in that bucket, exactly like every mood response
+   *    was shared before regions existed.
+   *  - no region param — the visitor's first call of the session, before the
+   *    browser has been told which bucket it is in. We resolve it from the
+   *    geo header and answer correctly, but the answer is then PRIVATE: it
+   *    varies by a header the cache key does not contain, so sharing it at
+   *    the edge would serve an India-blended pool to someone in Berlin. The
+   *    bucket comes back in the body and the client pins it onto every later
+   *    call, so a session pays this once and is edge-cached from then on.
+   *
+   * Same closed-set discipline as the numeric clamps below: asBucket() only
+   * accepts the two known values, so no hand-edited query string can mint an
+   * unbounded set of cache entries. */
+  const askedRegion = asBucket(sp.get("region"));
+  const region: RegionBucket = askedRegion ?? bucketFor(await visitorRegion());
+  const shareable = Boolean(askedRegion);
+
   const opts = {
     maxRuntime: ALLOWED_RUNTIME.includes(rawRuntime) ? rawRuntime : undefined,
     minRating: ALLOWED_RATING.includes(rawRating) ? rawRating : undefined,
     maxVotes: ALLOWED_MAX_VOTES.includes(rawMaxVotes) ? rawMaxVotes : undefined,
     kind: rawKind === "movie" || rawKind === "series" ? (rawKind as "movie" | "series") : undefined,
+    region,
   };
 
   // Three routes, and the middle one is the bug fix. A mood WITH genres uses
@@ -61,7 +87,7 @@ export async function GET(request: Request) {
       ? await moodPoolTmdb(mood.genres, mood.exclude ?? [], 20, { ...opts, matchAll: mood.match === "all" })
       : constrained
         ? await discoverPoolTmdb(20, opts)
-        : await trendingLiveTmdb("all", 20);
+        : await trendingPoolForBucket(region, 20);
     // The param space is a CLOSED set (clamped above), so the distinct URLs
     // are few and safe to edge-cache. Every repeat mood/Quick Pick click
     // across ALL visitors then hits Cloudflare's edge instead of the Worker.
@@ -70,8 +96,15 @@ export async function GET(request: Request) {
     // Phase 2: recommendations must pass catalogue eligibility before a
     // visitor ever sees one (Tier A, topping up from B if the pool runs
     // short). In-memory filter of data already fetched — zero extra cost.
-    const res = NextResponse.json({ results: discoveryFilter(results, 8) });
-    res.headers.set("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+    // `region` is echoed so the client can pin it onto subsequent calls and
+    // move itself onto the shared, edge-cached path (see the block above).
+    const res = NextResponse.json({ results: discoveryFilter(results, 8), region });
+    res.headers.set(
+      "Cache-Control",
+      shareable
+        ? "public, s-maxage=3600, stale-while-revalidate=86400"
+        : "private, max-age=600",
+    );
     return res;
   } catch {
     return NextResponse.json({ results: [] });

@@ -94,7 +94,7 @@ export async function DELETE(request: Request) {
     await recordAudit({
       module: "media", action: "delete",
       targetId: id, targetLabel: row?.name ?? null, before: row, after: null,
-      note: "Deleted permanently from the media library — this cannot be undone",
+      note: "Deleted permanently from the media library - this cannot be undone",
     });
     return NextResponse.json({ ok: true });
   } catch (e) {

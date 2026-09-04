@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!existing.tmdb_id) return NextResponse.json({ error: "This title has no TMDB id to refresh from (it was added manually)." }, { status: 400 });
 
     const fresh = await fetchTitle(existing.kind as MovieKind, String(existing.tmdb_id));
-    if (!fresh) return NextResponse.json({ error: "TMDB didn't return anything for this title — it may have been removed there." }, { status: 502 });
+    if (!fresh) return NextResponse.json({ error: "TMDB didn't return anything for this title - it may have been removed there." }, { status: 502 });
 
     const patch = {
       title: fresh.title, year: fresh.year, genres: fresh.genres, rating: fresh.rating, votes: fresh.votes ?? null,

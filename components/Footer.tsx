@@ -63,7 +63,7 @@ export default async function Footer() {
     <footer className="footer">
       <div className="footer__in">
         <div className="footer__brand">
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BrandMark size={26} /><div className="brand__name">Cine<b style={{ color: "var(--purple2)" }}>Tonight</b></div></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BrandMark size={26} /><div className="brand__name">Cine<b style={{ color: "var(--accent2)" }}>Tonight</b></div></div>
           <p>Your nightly guide to what's worth watching. Play the trailer, check the ratings, and see exactly where every movie and show streams in your country.</p>
         </div>
         <div>

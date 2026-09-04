@@ -41,7 +41,7 @@ export default function NewSinceLastVisit({ ids, titles }: { ids: string[]; titl
     <div className="wb">
       <span>
         <b>{freshTitles.length} new title{freshTitles.length > 1 ? "s" : ""}</b> since your last visit
-        {first ? <> — including <Link href="/latest">{first}{rest.length ? ` +${rest.length} more` : ""}</Link></> : null}
+        {first ? <> - including <Link href="/latest">{first}{rest.length ? ` +${rest.length} more` : ""}</Link></> : null}
       </span>
       <button className="wb__x" onClick={() => setDismissed(true)} aria-label="Dismiss">×</button>
     </div>

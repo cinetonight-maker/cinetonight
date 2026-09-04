@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import Icon from "./Icon";
-import { backdrop } from "@/lib/images";
+import { backdrop, posterLg } from "@/lib/images";
 import type { Movie } from "@/lib/types";
 
 /** Inline trailer banner at the top of a movie page — the reference-mock
@@ -13,9 +13,12 @@ import type { Movie } from "@/lib/types";
  *  related) in reach while the trailer runs. The trailer key is usually
  *  already on the movie; when it isn't, one call to /api/trailer resolves
  *  it on demand. */
-export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "title" | "backdropPath" | "posterPath" | "trailerKey"> }) {
+export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "title" | "backdropPath" | "posterPath" | "trailerKey" | "clips"> }) {
   const [playing, setPlaying] = useState(false);
   const [key, setKey] = useState<string | null>(movie.trailerKey ?? null);
+  /** Which extra video is showing, so the row can mark it. Null = trailer. */
+  const [activeClip, setActiveClip] = useState<string | null>(null);
+  const clips = movie.clips ?? [];
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -34,22 +37,36 @@ export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "ti
     }
   }
 
+  /** Swap the embedded video without leaving the page. */
+  function playClip(clipKey: string) {
+    setKey(clipKey);
+    setActiveClip(clipKey);
+    setPlaying(true);
+  }
+
   return (
+    <>
     <div className="itrailer">
       {playing && key ? (
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${key}?autoplay=1&rel=0&modestbranding=1`}
-          title={`${movie.title} — official trailer`}
+          title={`${movie.title} - official trailer`}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
           allowFullScreen
         />
       ) : (
         <>
+          {/* Most of the long tail has no backdrop on TMDB, and backdrop()
+              then returns the shared /placeholder-wide.png - a grey rectangle
+              behind the play button on the majority of pages. The title's own
+              poster, blown up and blurred, is art from THIS film and needs no
+              extra request. */}
           <Image
+            className={movie.backdropPath ? undefined : "itrailer__fromposter"}
             fill
             priority
             alt={`${movie.title} backdrop`}
-            src={backdrop(movie, "w1280")}
+            src={movie.backdropPath ? backdrop(movie, "w1280") : posterLg(movie)}
             sizes="(max-width: 900px) 100vw, 860px"
           />
           <span className="itrailer__scrim" />
@@ -60,5 +77,33 @@ export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "ti
         </>
       )}
     </div>
+
+    {/* CLIPS. These come from the same TMDB response as the trailer, so the
+        row costs no extra request. Buttons, not links: they swap the player
+        above rather than sending anyone to YouTube. */}
+    {clips.length > 0 && (
+      <div className="clips" role="group" aria-label="More videos">
+        <button
+          type="button"
+          className={`clips__b${activeClip === null ? " on" : ""}`}
+          onClick={() => { setKey(movie.trailerKey ?? null); setActiveClip(null); if (movie.trailerKey) setPlaying(true); }}
+        >
+          <span className="clips__t">Trailer</span>
+        </button>
+        {clips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            className={`clips__b${activeClip === c.key ? " on" : ""}`}
+            onClick={() => playClip(c.key)}
+            title={c.name}
+          >
+            <span className="clips__k">{c.type}</span>
+            <span className="clips__t">{c.name}</span>
+          </button>
+        ))}
+      </div>
+    )}
+    </>
   );
 }

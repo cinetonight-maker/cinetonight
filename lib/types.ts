@@ -50,6 +50,11 @@ export interface Movie {
   backdropPath?: string | null;
   /** YouTube key for the official trailer, when TMDB has one. */
   trailerKey?: string | null;
+  /** Clips, featurettes and behind-the-scenes reels from the SAME TMDB
+   *  response the trailer came from - no extra request. */
+  clips?: { key: string; name: string; type: string }[];
+  /** The director's TMDB profile photo, when there is one. */
+  directorProfile?: string | null;
 }
 
 export interface Blog {

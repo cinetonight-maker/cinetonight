@@ -79,6 +79,9 @@ export interface Row {
   logo?: string;
   /** Square app-icon art (TMDB) rather than a wide wordmark (curated). */
   squareLogo?: boolean;
+  /** The brand mark is solid black and needs inverting on a dark card
+   *  (Apple TV+). Mirrors Channel.logoInvert in lib/channels.ts. */
+  invert?: boolean;
   color: string;
   monogram?: string;
   benefit: string;
@@ -105,6 +108,9 @@ function buildRow(p: WatchProvider, slug: string | undefined, title: string): Ro
     // square icon stretched into the wide logo box is what made unknown
     // platforms (HBO Max etc.) look broken.
     squareLogo: !channel?.logoFile && !!p.logoPath,
+    // Only meaningful for our own curated files; a TMDB-hosted logo is
+    // already built for a light-on-dark listing.
+    invert: Boolean(channel?.logoFile && channel.logoInvert),
     // Curated self-hosted brand logo first; otherwise TMDB ships an official
     // logo for every provider it lists (p.logoPath) — so no platform ever
     // renders as a bare letter. Monogram remains only as a last-resort net.
@@ -138,6 +144,16 @@ export interface WatchPayload {
    *  own (their country had no confirmed data). The UI must say so. */
   fallbackRegion?: boolean;
   searchLinks: { label: string; url: string; note: string }[];
+  /** ISO date this availability was resolved.
+   *
+   *  Availability is the one thing on a title page that genuinely goes out of
+   *  date, and every serious competitor stamps it (JustWatch shows a
+   *  last-updated line on every title). We showed nothing, so a reader had no
+   *  way to tell a check from an hour ago from one from last spring. On the
+   *  server-rendered copy this is the moment the cached page was built; on the
+   *  client copy it is the moment of the request. Both are true statements
+   *  about the rows sitting next to it. */
+  checkedAt: string;
 }
 
 export async function buildWatch(
@@ -218,6 +234,7 @@ export async function buildWatch(
   return {
     rows, live, region: usedRegion, countryName: regionName(usedRegion), affiliate: !!AMAZON_TAG,
     fallbackRegion: usedRegion !== region,
+    checkedAt: new Date().toISOString(),
     searchLinks: live ? [] : [
       { label: "Search on YouTube", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " episode 1")}`, note: "Many dramas stream free on official channels" },
       { label: "Search the web", url: `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} online`)}`, note: "Find where it officially streams" },

@@ -366,7 +366,7 @@ export async function DELETE(request: Request) {
       await recordAudit({
         module: "blog", action: "delete",
         targetId: id, targetLabel: gone?.slug ?? null, before: gone, after: null,
-        note: "Deleted permanently — this cannot be undone",
+        note: "Deleted permanently - this cannot be undone",
       });
       return NextResponse.json({ ok: true, permanent: true, revalidated });
     }

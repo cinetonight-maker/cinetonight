@@ -140,3 +140,54 @@ three admin SERP previews. **Status: built, NOT deployed.**
 
 ## 2026-09-01 — URL FREEZE (founder decision, FINAL)
 Never create a new movie URL again — no new clean slugs, no catalogue auto-adds. New titles live on tmdb-m-*/tmdb-t-* addresses. Existing clean URLs stay and are never removed without a redirect. Featuring a title (hero etc.) never requires cataloguing it. Full text in the handover package 00_Project_Control/DECISIONS_AND_OPEN_QUESTIONS.md.
+
+## 2026-09-02 — Unreviewed-content fallback tier ("quick take"), founder decision — NOT YET BUILT
+For the long-tail titles with no human-reviewed `movie_intel` row: instead of
+inventing an opinion and presenting it as editorial, or leaving pages fully
+sparse forever, add an automated fallback tier (grounded in real per-title
+signals, not generic filler) that is honestly labeled as automated/not yet
+reviewed — visually and structurally separate from the reviewed
+Verdict/CineTonight Take, never implying human authorship. Reviewed intel
+replaces it automatically once a title is actually reviewed.
+**Why not the first version of this idea (AI content shown as if human,
+swapped later):** false human-authorship risks both a Google scaled-content
+manual action across the whole domain (not just those pages) and undermines
+the core V2 differentiator — an accountable named editor is the one thing
+algorithms/competitors can't copy. Honest labeling avoids the false-attribution
+risk but does NOT by itself clear Google's scaled-content-abuse policy, which
+targets content generated at scale primarily to manipulate rankings regardless
+of AI disclosure — so this still needs to ship gated (noindex first, measured,
+grounded in real signals, not blanket across the full long tail on day one),
+the same way every other new surface in this project has shipped.
+**Status: decided in direction, NOT built, NOT scheduled.** Founder asked to
+be reminded to review this in detail, line by line, before this part is
+actually touched/implemented — do not build without re-confirming scope with
+him first.
+
+## 2026-09-02 — V2 HOMEPAGE LOCKED (founder decision)
+The V2 homepage is final as of this date. No further design or layout work on
+it without an explicit new decision. What it locks:
+
+- **Answer first ordering**: hero -> Your pick for tonight -> mood card ->
+  Quick Picks -> trending -> streaming -> explore -> guides -> watchlist ->
+  newsletter. Deviates from the design canvas (which put both choosers above
+  the pick) on purpose: the recommendation is server-rendered, so it already
+  exists for a visitor who taps nothing, and two choosers stacked above it
+  asked people to decide how to decide before showing them anything.
+- **Region-aware recommendations**: two audience buckets (IN = South Asia,
+  GLOBAL = everyone else) blended into the mood/Quick Pick pools and the
+  homepage seed. Closed set, edge-cacheable, no per-visitor rendering.
+- **Refine your picks** panel: time, watching-with, films/series. Country
+  deliberately excluded (availability is resolved per title, and a country
+  dimension here would break the closed-cache design).
+- **No-repeat memory**: 30 titles, per browser, cleared with the tab.
+- **Explained picks**: the "why this fits" line names the genres a title
+  actually matched on. Honesty contract covered by tests/whyItFits.test.mjs.
+- **No em dashes anywhere in user-visible text** (site-wide rule, not just
+  the homepage). Movie page titles and the brand suffix changed with it.
+- **--accent-d is a fill, never type**: it measures ~2:1 on the dark cards.
+  --accent-link (#ec5a63) is the readable brand red for text.
+
+Known and accepted: nothing here has been visually verified — no build
+environment was available in the session that produced it. Verified by the
+test suite (303 passing), syntax checks, and code review only.

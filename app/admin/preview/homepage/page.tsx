@@ -38,7 +38,7 @@ export default async function HomepagePreview() {
     <div className="ad__body ad__body--one">
       <div className="ad__notice">
         <div>
-          <b>Draft preview</b> — read from the database right now, with no caching.
+          <b>Draft preview</b> - read from the database right now, with no caching.
           {missing
             ? " The Homepage Manager table is not set up yet, so this is the shipped default."
             : changed
@@ -61,7 +61,7 @@ export default async function HomepagePreview() {
           <div className="hpmp__locked">
             <span className="hpmp__lock">Fixed</span>
             <b>Quick Picks, moods and tonight&rsquo;s recommendation</b>
-            <span>The decision engine — locked by the site design</span>
+            <span>The decision engine - locked by the site design</span>
           </div>
 
           {visible.map((id, i) => {
@@ -81,7 +81,7 @@ export default async function HomepagePreview() {
           })}
 
           {visible.length === 0 && (
-            <div className="ad__empty">Every section is switched off — the page would end after the picker.</div>
+            <div className="ad__empty">Every section is switched off - the page would end after the picker.</div>
           )}
         </div>
       </div>
