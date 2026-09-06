@@ -1,4 +1,5 @@
 import type { Movie, MovieKind } from "./types";
+import type { RegionBucket } from "./regionBucket";
 import { rankByWeightedRating, discoveryFilter, titleTier, latestEligible } from "./quality";
 import { canonicalPersonId, parsePersonTmdbId } from "./personUrl";
 
@@ -530,6 +531,16 @@ export async function trendingLiveTmdb(kind: MovieKind | "all" = "all", limit = 
   }
   const lists = await Promise.all(kindsFor(kind).map((k) => discoverLive(k, "popularity.desc", limit, 5, region)));
   return lists.flat().sort((a, b) => (b.votes ?? 0) - (a.votes ?? 0)).slice(0, limit);
+}
+
+/** Bucketed "Surprise Me" trending pool for /api/mood (lib/regionBucket.ts).
+ *  GLOBAL gets the real /trending endpoint via trendingLiveTmdb's
+ *  no-region path (unbiased, matches TMDB.com exactly); IN gets the same
+ *  origin_country-biased discover approximation bollywoodTmdb already uses
+ *  below — /trending itself has no region filter, so a regional bucket can
+ *  only ever be approximated, same limitation noted on trendingLiveTmdb. */
+export async function trendingPoolForBucket(bucket: RegionBucket, limit = 20): Promise<Movie[]> {
+  return trendingLiveTmdb("all", limit, bucket === "IN" ? "IN" : undefined);
 }
 
 /** "Top Rated" row — highest rated right now, straight from TMDB (global mix unless `region` is set). */
@@ -1209,8 +1220,24 @@ export async function browsePage({ kind, sort, genre, page = 1 }: BrowseParams):
 export async function relatedTmdb(kind: MovieKind, id: string, limit = 8): Promise<Movie[]> {
   const d = await get<any>(`${kind === "series" ? "/tv" : "/movie"}/${id}/recommendations`);
   if (!d?.results) return [];
+  /* TMDB list hits carry genre_ids (numbers), and fromSearchHit drops them -
+     it has no genre map to hand. Recommendations are the one list where the
+     names actually matter downstream: the movie page's sidebar states WHY a
+     pick is a pick ("Same genre: Action & Adventure"), and with empty genres
+     that reason silently disappears and the panel argues its case on the
+     rating alone. genreMap is cached per process, so this is one extra call
+     on a cold start and free after. Only filled in when fromSearchHit left
+     it empty - a curated row swapped in later by preferCurated keeps its
+     own, better data. */
+  const genres = await genreMap(kind);
   const mapped = d.results
-    .map((r: any) => fromSearchHit({ ...r, media_type: kind === "series" ? "tv" : "movie" }))
+    .map((r: any) => {
+      const mv = fromSearchHit({ ...r, media_type: kind === "series" ? "tv" : "movie" });
+      if (mv && mv.genres.length === 0) {
+        mv.genres = (r.genre_ids ?? []).map((g: number) => genres[g]).filter(Boolean).slice(0, 3);
+      }
+      return mv;
+    })
     .filter(Boolean) as Movie[];
   // Recommendations must pass catalogue eligibility (Tier A, topping up from
   // Tier B only if the shelf would run short) — an in-memory filter of a

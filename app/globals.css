@@ -71,7 +71,7 @@ button{font-family:inherit}
    fully disappears, it just narrows (desktop only — see mobile block below,
    where the sidebar is replaced entirely by .bottomnav). */
 .app{display:flex}
-.sidebar{width:72px;flex-shrink:0;position:sticky;top:var(--hh);align-self:flex-start;max-height:calc(100vh - var(--hh));overflow:hidden;border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;transition:width .22s ease}
+.sidebar{width:72px;flex-shrink:0;position:sticky;top:var(--hh);align-self:flex-start;max-height:calc(100vh - var(--hh));overflow-y:auto;overflow-x:hidden;border-right:1px solid var(--line);padding:18px 10px;display:flex;flex-direction:column;transition:width .22s ease}
 body.sb-expanded .sidebar{width:200px;padding:18px 12px}
 .nav-item{display:flex;align-items:center;gap:13px;padding:11px 13px;border-radius:10px;color:var(--muted);font-weight:500;margin-bottom:3px;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap}
 .nav-item:hover{background:var(--card);color:var(--accent2)}
@@ -79,6 +79,19 @@ body.sb-expanded .sidebar{width:200px;padding:18px 12px}
 .nav-item__ico{display:grid;place-items:center;width:20px;flex-shrink:0}
 .nav-item__label{opacity:0;width:0;overflow:hidden;transition:opacity .15s}
 body.sb-expanded .nav-item__label{opacity:1;width:auto}
+/* Secondary nav (Trending, Guides, TV Shows, Genres, ...) - shown as icons
+   in the rail AT ALL TIMES, collapsed or expanded (only the text LABEL is
+   what expanding reveals, same as the 6 primary items above). Earlier this
+   set was hidden entirely until expanded, which read as those buttons not
+   existing at all rather than just unlabelled. */
+.nav-item__divider{height:1px;background:var(--line);margin:8px 13px}
+/* Big desktop monitors default to the expanded, labelled rail - a 72px
+   icon-only strip reads as wasted space at that size. Laptops keep the
+   closed default. This is a DEFAULT only, not a forced state: it keys off
+   the same body.sb-expanded class the burger toggles (Header.tsx sets it
+   on mount, and re-syncs whenever the viewport crosses the 1500px line),
+   so the rail is still fully openable/closeable at any screen size - a
+   big monitor just starts open instead of closed. */
 
 .content{flex:1;min-width:0}
 
@@ -178,14 +191,17 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .mcard__rate{position:absolute;top:8px;left:8px;z-index:3;display:inline-flex;align-items:center;gap:4px;background:rgba(10,10,18,.8);color:#ffcf4d;font-weight:600;font-size:11px;padding:3px 8px;border-radius:6px}
 .mcard__badge{position:absolute;top:8px;right:8px;z-index:3;background:var(--accent2);color:#fff;font-size:9px;font-weight:600;letter-spacing:.5px;padding:3px 7px;border-radius:5px}
 .mcard__rank{position:absolute;left:-6px;bottom:36px;z-index:2;font-family:var(--font-poppins);font-size:70px;font-weight:700;color:#0a0a12;-webkit-text-stroke:2px var(--accent2)}
-.mcard__pop{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:14px;background:linear-gradient(to top,rgba(6,6,12,.97),rgba(6,6,12,.72) 45%,rgba(6,6,12,.05));opacity:0;transform:translateY(10px);transition:opacity .2s,transform .2s}
-.mcard:hover .mcard__pop{opacity:1;transform:none}
-.mcard__acts{display:flex;gap:8px}
-.mcard__acts--single{justify-content:center}
+/* Hover popup: play button dead-centered on the card, title pinned to the
+   bottom-center underneath it - not stacked together at the bottom edge
+   like a caption block. .mcard__pop is just the dimming overlay now;
+   .mcard__acts and .mcard__pt each position themselves within it. */
+.mcard__pop{position:absolute;inset:0;z-index:4;background:linear-gradient(to top,rgba(6,6,12,.97),rgba(6,6,12,.72) 45%,rgba(6,6,12,.05));opacity:0;transition:opacity .2s}
+.mcard:hover .mcard__pop{opacity:1}
+.mcard__acts{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:flex;gap:8px}
 .mcard__ab{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;cursor:pointer;border:none}
 .mcard__ab--play{background:#fff;color:#111}.mcard__ab--info{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35)}
 .mcard__acts--single .mcard__ab--play{width:40px;height:40px}
-.mcard__pt{font-weight:600;font-size:14px}
+.mcard__pt{position:absolute;left:10px;right:10px;bottom:14px;text-align:center;font-weight:600;font-size:14px}
 .mcard__pm{font-size:11.5px;color:#c9c4d8;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
 .mcard__pm .r{color:#ffcf4d;display:inline-flex;align-items:center;gap:3px}
 .mcard__pd{font-size:11.5px;color:#b8b3c8;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -236,6 +252,13 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .itrailer__play:disabled{cursor:wait;opacity:.8}
 .itrailer__spin{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.35);border-top-color:#fff;animation:epspin .7s linear infinite}
 .itrailer__label{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;color:#fff;font-size:13px;font-weight:600;letter-spacing:.4px;text-shadow:0 2px 8px rgba(0,0,0,.8)}
+/* Compact variant - the hero-thumbnail preview (v2m-hero__trailer in
+   app/v2-movie.css). Same component, smaller chrome; no margin since the
+   hero card supplies its own padding. */
+.itrailer--compact{margin-bottom:0}
+.itrailer--compact .itrailer__play{width:44px;height:44px;border-width:1.5px}
+.itrailer--compact .itrailer__spin{width:16px;height:16px;border-width:2px}
+.itrailer--compact .itrailer__label{font-size:10.5px;bottom:8px}
 
 /* "Where to Watch in India" — boxed affiliate panel (reference-mock style) */
 .w2w{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
@@ -443,6 +466,13 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .bmini__th{position:relative;width:72px;height:50px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--card2)}.bmini__th img{width:100%;height:100%;object-fit:cover}
 .bmini__t{font-weight:600;font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .bmini__d{font-size:11px;color:var(--muted2);margin-top:4px}
+/* GuidesWidget sidebar rows (components/RightRail.tsx) — text-only, a small
+   "Guide" tag chip beside the title, no thumbnail (these teasers already
+   carry one lower on the page in BlogSection; the sidebar stays compact). */
+.gmini{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer}
+.gmini:last-child{border-bottom:none}
+.gmini__tag{flex-shrink:0;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent-link);font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border-radius:5px;padding:3px 6px}
+.gmini__t{font-weight:600;font-size:12.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .news{background:linear-gradient(150deg,rgba(var(--accent-d-rgb),.38),rgba(var(--accent-rgb),.22)),var(--card);border:1px solid rgba(var(--accent-rgb),.42);border-radius:14px;padding:18px}
 .news h3{font-size:15px;font-weight:600;margin-bottom:6px}.news p{font-size:12.5px;color:var(--muted);margin-bottom:12px}
 .news input{width:100%;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:9px 12px;color:#fff;font-size:13px;margin-bottom:9px}
@@ -492,9 +522,17 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .about__body p{color:#cfcadb;line-height:1.8;margin-bottom:14px;font-size:14.5px}
 .about__btn{margin-top:6px;display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border:none;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
 .about__img{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);aspect-ratio:16/10}.about__img img{width:100%;height:100%;object-fit:cover}
-.revwrap{display:grid;grid-template-columns:210px 1fr;gap:24px;align-items:start}
-.revscore{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;text-align:center}
-.revscore__n{font-size:50px;font-weight:700;line-height:1}.revscore__stars{display:flex;justify-content:center;gap:2px;color:#ffcf4d;margin:9px 0 7px}.revscore__sub{color:var(--muted);font-size:12px}
+.revwrap{display:grid;grid-template-columns:210px 1fr;gap:24px}
+/* Score card stretches to match whatever's beside it (review list + form,
+   or just the form on an empty title) instead of sizing to its own short
+   content and leaving dead space under a small floating box - noticeably
+   off on a title with few/no reviews, where the form is the only thing
+   giving the row its height. Centered as a column so the number/stars/
+   caption group sits in the middle of that height rather than pinned to
+   the top with the same empty gap merely moved below it. */
+.revscore{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;
+  text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.revscore__n{font-size:50px;font-weight:700;line-height:1}.revscore__stars{display:flex;justify-content:center;gap:2px;color:#ffcf4d;margin:9px 0 7px}.revscore__sub{color:var(--muted);font-size:12px;line-height:1.5}
 .revlist{display:grid;grid-template-columns:1fr;gap:14px}
 .rev{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px}
 .rev__top{display:flex;align-items:center;gap:10px;margin-bottom:9px}
@@ -503,7 +541,10 @@ body.sb-expanded .nav-item__label{opacity:1;width:auto}
 .rev__text{color:#c8c4d6;font-size:13px;line-height:1.6;margin-bottom:11px}
 .rev__acts{display:flex;gap:16px;color:var(--muted);font-size:12px}.rev__acts span{display:inline-flex;align-items:center;gap:5px;cursor:pointer}.rev__acts span:hover{color:var(--accent2)}
 .rev__ava--fallback{display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:var(--accent)}
-.rev__form{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:15px}
+/* Solid border, same as .rev above - a dashed outline read as a
+   placeholder/unfinished element sitting next to real, solid-bordered
+   review cards, not as a real card of its own. */
+.rev__form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
 .rev__form-h{font-weight:600;font-size:13px;margin-bottom:10px}
 .rev__form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
 .rev__form input,.rev__form textarea{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:9px 12px;color:var(--txt);font-size:13px;font-family:inherit;resize:vertical}
@@ -1853,3 +1894,16 @@ a.ov__more:hover{color:var(--accent2);border-color:var(--accent)}
 .clips__k{display:block;font-size:9.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--accent-link)}
 .clips__t{display:block;font-size:12px;font-weight:600;margin-top:2px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* --- video gallery grid (InlineTrailer gallery mode, v2m-trailer-row) --- */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:14px}
+.vgrid__item{cursor:pointer;font-family:inherit;text-align:left;background:none;border:0;padding:0;color:var(--muted)}
+.vgrid__th{position:relative;display:block;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:var(--card2);
+  border:2px solid transparent}
+.vgrid__item.on .vgrid__th{border-color:var(--accent)}
+.vgrid__th img{width:100%;height:100%;object-fit:cover;display:block}
+.vgrid__play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;transition:background .15s}
+.vgrid__item:hover .vgrid__play{background:color-mix(in srgb,var(--accent) 88%,#000)}
+.vgrid__t{display:block;font-size:11.5px;font-weight:600;margin-top:6px;color:var(--txt);
+  line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}

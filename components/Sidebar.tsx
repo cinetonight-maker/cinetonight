@@ -33,13 +33,34 @@ export const NAV: { icon: string; label: string; href: string; top?: boolean; bo
 export default function Sidebar() {
   const pathname = usePathname();
   const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const primary = NAV.filter((n) => n.side);
+  // Rest of the site nav (Trending, Guides, TV Shows, Genres, ...) — hidden
+  // via CSS while the rail is collapsed (body:not(.sb-expanded)) so the
+  // narrow icon-only rail never grows past its curated primary set, and
+  // shown once expanded so the drawer gives full parity with the mobile
+  // nav drawer instead of stopping at 6 items.
+  const rest = NAV.filter((n) => !n.side);
   return (
     <aside className="sidebar">
       <nav aria-label="Primary">
-        {NAV.filter((n) => n.side).map((n) => (
+        {primary.map((n) => (
           <Link
             key={n.href}
             className={`nav-item${active(n.href) ? " on" : ""}`}
+            href={n.href}
+            title={n.label}
+            aria-label={n.label}
+            aria-current={active(n.href) ? "page" : undefined}
+          >
+            <span className="nav-item__ico"><Icon name={n.icon} size={18} /></span>
+            <span className="nav-item__label">{n.label}</span>
+          </Link>
+        ))}
+        {rest.length > 0 && <div className="nav-item__divider" aria-hidden="true" />}
+        {rest.map((n) => (
+          <Link
+            key={n.href}
+            className={`nav-item nav-item--extra${active(n.href) ? " on" : ""}`}
             href={n.href}
             title={n.label}
             aria-label={n.label}

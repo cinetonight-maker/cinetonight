@@ -72,6 +72,35 @@ export async function BlogWidget() {
   );
 }
 
+/** Sidebar guide list for the movie/series detail page (v2m-aside). Tries
+ *  a genuine match first - a guide whose category or tags name one of this
+ *  title's genres - and only falls back to the newest guides site-wide when
+ *  nothing matches, same tag-with-fallback shape as moodPoolTmdb/discoverPoolTmdb
+ *  elsewhere in this codebase. Never claims a fallback guide is "about"
+ *  this title (see the "not guides claiming to be about THIS title" note
+ *  on the bottom-of-page BlogSection) - the heading stays neutral either
+ *  way; only the matched case gets a "Related" label. */
+export async function GuidesWidget({ genres }: { genres: string[] }) {
+  const blogs = await getBlogs(PUBLIC_TTL.catalogue);
+  const wanted = new Set(genres.map((g) => g.toLowerCase()));
+  const matches = blogs.filter((b) => {
+    const tags = [b.cat, ...(b.tags ?? [])].map((t) => t.toLowerCase());
+    return tags.some((t) => wanted.has(t));
+  });
+  const picked = (matches.length ? matches : blogs).slice(0, 4);
+  if (!picked.length) return null;
+  return (
+    <Widget title={matches.length ? "Related Guides" : "Guides"} all={<Link href="/blog">All</Link>}>
+      {picked.map((b) => (
+        <Link key={b.slug} className="gmini" href={`/blog/${b.slug}`}>
+          <span className="gmini__tag">Guide</span>
+          <span className="gmini__t">{b.title}</span>
+        </Link>
+      ))}
+    </Widget>
+  );
+}
+
 export function NewsWidget() {
   return (
     <div className="news">

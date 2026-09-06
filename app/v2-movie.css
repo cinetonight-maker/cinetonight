@@ -7,18 +7,45 @@
  * ========================================================================= */
 
 .v2m-cols{display:flex;gap:24px;align-items:flex-start}
+/* Guides sit BELOW the two-column row, spanning the whole page - the
+   sidebar ends with the title's own content (see MovieDetailV2.tsx). The
+   top margin matches .v2m-sec so the break reads as one more section
+   rather than a gap. */
+.v2m-guides{margin-top:22px}
 .v2m-main{flex:1;min-width:0}
-.v2m-aside{width:308px;flex:none}
-.v2m-aside__sticky{position:sticky;top:80px;display:flex;flex-direction:column;gap:14px}
-@media(max-width:1100px){.v2m-cols{flex-direction:column}.v2m-aside{width:100%}.v2m-aside__sticky{position:static}
-  /* Mobile order (spec §6): availability lands right AFTER identity, not
-     before it. display:contents lifts the main column's children into the
-     flex flow so the hero (order -2) stays first, the aside (-1) follows,
-     and the rest of the page keeps its document order below. */
-  .v2m-cols{display:flex}
-  .v2m-main{display:contents}
-  .v2m-hero{order:-2}
-  .v2m-aside{order:-1}
+/* Same sticky pattern as the live site's own .pageaside (app/globals.css):
+   top offset keyed to the real header height (--hh), not a guessed pixel
+   value, and align-self spelled out explicitly rather than relying only on
+   the parent's align-items. */
+/* position:sticky lives on the flex ITEM itself (.v2m-aside), matching
+   the site's own working .pageaside pattern (app/globals.css) exactly - a
+   sticky element's containing block is whatever holds it, so putting the
+   position on an inner wrapper div instead of the actual flex item gave it
+   a containing block only as tall as its own short content (the wrapper),
+   not the full row height next to the much taller main column. It ran out
+   of room to travel and scrolled away after ~500px instead of tracking the
+   page. .v2m-aside__sticky is now pure layout (flex column + gap), no
+   positioning of its own. */
+.v2m-aside{width:308px;flex:none;align-self:flex-start;position:sticky;top:calc(var(--hh) + 16px)}
+.v2m-aside__sticky{display:flex;flex-direction:column;gap:14px}
+@media(max-width:1100px){
+  /* Plain stacking on mobile/tablet: main column top to bottom (trailer,
+     identity - with Where to Watch inside it, About, Cast, Details+Trailers,
+     More Like This, Reviews), sidebar (Tonight Profile, alternative pick,
+     Related Guides) after it. An earlier version force-reordered the hero
+     and sidebar ahead of everything else via flex `order` + `display:
+     contents` on .v2m-main, from a round where Where to Watch briefly lived
+     in the sidebar and needed pulling above the fold on mobile - it jumped
+     the hero itself ahead of the trailer banner that opens the page.
+     Removed; the trailer stays first, identity (and its Where to Watch)
+     second, sidebar last, same as the DOM order. */
+  .v2m-cols{flex-direction:column}
+  /* position:static on .v2m-aside ITSELF - sticky lives on the flex item
+     now (see the block above), so un-sticking the inner wrapper here was
+     neutralising a rule that is no longer on that element, and the stacked
+     sidebar stayed sticky on every screen under 1100px. */
+  .v2m-aside{width:100%;position:static}
+  .v2m-aside__sticky{position:static}
 }
 
 .v2m-sec{margin-top:22px}
@@ -30,6 +57,12 @@
 .v2m-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:760px){.v2m-grid2{grid-template-columns:1fr}}
 .v2m-grid2--solo{grid-template-columns:1fr}
+/* About + intel panels row (v2.png reference: About sits beside Snapshot /
+   What to Expect / Best For / The Commitment as same-height cards in one
+   row on wide screens). auto-fit collapses empty tracks, so this also
+   handles the About-only case (no intel yet) as a single full-width card
+   with no separate "solo" variant needed. */
+.v2m-panelgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;align-items:start}
 .v2m-finenote{color:var(--muted2);font-size:9.5px;margin-top:9px}
 .v2m-center{text-align:center}
 .v2m-sub{font-size:10.5px;color:var(--muted2);text-transform:uppercase;letter-spacing:.6px;margin-top:9px}
@@ -43,6 +76,40 @@
 .v2m-kv__k{color:var(--muted);font-size:11.5px;flex:none}
 .v2m-kv__v{font-size:12.5px;font-weight:600;text-align:right}
 .v2m-kv__v--dots{display:inline-flex;align-items:center}
+/* Movie Details: the same .v2m-kv rows, run in THREE columns, flowing
+   left-right so it reads as a spec table rather than one long ladder down
+   a 967px column. Steps down to 2 columns then 1 as the space goes, since
+   a label-left/value-right row needs real width before it starts wrapping
+   every value onto its own line.
+   The hairline: :nth-last-child(-n+N) is exactly the bottom row of every
+   column at N columns, whatever the row count divides to - so each block
+   below removes it for its own N and puts back the ones the wider rule
+   took. */
+.v2m-kvcols{display:grid;gap:0}
+/* Every cell carries the vertical rule and the breathing room around it;
+   each breakpoint below then strips it from ITS first column and closes up
+   ITS last, so the dividers land between columns instead of hugging the
+   text. No column gap - the space either side of the rule is the cell's own
+   padding, which keeps the line centred in the gutter and lets the row
+   hairlines meet it to read as one grid. */
+.v2m-kvcols>.v2m-kv{padding-left:22px;padding-right:22px;border-left:1px solid rgba(255,255,255,.05)}
+@media(min-width:1001px){
+  .v2m-kvcols{grid-template-columns:repeat(3,1fr)}
+  .v2m-kvcols>.v2m-kv:nth-child(3n+1){padding-left:0;border-left:none}
+  .v2m-kvcols>.v2m-kv:nth-child(3n){padding-right:0}
+  .v2m-kvcols>.v2m-kv:nth-last-child(-n+3){border-bottom:none}
+}
+@media(min-width:701px) and (max-width:1000px){
+  .v2m-kvcols{grid-template-columns:repeat(2,1fr)}
+  .v2m-kvcols>.v2m-kv:nth-child(2n+1){padding-left:0;border-left:none}
+  .v2m-kvcols>.v2m-kv:nth-child(2n){padding-right:0}
+  .v2m-kvcols>.v2m-kv:nth-last-child(-n+2){border-bottom:none}
+}
+@media(max-width:700px){
+  .v2m-kvcols{grid-template-columns:1fr}
+  .v2m-kvcols>.v2m-kv{padding-left:0;padding-right:0;border-left:none}
+  .v2m-kvcols>.v2m-kv:last-child{border-bottom:none}
+}
 .v2m-dots{display:inline-flex;gap:3px;margin-left:8px}
 .v2m-dots i{width:5px;height:5px;border-radius:50%;background:#33383f}
 .v2m-dots i.on{background:var(--accent2)}
@@ -137,28 +204,51 @@
 .v2m-take__date{color:var(--muted2);font-size:10.5px}
 .v2m-take__date a{color:var(--muted2);text-decoration:underline}
 
-/* trailer row */
-.v2m-trailer-row{display:grid;grid-template-columns:1.15fr 1fr;gap:14px;align-items:start}
-@media(max-width:900px){.v2m-trailer-row{grid-template-columns:1fr}}
-
-/* director card */
-.v2m-director{display:flex;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);
-  border-radius:14px;padding:14px 18px;margin-bottom:14px}
-.v2m-director__avatar{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;flex:none;
-  border:2px solid var(--accent-d);background:rgba(var(--accent-d-rgb),.35);
-  font-weight:700;font-size:16px;color:var(--accent-link)}
-.v2m-director__name{font-weight:700;font-size:15.5px;margin-top:2px}
+/* director - a card ONLY when a real photo exists (see MovieDetailV2.tsx).
+   Tightened from a 56px circle + 18px padding to 44px + 10px: the block was
+   taller than the cast row it introduces. With no photo the markup is the
+   text line below instead, which is one line high and reads as deliberate
+   rather than as a picture that failed to load. */
+.v2m-director{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.v2m-director__name{font-weight:700;font-size:14.5px;margin-top:1px}
+.v2m-directorline{display:flex;align-items:baseline;gap:9px;margin-bottom:14px;flex-wrap:wrap}
+.v2m-directorline__k{color:var(--muted2);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.v2m-directorline__v{font-weight:600;font-size:13.5px;color:var(--txt)}
 
 /* sidebar extras */
 .v2m-side h3{font-size:13.5px;font-weight:700;margin-bottom:8px}
-.v2m-alt{display:flex;gap:12px;align-items:center;margin-top:4px}
-.v2m-alt__poster{position:relative;width:52px;flex:none;aspect-ratio:2/3;border-radius:8px;overflow:hidden}
+.v2m-tag-general{font-size:9.5px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;margin-left:4px}
+
+/* Can't Watch It Tonight - poster on the left, title/meta/reasons stacked
+   to its RIGHT (v2.png reference: the reasons sit beside the poster, not
+   below it in their own boxed card). No nested card chrome - this lives
+   directly in the panel like every other sidebar block. */
+.v2m-alt__lead{color:var(--muted);font-size:12px;margin-top:2px}
+.v2m-alt{display:flex;gap:14px;align-items:flex-start;margin-top:12px}
+.v2m-alt__poster{position:relative;width:92px;flex:none;aspect-ratio:2/3;border-radius:9px;overflow:hidden;
+  box-shadow:0 10px 24px rgba(0,0,0,.4)}
 .v2m-alt__poster img{object-fit:cover}
-.v2m-alt__title{font-weight:700;font-size:13px;margin-top:2px;color:var(--txt)}
-.v2m-alt__meta{color:var(--muted);font-size:10.5px;margin-top:3px}
-.v2m-alt__reasons{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
-.v2m-alt__reasons li{display:flex;gap:7px;font-size:11px;color:var(--muted);line-height:1.4}
+.v2m-alt__info{min-width:0}
+.v2m-alt__title{font-weight:700;font-size:14.5px;line-height:1.3;color:var(--txt)}
+.v2m-alt__meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11.5px;margin-top:5px;flex-wrap:wrap}
+.v2m-alt__meta>span:not(:first-child)::before{content:"\00b7";margin-right:8px;color:var(--muted2)}
+.v2m-alt__rate{color:var(--gold);font-weight:700}
+.v2m-alt__reasons{list-style:none;margin:9px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.v2m-alt__reasons li{display:flex;gap:6px;font-size:11px;color:var(--muted);line-height:1.35}
 .v2m-alt__reasons span{color:#7ed08a;flex:none}
+/* Small, unnamed CTA - "Watch Instead" reads fine on its own next to the
+   poster it's already attached to; repeating the title in the button was
+   redundant weight for what should be a lightweight action. */
+.v2m-btn--sm{min-height:34px;padding:0 14px;font-size:12px}
+
+/* Write a Review sits in the CineTonight Reviews header (CommentsSection's
+   `actions` prop, V2 only). The shared .sec__head (app/globals.css) has no
+   wrap - fine for a bare heading, but heading + rating count + this button
+   don't fit one line on a narrow phone. Wrap the row, and stack the button
+   full-width once it's really tight. */
+#reviews .sec__head{flex-wrap:wrap;row-gap:10px}
+@media(max-width:480px){#reviews .sec__head .v2m-btn{width:100%;justify-content:center}}
 
 /* honest external-score caption under the review score (shared) */
 .revscore__ext{display:block;color:var(--muted2);font-size:9.5px;margin-top:3px}
@@ -181,11 +271,49 @@
 .v2m-fit{background:linear-gradient(135deg,rgba(var(--accent-d-rgb),.10) 0%,var(--card) 58%)}
 .v2m-fit__note{font-size:11.5px;color:var(--muted2);margin:8px 0 0;line-height:1.5}
 .v2m-fit .v2m-verdict__col li{font-size:12.5px;color:var(--muted);line-height:1.55}
+
+/* Tonight Fit as two boxes in the panel row under the hero (v2.png's
+   Snapshot / What to Expect / Best For rhythm). Tinted just enough to read
+   as a yes-column and a no-column at a glance without becoming two loud
+   blocks of colour next to the plain About panel beside them. */
+.v2m-panel--fit{border-color:rgba(126,208,138,.22);
+  background:linear-gradient(160deg,rgba(126,208,138,.055) 0%,var(--card) 62%)}
+.v2m-panel--skip{border-color:rgba(var(--accent-rgb),.22);
+  background:linear-gradient(160deg,rgba(var(--accent-rgb),.05) 0%,var(--card) 62%)}
+.v2m-panel--fit .v2m-kicker{color:#7ed08a}
+.v2m-panel--skip .v2m-kicker{color:var(--accent-link)}
+.v2m-fitlist{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:9px}
+.v2m-fitlist li{position:relative;padding-left:15px;font-size:12.5px;color:var(--muted);line-height:1.55}
+.v2m-fitlist li::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;border-radius:50%}
+.v2m-panel--fit .v2m-fitlist li::before{background:#7ed08a;opacity:.75}
+.v2m-panel--skip .v2m-fitlist li::before{background:var(--accent-link);opacity:.6}
+.v2m-panel--skip .v2m-more{margin-top:12px}
+/* Computed-fit layout: the two decision boxes on top, side by side, with
+   About spanning the full width beneath them. Purely a layout wrapper -
+   no border or background of its own, so the three panels stay the only
+   boxes on screen rather than boxes inside a box. About keeps its place at
+   the START of the DOM (crawlers and screen readers meet the description
+   first); `order` moves only where it is painted, and since About holds no
+   links, tab order still follows what the eye sees. */
+.v2m-panelgrid--fit{grid-template-columns:1fr 1fr}
+/* Series carrying both a Commitment panel AND the Tonight Fit boxes used to
+   break the Right-For/Probably-Not pairing: Commitment had no explicit
+   order or grid-column, so it defaulted to order 0 and fell into column 1
+   of row 1 - right beside "Right For Tonight If" instead of "Probably Not
+   If", which got bumped alone into row 2 with an empty column beside it.
+   Commitment now gets its own full-width row above the pair, so the two
+   fit boxes always stay side by side regardless of whether Commitment is
+   present. */
+.v2m-panelgrid--fit>.v2m-panel--commit{order:0;grid-column:1 / -1}
+.v2m-panelgrid--fit>.v2m-panel--fit{order:1}
+.v2m-panelgrid--fit>.v2m-panel--skip{order:2}
+.v2m-panelgrid--fit>.v2m-panel--about{order:3;grid-column:1 / -1}
+@media(max-width:760px){.v2m-panelgrid--fit{grid-template-columns:1fr}}
 .v2m-fit__l{color:inherit;text-decoration:underline;text-decoration-color:rgba(var(--accent-rgb),.45);
   text-underline-offset:2px;transition:color .15s}
 .v2m-fit__l:hover{color:var(--txt)}
 
 /* --- director photo, cast monograms, clips row -------------------------- */
-.v2m-director__photo{position:relative;width:56px;height:56px;border-radius:50%;overflow:hidden;
+.v2m-director__photo{position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;
   flex:none;border:1px solid var(--line);background:var(--card2)}
 .v2m-director__photo img{object-fit:cover}

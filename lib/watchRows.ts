@@ -235,9 +235,19 @@ export async function buildWatch(
     rows, live, region: usedRegion, countryName: regionName(usedRegion), affiliate: !!AMAZON_TAG,
     fallbackRegion: usedRegion !== region,
     checkedAt: new Date().toISOString(),
-    searchLinks: live ? [] : [
+    // "<title> episode 1" only makes sense for a series - it was firing for
+    // movies too (an Avengers search literally reading "episode 1" on
+    // YouTube), because this used to be one hardcoded pair for every kind.
+    // Series keep the episode-1 search (regional dramas do stream free on
+    // their own channel, uploaded per-episode); movies search the bare
+    // title, since a movie's official upload - when one exists - is a
+    // single video, not an episode.
+    searchLinks: live ? [] : (k === "series" ? [
       { label: "Search on YouTube", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(title + " episode 1")}`, note: "Many dramas stream free on official channels" },
       { label: "Search the web", url: `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} online`)}`, note: "Find where it officially streams" },
-    ],
+    ] : [
+      { label: "Search on YouTube", url: `https://www.youtube.com/results?search_query=${encodeURIComponent(title)}`, note: "Some films stream free on official channels" },
+      { label: "Search the web", url: `https://www.google.com/search?q=${encodeURIComponent(`watch ${title} online`)}`, note: "Find where it officially streams" },
+    ]),
   };
 }

@@ -13,7 +13,20 @@ import type { Movie } from "@/lib/types";
  *  related) in reach while the trailer runs. The trailer key is usually
  *  already on the movie; when it isn't, one call to /api/trailer resolves
  *  it on demand. */
-export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "title" | "backdropPath" | "posterPath" | "trailerKey" | "clips"> }) {
+export default function InlineTrailer({ movie, compact = false, gallery = false }: {
+  movie: Pick<Movie, "id" | "title" | "backdropPath" | "posterPath" | "trailerKey" | "clips">;
+  /** Small hero-thumbnail rendering (v2m-hero__trailer): same click-to-embed
+   *  behavior, smaller play control, no clips row (that picker belongs to
+   *  the full "Trailer & Clips" section further down the page, not a
+   *  hero-sized preview). */
+  compact?: boolean;
+  /** "Trailers & Videos" section rendering (v2m-trailer-row): thumbnail
+   *  cards (real YouTube thumbnails, no extra request) instead of the
+   *  banner's text-pill row - same underlying play/playClip state, just a
+   *  different picker UI for a dedicated video gallery further down the
+   *  page (the hero banner above only ever shows the one main trailer). */
+  gallery?: boolean;
+}) {
   const [playing, setPlaying] = useState(false);
   const [key, setKey] = useState<string | null>(movie.trailerKey ?? null);
   /** Which extra video is showing, so the row can mark it. Null = trailer. */
@@ -46,7 +59,7 @@ export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "ti
 
   return (
     <>
-    <div className="itrailer">
+    <div className={`itrailer${compact ? " itrailer--compact" : ""}`}>
       {playing && key ? (
         <iframe
           src={`https://www.youtube-nocookie.com/embed/${key}?autoplay=1&rel=0&modestbranding=1`}
@@ -80,8 +93,43 @@ export default function InlineTrailer({ movie }: { movie: Pick<Movie, "id" | "ti
 
     {/* CLIPS. These come from the same TMDB response as the trailer, so the
         row costs no extra request. Buttons, not links: they swap the player
-        above rather than sending anyone to YouTube. */}
-    {clips.length > 0 && (
+        above rather than sending anyone to YouTube. Hero thumbnail skips
+        this - a picker belongs with the full player, not a small preview.
+        Two picker UIs share the same play/playClip state: a text-pill row
+        (default, the old "Trailer & Clips" section) or a thumbnail grid
+        (gallery - v2m-trailer-row's "Trailers & Videos"). */}
+    {!compact && gallery && (movie.trailerKey || clips.length > 0) && (
+      <div className="vgrid" role="group" aria-label="Trailers and videos">
+        {movie.trailerKey && (
+          <button
+            type="button"
+            className={`vgrid__item${activeClip === null ? " on" : ""}`}
+            onClick={() => { setKey(movie.trailerKey ?? null); setActiveClip(null); setPlaying(true); }}
+          >
+            <span className="vgrid__th">
+              <img loading="lazy" alt="" src={`https://img.youtube.com/vi/${movie.trailerKey}/hqdefault.jpg`} />
+              <span className="vgrid__play" aria-hidden="true"><Icon name="play" size={16} /></span>
+            </span>
+            <span className="vgrid__t">Official Trailer</span>
+          </button>
+        )}
+        {clips.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            className={`vgrid__item${activeClip === c.key ? " on" : ""}`}
+            onClick={() => playClip(c.key)}
+          >
+            <span className="vgrid__th">
+              <img loading="lazy" alt="" src={`https://img.youtube.com/vi/${c.key}/hqdefault.jpg`} />
+              <span className="vgrid__play" aria-hidden="true"><Icon name="play" size={16} /></span>
+            </span>
+            <span className="vgrid__t">{c.name || c.type}</span>
+          </button>
+        ))}
+      </div>
+    )}
+    {!compact && !gallery && clips.length > 0 && (
       <div className="clips" role="group" aria-label="More videos">
         <button
           type="button"

@@ -2,7 +2,7 @@
   "name": "cinetonight",
   "version": "1.0.0",
   "private": true,
-  "description": "CineTonight \u2014 know what to watch tonight. Next.js movie-discovery site (App Router, TypeScript).",
+  "description": "CineTonight — know what to watch tonight. Next.js movie-discovery site (App Router, TypeScript).",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,6 +16,7 @@
     "@supabase/supabase-js": "^2.112.1",
     "marked": "^18.0.9",
     "next": "^16.3.0",
+    "qrcode": "^1.5.4",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "server-only": "^0.0.1",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "^1.20.2",
     "@types/node": "26.2.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.18",
     "@types/react-dom": "^19.2.0",
     "@types/ws": "^8.18.1",

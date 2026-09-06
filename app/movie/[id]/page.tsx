@@ -13,7 +13,7 @@ import { baseUrl, toIsoDuration } from "@/lib/site";
 import { buildWatch } from "@/lib/watchRows";
 import { metaDescription } from "@/lib/metaDesc";
 import { posterLg } from "@/lib/images";
-import { validYear, displayCert, displayPeople, releaseStatus } from "@/lib/quality";
+import { validYear, displayCert, displayPeople, releaseStatus, rankByWeightedRating } from "@/lib/quality";
 import type { Movie } from "@/lib/types";
 import { shouldCacheTitle } from "@/lib/cacheEligibility";
 
@@ -97,6 +97,20 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const numericId = Number(parsed.id);
   const curated = movies.find((m) => m.tmdbId === numericId && m.kind === parsed.kind);
   if (curated) return curated;
+  // FIX (4 Sep 2026 - static/dynamic runtime crash): this fetchTitle() call
+  // is marked noStore, and resolve() is called from generateMetadata() (which
+  // runs before the page body's own `shouldCacheTitle` + connection() gate
+  // below). Without opting into dynamic rendering HERE, generateMetadata()
+  // performs a no-store fetch on a route Next.js still believes is static
+  // (this route has revalidate + generateStaticParams), which Next.js does
+  // not allow and throws "Page changed from static to dynamic at runtime"
+  // for - taking down every uncurated /movie/[id] page. Calling connection()
+  // right before the fetch it's paired with fixes this for both call sites
+  // (generateMetadata and the page body) without touching curated titles,
+  // which all return earlier above and never reach this line. Does not
+  // replace or duplicate the shouldCacheTitle gate further down - that logic
+  // is untouched.
+  await connection();
   return fetchTitle(parsed.kind, parsed.id, { noStore: true });
 }
 
@@ -194,28 +208,66 @@ export default async function MoviePage({ params }: Params) {
   // becomes a card/link on this page it's passed through preferCurated() -
   // a title you've already added to the catalogue always shows and links
   // via its own clean address here, never a fresh tmdb-* one.
-  let related: Movie[];
-  let featured: Movie[];
-  if (parsed) {
-    const recs = preferCurated(await relatedTmdb(parsed.kind, parsed.id, 8), movies);
-    related = recs.slice(0, 4);
-    featured = recs.slice(4, 8).length ? recs.slice(4, 8) : preferCurated(await latestReleasesTmdb("series", 4), movies);
-  } else {
-    const [liveRelatedRaw, liveFeaturedRaw] = await Promise.all([
-      tmdbConfigured ? trendingLiveTmdb("all", 8) : Promise.resolve([] as Movie[]),
-      tmdbConfigured ? latestReleasesTmdb("series", 8) : Promise.resolve([] as Movie[]),
-    ]);
-    const liveRelated = preferCurated(liveRelatedRaw, movies);
-    const liveFeatured = preferCurated(liveFeaturedRaw, movies);
-    related = (liveRelated.length ? liveRelated : trendingNow(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
-    featured = (liveFeatured.length ? liveFeatured : newestSeries(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
-  }
-  if (!featured.length) featured = newestSeries(movies, 4).filter((x) => x.id !== m.id);
+  /* ---------------------------------------------------------------------
+   * "More Like This" — relevance first, and nothing that isn't.
+   *
+   * WHAT WAS WRONG: this decided whether it could ask TMDB for real
+   * recommendations by looking at the SLUG. A tmdb-* slug carries the id,
+   * so those pages got genuine recommendations. A curated title's slug is
+   * clean ("spider-man-brand-new-day") and carries no id, so the code
+   * concluded it had none and fell back to "what's trending" plus "newest
+   * series" — two lists with no relationship to the title being viewed.
+   * The curated pages, the best ones on the site, got the worst row.
+   * The id was never missing: it is stored on the record (m.tmdbId), which
+   * is how the availability lookup finds this title on TMDB already.
+   *
+   * WHAT IT DOES NOW: asks for this title's own recommendations, using the
+   * id from wherever it actually lives. If those run short, it tops up from
+   * OUR catalogue with titles that share a genre — related on a stated,
+   * checkable basis, and links to our own pages. It never tops up with
+   * trending or newest, because "popular right now" is not "like this one".
+   * Nothing left to show means the row and the sidebar's alternative pick
+   * both hide (both are gated on suggestions.length), which is the honest
+   * outcome — the old filler is exactly what made the sidebar present a
+   * trending title as a carefully matched alternative.
+   * ------------------------------------------------------------------ */
+  const recId = parsed?.id ?? (m.tmdbId != null ? String(m.tmdbId) : null);
+  const recommended = recId && tmdbConfigured
+    ? preferCurated(await relatedTmdb(m.kind, recId, 16), movies).filter((x) => x.id !== m.id)
+    : [];
 
-  // Below-detail suggestions: related first, featured as filler, no dupes.
-  const suggestions = [...related, ...featured]
-    .filter((x, i, arr) => x.id !== m.id && arr.findIndex((y) => y.id === x.id) === i)
-    .slice(0, 6);
+  // Local top-up, only when the real recommendations are thin. Same kind,
+  // at least one shared genre, best-rated first. No extra request - this is
+  // the catalogue already in memory.
+  const topUp = recommended.length >= 6 ? [] : rankByWeightedRating(
+    movies.filter((x) => x.id !== m.id && x.kind === m.kind && x.genres.some((g) => m.genres.includes(g)))
+  );
+
+  const suggestions = [...recommended, ...topUp]
+    .filter((x, i, arr) => arr.findIndex((y) => y.id === x.id) === i)
+    .slice(0, 12);
+
+  /* The V1 template's right-rail widgets. Only V1 renders them, so only V1
+   * pays for the two extra TMDB round trips they need. */
+  let related: Movie[] = [];
+  let featured: Movie[] = [];
+  if (!V2_TEMPLATE) {
+    if (parsed) {
+      const recs = preferCurated(await relatedTmdb(parsed.kind, parsed.id, 8), movies);
+      related = recs.slice(0, 4);
+      featured = recs.slice(4, 8).length ? recs.slice(4, 8) : preferCurated(await latestReleasesTmdb("series", 4), movies);
+    } else {
+      const [liveRelatedRaw, liveFeaturedRaw] = await Promise.all([
+        tmdbConfigured ? trendingLiveTmdb("all", 8) : Promise.resolve([] as Movie[]),
+        tmdbConfigured ? latestReleasesTmdb("series", 8) : Promise.resolve([] as Movie[]),
+      ]);
+      const liveRelated = preferCurated(liveRelatedRaw, movies);
+      const liveFeatured = preferCurated(liveFeaturedRaw, movies);
+      related = (liveRelated.length ? liveRelated : trendingNow(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
+      featured = (liveFeatured.length ? liveFeatured : newestSeries(movies, 8)).filter((x) => x.id !== m.id).slice(0, 4);
+    }
+    if (!featured.length) featured = newestSeries(movies, 4).filter((x) => x.id !== m.id);
+  }
 
   const seasons = await seasonsPromise;
   const seriesFacts = await seriesFactsPromise;
@@ -297,10 +349,13 @@ export default async function MoviePage({ params }: Params) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(crumbs).replace(/</g, "\\u003c") }} />
       {V2_TEMPLATE ? (
         /* V2: the locked two-column template — Where to Watch beside the
-           identity, decision modules data-gated on movie_intel, guides at
-           the bottom. The old RightRail widgets retire on this route: the
-           sidebar's job is decision logistics, and Related lives in More
-           Like This. */
+           identity, decision modules data-gated on movie_intel, a Related
+           Guides list + Write a Review CTA in the sidebar, guides at the
+           bottom. The plain RightRail Related-Movies/Featured/Blog/News
+           widgets stay retired on this route (Related already lives in
+           More Like This further down; a straight blog feed is now the
+           Guides section at the page bottom, plus the sidebar's own
+           genre-matched list). */
         <MovieDetailV2 movie={m} seasons={seasons} suggestions={suggestions} watch={watch} intel={intel} altMovie={altMovie} seriesFacts={seriesFacts} />
       ) : (
       <div className="pagerow">

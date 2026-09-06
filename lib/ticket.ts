@@ -1,5 +1,8 @@
 import type { Movie } from "./types";
 import { posterLg } from "./images";
+import { baseUrl } from "./site";
+import { displayRating, validYear } from "./quality";
+import QRCode from "qrcode";
 
 /** Digital ticket-stub generator (components/TicketStub.tsx) — draws a
  *  shareable "movie ticket" image for any title onto a <canvas>, entirely
@@ -7,7 +10,18 @@ import { posterLg } from "./images";
  *  no tokens, nothing to configure. Colors are a hand-kept mirror of the site's CSS variables (app/globals.css /
  *  app/v2-theme.css) so the ticket looks like it belongs to CineTonight --
  *  <canvas> fillStyle can't read CSS custom properties, so these must be
- *  updated by hand whenever the theme palette changes. */
+ *  updated by hand whenever the theme palette changes.
+ *
+ *  EVERYTHING ON THIS TICKET IS REAL. Earlier versions filled the details
+ *  grid with a deterministic-but-fake seat/screen/showtime (a fun idea, but
+ *  it invented facts that don't exist - no real cinema, no real seat). That
+ *  grid now shows the title's own Genre/Runtime/Year/Rating - data this
+ *  component is already handed - and the rating is explicitly captioned as
+ *  TMDB's, not CineTonight's, matching the honesty rule applied everywhere
+ *  else on the site (lib/quality.ts displayRating / hasVerdict etc). The
+ *  bottom barcode used to be pure decoration ("not scannable"); it's now a
+ *  REAL QR code encoding this title's own canonical movie URL, so a shared
+ *  ticket actually leads somewhere instead of just looking like a ticket. */
 
 const W = 1200;
 const H = 630;
@@ -25,6 +39,37 @@ const COLORS = {
   accentD: "#8f1220",
   gold: "#ffcf4d",
 };
+
+/** BrandMark, redrawn on <canvas> (SVG <path>/CSS-var fills can't be used
+ *  directly here). Path data + colors copied from components/BrandMark.tsx
+ *  ("Master copy also lives at public/logo.svg" per that file's own
+ *  comment - but public/logo.svg is stale, still the pre-rebrand purple, so
+ *  BrandMark.tsx's own paths/colors are the actual current mark to match). */
+const BRAND_MARK = {
+  viewBox: 100,
+  back: { d: "M52 36 L52 64 L76 50 Z", fill: COLORS.accentD },
+  front: { d: "M40 34 L40 66 L68 50 Z", fill: COLORS.accent2 },
+  sparkle: { d: "M36 8 Q38.6 21.4 52 24 Q38.6 26.6 36 40 Q33.4 26.6 20 24 Q33.4 21.4 36 8 Z", fill: "#f4f2fa" },
+};
+
+function drawBrandMark(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.save();
+  ctx.translate(x, y);
+  const s = size / BRAND_MARK.viewBox;
+  ctx.scale(s, s);
+  ctx.lineJoin = "round";
+  for (const part of [BRAND_MARK.back, BRAND_MARK.front]) {
+    const p = new Path2D(part.d);
+    ctx.fillStyle = part.fill;
+    ctx.strokeStyle = part.fill;
+    ctx.lineWidth = 16;
+    ctx.stroke(p);
+    ctx.fill(p);
+  }
+  ctx.fillStyle = BRAND_MARK.sparkle.fill;
+  ctx.fill(new Path2D(BRAND_MARK.sparkle.d));
+  ctx.restore();
+}
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -87,28 +132,32 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: num
   return lines.length;
 }
 
-/** Deterministic-per-title "seat", "screen" and showtime — so re-opening
- *  the same title's ticket doesn't jump to a different seat every time,
- *  while different titles still feel varied. Pure fun, not a real booking. */
-function ticketDetails(movie: Movie) {
-  let h = 0;
-  for (const ch of movie.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  const rows = "ABCDEFGHJK";
-  // Unsigned shifts throughout — h can exceed 2^31 (it's kept unsigned via
-  // >>> 0 above), and a signed >> on a value that large yields negative
-  // numbers, which previously leaked through as "-6" screens and "-8:00"
-  // showtimes.
-  const seatRow = rows[h % rows.length];
-  const seatNum = 1 + ((h >>> 3) % 22);
-  const screen = 1 + ((h >>> 7) % 12);
-  const hour = 1 + ((h >>> 11) % 10);
-  const half = (h >>> 13) % 2 === 0 ? "00" : "30";
-  return {
-    date: new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric" }).format(new Date()),
-    time: `${hour}:${half} PM`,
-    screen: `SCREEN ${screen}`,
-    seat: `${seatRow}${seatNum}`,
-  };
+/** Draws a real, scannable QR code into the given box using qrcode's
+ *  low-level `create()` (synchronous - just a module matrix, no rendering),
+ *  so we can draw it ourselves in exactly this spot with our own margins
+ *  instead of letting the library render/replace the whole canvas.
+ *  White background + true black modules, not theme colors: scan
+ *  reliability matters more here than palette-matching, and a light card
+ *  behind it already reads as "the QR part" against the dark ticket. */
+function drawQr(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, box: number) {
+  const qr = QRCode.create(text, { errorCorrectionLevel: "M" });
+  const size = qr.modules.size;
+  const quiet = box * 0.09; // quiet zone inside the white card, for real-world scan reliability
+  const inner = box - quiet * 2;
+  const cell = inner / size;
+
+  ctx.fillStyle = "#fff";
+  roundRect(ctx, x, y, box, box, 8);
+  ctx.fill();
+
+  ctx.fillStyle = "#0a0a0a";
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      if (qr.modules.get(row, col)) {
+        ctx.fillRect(x + quiet + col * cell, y + quiet + row * cell, cell + 0.5, cell + 0.5);
+      }
+    }
+  }
 }
 
 export interface DrawTicketOptions {
@@ -127,6 +176,12 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
   ctx.imageSmoothingQuality = "high";
+
+  // This title's OWN canonical URL - same `${baseUrl()}/movie/${id}` formula
+  // used for the page's <link rel="canonical"> and JSON-LD (app/movie/[id]/
+  // page.tsx) - never a fabricated or homepage link. This is what the QR
+  // code below encodes.
+  const canonicalUrl = `${baseUrl()}/movie/${movie.id}`;
 
   const bgGrad = ctx.createLinearGradient(0, 0, W, H);
   bgGrad.addColorStop(0, COLORS.bg2);
@@ -188,14 +243,19 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   const padX = STUB_W + 44;
   const rightW = W - padX - 40;
 
+  // Real BrandMark + wordmark (Header.tsx / Footer.tsx convention: mark,
+  // then "Cine" + bold "Tonight" in the accent color) - replaces the old
+  // hand-drawn-text-only version.
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
+  drawBrandMark(ctx, padX, 20, 34);
+  const wordmarkX = padX + 34 + 10;
   ctx.fillStyle = COLORS.accent2;
   ctx.font = "800 20px system-ui, -apple-system, sans-serif";
-  ctx.fillText("Cine", padX, 56);
+  ctx.fillText("Cine", wordmarkX, 46);
   const movieW = ctx.measureText("Cine").width;
   ctx.fillStyle = "#fff";
-  ctx.fillText("Tonight", padX + movieW, 56);
+  ctx.fillText("Tonight", wordmarkX + movieW, 46);
 
   ctx.textAlign = "right";
   ctx.fillStyle = COLORS.muted;
@@ -213,51 +273,77 @@ export async function drawTicket(canvas: HTMLCanvasElement, movie: Movie, opts: 
   ctx.lineTo(W - 40, 78);
   ctx.stroke();
 
+  // Title gets the top of the card to itself - clean and premium rather
+  // than crowded, per the "don't overcrowd it" brief.
   ctx.fillStyle = COLORS.txt;
-  ctx.font = "800 42px system-ui, -apple-system, sans-serif";
-  const titleLines = wrapText(ctx, movie.title, padX, 140, rightW, 48, 2);
+  ctx.font = "800 44px system-ui, -apple-system, sans-serif";
+  wrapText(ctx, movie.title, padX, 168, rightW, 50, 2);
 
-  const metaY = 140 + (titleLines - 1) * 48 + 40;
-  ctx.font = "600 16px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = COLORS.muted;
-  const meta = [movie.year || null, movie.genres[0] || null, movie.runtime || null].filter(Boolean).join("   •   ");
-  if (meta) ctx.fillText(meta, padX, metaY);
+  // ---- REAL details grid: Genre / Runtime / Year / Rating ----
+  // Only real, already-available data - no invented seat/screen/showtime.
+  // Columns that have nothing real to show simply don't render (the grid
+  // stays honest rather than padded with placeholders). Fixed position
+  // right under the title (not pinned to the bottom) - the QR below needs
+  // most of the card's remaining height to be genuinely scannable.
+  const rating = displayRating(movie);
+  const items: [string, string][] = [
+    movie.genres[0] ? ["GENRE", movie.genres[0]] : null,
+    movie.runtime ? ["RUNTIME", movie.runtime] : null,
+    validYear(movie.year) ? ["YEAR", String(movie.year)] : null,
+    rating ? ["RATING", `★ ${rating}`] : null,
+  ].filter((x): x is [string, string] => x !== null);
 
-  ctx.font = "700 16px system-ui, -apple-system, sans-serif";
-  ctx.fillStyle = COLORS.gold;
-  ctx.fillText(`★ ${movie.rating.toFixed(1)} / 10`, padX, metaY + 30);
+  const gridY = 258;
+  if (items.length) {
+    const colW = rightW / items.length;
+    items.forEach(([k, v], i) => {
+      const x = padX + i * colW;
+      ctx.fillStyle = COLORS.muted;
+      ctx.font = "700 11px system-ui, -apple-system, sans-serif";
+      ctx.fillText(k, x, gridY);
+      ctx.fillStyle = k === "RATING" ? COLORS.gold : COLORS.txt;
+      ctx.font = "800 19px system-ui, -apple-system, sans-serif";
+      ctx.fillText(v, x, gridY + 26);
+    });
+    // Honesty caption - only drawn when a rating is actually shown, so it
+    // never appears as clutter on a title with no rating to caveat.
+    if (rating) {
+      ctx.fillStyle = COLORS.muted2;
+      ctx.font = "600 9.5px system-ui, -apple-system, sans-serif";
+      ctx.fillText("Rating shown is TMDB's - not a CineTonight score.", padX, gridY + 42);
+    }
+  }
 
-  const det = ticketDetails(movie);
-  const items: [string, string][] = [["DATE", det.date], ["TIME", det.time], ["SCREEN", det.screen], ["SEAT", det.seat]];
-  const gridY = H - 148;
-  const colW = rightW / items.length;
-  items.forEach(([k, v], i) => {
-    const x = padX + i * colW;
-    ctx.fillStyle = COLORS.muted;
-    ctx.font = "700 11px system-ui, -apple-system, sans-serif";
-    ctx.fillText(k, x, gridY);
-    ctx.fillStyle = COLORS.txt;
-    ctx.font = "800 19px system-ui, -apple-system, sans-serif";
-    ctx.fillText(v, x, gridY + 26);
-  });
-
+  const dividerY = gridY + 68;
   ctx.strokeStyle = COLORS.line;
   ctx.beginPath();
-  ctx.moveTo(padX, H - 96);
-  ctx.lineTo(W - 40, H - 96);
+  ctx.moveTo(padX, dividerY);
+  ctx.lineTo(W - 40, dividerY);
   ctx.stroke();
 
-  // decorative barcode (not scannable — just sets the ticket mood)
-  let seed = 0;
-  for (const ch of movie.id) seed = (seed * 131 + ch.charCodeAt(0)) >>> 0;
-  let bx = padX;
-  ctx.fillStyle = "rgba(255,255,255,.6)";
-  while (bx < W - 40) {
-    seed = (seed * 1103515245 + 12345) >>> 0;
-    const barW = 1 + (seed % 3);
-    if ((seed >>> 4) % 3 !== 0) ctx.fillRect(bx, H - 70, barW, 34);
-    bx += barW + 2;
-  }
+  // ---- bottom band: real QR (this title's canonical URL) + site URL ----
+  // Sized to actually be scannable in the exported PNG (a 72px box at 1200px
+  // canvas width was reported unscannable) - 172px is comparable to a real
+  // boarding-pass/ticket QR at typical viewing distance. This band now owns
+  // all the remaining card height below the divider, rather than being
+  // squeezed into a thin strip.
+  const qrBox = 172;
+  const bandTop = dividerY;
+  const bandBottom = H - 40;
+  const qrX = W - 40 - qrBox;
+  const qrY = bandTop + (bandBottom - bandTop - qrBox) / 2;
+  drawQr(ctx, canonicalUrl, qrX, qrY, qrBox);
+
+  const bandMidY = bandTop + (bandBottom - bandTop) / 2;
+  ctx.fillStyle = COLORS.muted;
+  ctx.font = "700 11px system-ui, -apple-system, sans-serif";
+  ctx.fillText("SCAN TO WATCH TONIGHT", padX, bandMidY - 20);
+  ctx.fillStyle = COLORS.accent2;
+  ctx.font = "800 26px system-ui, -apple-system, sans-serif";
+  ctx.fillText("cinetonight.com", padX, bandMidY + 14);
+  ctx.fillStyle = COLORS.muted2;
+  ctx.font = "600 12px system-ui, -apple-system, sans-serif";
+  ctx.fillText("Point your camera at the code", padX, bandMidY + 38);
 }
 
 /** Wraps `canvas.toBlob` in a Promise, rejecting instead of resolving with

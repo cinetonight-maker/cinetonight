@@ -91,7 +91,7 @@ export default function TicketStub({ movie }: { movie: Movie }) {
   return (
     <>
       <button type="button" className="btn btn--ghost" onClick={() => setOpen(true)}>
-        <Icon name="cam" size={16} /> <span>Get Ticket Stub</span>
+        <Icon name="cam" size={16} /> <span>Create My Ticket</span>
       </button>
 
       <div className={`rmodal${open ? " open" : ""}`} onClick={() => setOpen(false)}>
@@ -108,12 +108,16 @@ export default function TicketStub({ movie }: { movie: Movie }) {
             {ready && !posterEmbedded && (
               <p className="tstub__note">Poster art couldn't be embedded for download - sharing a text-only ticket instead.</p>
             )}
+            {/* Share is the PRIMARY action - the point of this feature is a
+                shareable ticket, not a saved file. Download stays available as
+                a fallback (also what Share itself falls back to when the Web
+                Share API isn't supported - see share() above). */}
             <div className="tstub__actions">
-              <button type="button" className="rmodal__btn rmodal__btn--primary" onClick={download} disabled={!ready}>
-                Download PNG
+              <button type="button" className="rmodal__btn rmodal__btn--primary" onClick={share} disabled={!ready}>
+                Share This Ticket
               </button>
-              <button type="button" className="rmodal__btn" onClick={share} disabled={!ready}>
-                Share
+              <button type="button" className="rmodal__btn" onClick={download} disabled={!ready}>
+                Download PNG
               </button>
             </div>
             <p className="tstub__hint">Perfect for Instagram Stories or WhatsApp Status.</p>

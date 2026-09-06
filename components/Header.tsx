@@ -39,6 +39,25 @@ export default function Header() {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  // Desktop icon rail's DEFAULT open/closed state, by screen size: a
+  // laptop keeps the rail closed (icons only) until the burger is
+  // clicked; a big desktop monitor starts it already expanded (labels +
+  // full nav visible), since a 72px icon strip reads as wasted space at
+  // that width. This only sets the DEFAULT — the burger's own toggle
+  // (below) still opens/closes it normally either way. Re-synced whenever
+  // the viewport crosses the 1500px line (e.g. dragging a window across
+  // two monitors), same pattern as the mobile drawer effect above.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1500px)");
+    const sync = () => {
+      setRailExpanded(mq.matches);
+      document.body.classList.toggle("sb-expanded", mq.matches);
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   return (
     <>
     <header className="header">
@@ -72,7 +91,7 @@ export default function Header() {
         <Icon name="menu" size={20} />
       </button>
       <Link className="brand" href="/">
-        <BrandMark size={30} />
+        <BrandMark size={36} />
         <div className="brand__txt">
           <div className="brand__name">Cine<b>Tonight</b></div>
           <div className="brand__tag">Know what to watch.</div>

@@ -24,12 +24,20 @@ export default function CommentsSection({
   movie,
   heading = "User Reviews",
   showScore = true,
+  actions,
 }: {
   /** Any commentable thing: a catalogue/TMDB title or a blog post
    *  (id "blog-<slug>", rating 0, showScore false). */
   movie: Pick<Movie, "id" | "title" | "rating">;
   heading?: string;
   showScore?: boolean;
+  /** Optional right-aligned header action (e.g. a "Write a Review" button
+   *  that jumps to #review-form below). The form sits after the review
+   *  list, so on a title with real reviews it can be a full scroll away
+   *  from this heading - the anchor targets the form itself, not this
+   *  section wrapper, so it actually moves the page instead of no-opping
+   *  when button and heading are already side by side. */
+  actions?: React.ReactNode;
 }) {
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [name, setName] = useState("");
@@ -75,6 +83,7 @@ export default function CommentsSection({
     <section className="sec">
       <div className="sec__head">
         <h2>{heading} {comments !== null && <span style={{ color: "var(--muted)", fontWeight: 500 }}>({count})</span>}</h2>
+        {actions}
       </div>
       <div className={`revwrap${showScore ? "" : " revwrap--full"}`}>
         {/* STAB-05 / spec 5.16: this number is TMDB's EXTERNAL score. It
@@ -107,7 +116,7 @@ export default function CommentsSection({
             </div>
           ))}
 
-          <form className="rev__form" onSubmit={onSubmit}>
+          <form className="rev__form" id="review-form" onSubmit={onSubmit}>
             <div className="rev__form-h">Leave a review</div>
             <div className="rev__form-row">
               <input

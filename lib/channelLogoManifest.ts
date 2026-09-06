@@ -24,7 +24,7 @@ export const CHANNEL_LOGO_FILES = new Set<string>([
   "sun-nxt.svg",
   "viki.svg",
   "youtube.svg",
-  "zee5.png",
+  "zee5.svg",
 ]);
 
 export function channelLogoUrl(logoFile: string | undefined): string | null {

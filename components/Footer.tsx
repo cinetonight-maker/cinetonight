@@ -61,7 +61,7 @@ export default async function Footer() {
 
   return (
     <footer className="footer">
-      <div className="footer__in">
+      <nav className="footer__in" aria-label="Footer">
         <div className="footer__brand">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}><BrandMark size={26} /><div className="brand__name">Cine<b style={{ color: "var(--accent2)" }}>Tonight</b></div></div>
           <p>Your nightly guide to what's worth watching. Play the trailer, check the ratings, and see exactly where every movie and show streams in your country.</p>
@@ -69,7 +69,8 @@ export default async function Footer() {
         <div>
           <h4>Explore</h4>
           <Link href="/">Home</Link><Link href="/movies">Movies</Link><Link href="/web-series">Web Series</Link>
-          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/follow">Follow Us</Link><Link href="/about-us">About</Link>
+          <Link href="/trending">Trending</Link><Link href="/genres">Genres</Link>
+          <Link href="/free-movies">Free Movies</Link><Link href="/blog">Blog</Link><Link href="/author">Our Writers</Link><Link href="/follow">Follow Us</Link><Link href="/about-us">About</Link>
         </div>
         <div>
           <h4>Support</h4>
@@ -93,7 +94,7 @@ export default async function Footer() {
             </div>
           </div>
         )}
-      </div>
+      </nav>
       <div className="footer__copy">
         <PrivacyChoices />
         © {new Date().getFullYear()} CineTonight. All rights reserved.

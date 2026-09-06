@@ -1,6 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Local dev only: the dev server's own JS chunks (_next/static/*) get a
+  // 403 for any origin Next doesn't recognise - a built-in anti DNS-
+  // rebinding guard. On a Windows+WSL2 setup, plain localhost often can't
+  // reach the dev server from the browser, so it has to be opened via
+  // WSL's gateway/network IP instead (e.g. 172.29.48.1) - allowlisting it
+  // here is what lets the page hydrate fully from that address instead of
+  // silently running with its JS chunks blocked. Never consulted by
+  // `next build`/`next start`, so this has zero effect in production.
+  allowedDevOrigins: ["172.29.48.1", "localhost", "127.0.0.1"],
   images: {
     // Serve images directly from their source CDNs instead of routing every
     // poster through Vercel's metered image optimizer. TMDB already delivers
