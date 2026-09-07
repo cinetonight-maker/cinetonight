@@ -6,6 +6,7 @@ import queueCache from "@opennextjs/cloudflare/overrides/queue/queue-cache";
 import d1NextTagCache from "@opennextjs/cloudflare/overrides/tag-cache/d1-next-tag-cache";
 import { withFilter } from "@opennextjs/cloudflare/overrides/tag-cache/tag-cache-filter";
 import { isCmsTag } from "./lib/revalidatePlan";
+import { withoutFetchCachePersistence } from "./lib/tmdbFetchCache";
 
 export default defineCloudflareConfig({
   // ISR page cache lives in the R2 bucket (NEXT_INC_CACHE_R2_BUCKET binding in
@@ -16,10 +17,16 @@ export default defineCloudflareConfig({
   // shouldLazilyUpdateOnCacheHit stays false so ordinary traffic never
   // triggers a background refresh of the regional copy - that turned plain
   // reads into extra operations for no visible freshness gain.
-  incrementalCache: withRegionalCache(r2IncrementalCache, {
-    mode: "long-lived",
-    shouldLazilyUpdateOnCacheHit: false,
-  }),
+  // COST FIX (Sep 2026): "fetch" cache entries (TMDB API responses) are no
+  // longer persisted to R2 - see lib/tmdbFetchCache.ts for the full
+  // rationale. Page-level ISR entries ("cache") still go to R2 unchanged.
+  incrementalCache: withRegionalCache(
+    withoutFetchCachePersistence(r2IncrementalCache),
+    {
+      mode: "long-lived",
+      shouldLazilyUpdateOnCacheHit: false,
+    }
+  ),
 
   // Serve cached pages without booting the full Next.js server path.
   // DISABLED 20 Aug 2026 - root cause of the production RSC prefetch loop.
