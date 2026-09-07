@@ -6,7 +6,7 @@ import MovieDetail from "@/components/MovieDetail";
 import { PosterWidget, BlogWidget, NewsWidget } from "@/components/RightRail";
 import { getMovie, getMovies, trendingNow, newestSeries } from "@/lib/data";
 import { breadcrumbJsonLd } from "@/lib/breadcrumbs";
-import { parseTmdbId, fetchTitle, fetchTitleMeta, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo, type TitleMeta } from "@/lib/tmdb";
+import { parseTmdbId, fetchTitle, relatedTmdb, trendingLiveTmdb, latestReleasesTmdb, tmdbConfigured, fetchSeasons, preferCurated, type SeasonInfo } from "@/lib/tmdb";
 import { baseUrl, toIsoDuration } from "@/lib/site";
 import { buildWatch } from "@/lib/watchRows";
 import { metaDescription } from "@/lib/metaDesc";
@@ -67,9 +67,9 @@ export const revalidate = 259200;
  * labelled with the country they actually came from. */
 const SSR_WATCH_REGION = "US";
 
-/** Local/DB/curated-catalogue lookup shared by resolve() and resolveMeta()
- *  below - identical to what resolve() always did, just factored out so the
- *  two callers can diverge ONLY on how they fetch a truly uncurated title. */
+/** Local/DB/curated-catalogue lookup used by resolve() below. Factored out
+ *  from resolve() itself so it can name what it returns for a curated hit
+ *  (the actual Movie) vs. an uncurated one (just enough to fetch it). */
 type CuratedLookup = { curated: Movie } | { parsed: { kind: Movie["kind"]; id: string } };
 async function resolveCurated(id: string, movies: Movie[]): Promise<CuratedLookup | null> {
   const local = movies.find((m) => m.id === id);
@@ -96,9 +96,9 @@ async function resolveCurated(id: string, movies: Movie[]): Promise<CuratedLooku
   return { parsed };
 }
 
-/** Local catalogue first, then TMDB for ids like "tmdb-m-1234". Used by the
- *  page body, which renders the full title (cast, credits, trailer). Not
- *  used by generateMetadata() any more - see resolveMeta() below for why.
+/** Local catalogue first, then TMDB for ids like "tmdb-m-1234". Shared by
+ *  BOTH generateMetadata() and the page body below - deliberately the ONE
+ *  resolution path for an uncurated title, not two.
  *
  *  FIX (4 Sep 2026, part 2 - supersedes the noStore version this line had
  *  for a few hours today): tried making this fetch noStore + calling
@@ -119,7 +119,19 @@ async function resolveCurated(id: string, movies: Movie[]): Promise<CuratedLooku
  *  not per-request and not unbounded, but a real, wider cost than the
  *  3 Sep 2026 commit intended. Documented, not silently reverted - see the
  *  chat history around 4 Sep 2026 for the two failed connection() attempts
- *  and the R2-cost reasoning before deciding to narrow this again. */
+ *  and the R2-cost reasoning before deciding to narrow this again.
+ *
+ *  UPDATE (6 Sep 2026 - R2 cost follow-up): generateMetadata() used to call
+ *  a SEPARATE function (resolveMeta(), removed) that fetched a smaller,
+ *  separately-keyed TMDB response (fetchTitleMeta(), removed from
+ *  lib/tmdb.ts) purely to dodge the noStore crash above. That reason no
+ *  longer applies - this fetch has been a plain cacheable fetch (not
+ *  noStore) since the FIX above, so generateMetadata() calling this exact
+ *  same function is no more crash-risky than the page body already was.
+ *  It IS a real cost win: Next.js dedupes identical fetch() calls (same URL
+ *  + same options) made during one request, so generateMetadata() and the
+ *  page body sharing this call now cost ONE R2 data-cache write per
+ *  uncurated title actually requested, not two. */
 async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   const r = await resolveCurated(id, movies);
   if (!r) return null;
@@ -127,31 +139,10 @@ async function resolve(id: string, movies: Movie[]): Promise<Movie | null> {
   return fetchTitle(r.parsed.kind, r.parsed.id);
 }
 
-/** generateMetadata()'s own resolution path. Same local/DB/curated checks as
- *  resolve() above (via resolveCurated()), but a truly uncurated title's
- *  fallback here is fetchTitleMeta() (see lib/tmdb.ts) - a small, cacheable
- *  TMDB call - instead of resolve()'s heavy, noStore fetchTitle(). Calling
- *  fetchTitle()'s noStore fetch from generateMetadata() is exactly what
- *  crashed every uncurated /movie/[id] page on 4 Sep 2026 ("Page changed
- *  from static to dynamic at runtime"): a no-store fetch is a dynamic-only
- *  operation, and generateMetadata() does not reliably auto-opt a
- *  still-believed-static ISR route out of static rendering for one before
- *  throwing, unlike the page body's own render (whose resolve() call above,
- *  and its existing shouldCacheTitle()/connection() gate below, are
- *  unaffected and unchanged). Curated titles are unaffected either way -
- *  they return from resolveCurated() before either function's fallback
- *  fetch ever runs. */
-async function resolveMeta(id: string, movies: Movie[]): Promise<Movie | TitleMeta | null> {
-  const r = await resolveCurated(id, movies);
-  if (!r) return null;
-  if ("curated" in r) return r.curated;
-  return fetchTitleMeta(r.parsed.kind, r.parsed.id);
-}
-
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { id } = await params;
   const movies = await getMovies();
-  const m = await resolveMeta(id, movies);
+  const m = await resolve(id, movies);
   if (!m) return NOT_FOUND_META;
   // "Cast, Trailer & Where to Watch" targets the exact long-tail phrasing
   // people actually type into Google for a specific title, instead of just

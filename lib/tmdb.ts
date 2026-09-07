@@ -303,78 +303,42 @@ export async function fetchTitle(
   };
 }
 
-/** Minimal shape generateMetadata() needs for an uncurated /movie|/tv page:
- *  title, year/releaseDate (released-vs-upcoming wording), a synopsis and a
- *  poster - deliberately NOT a Movie (no cast, credits or trailer). Paired
- *  with fetchTitleMeta() below; see resolveMeta() in app/movie/[id]/page.tsx
- *  for why generateMetadata() uses this instead of the full fetchTitle(). */
-export interface TitleMeta {
-  id: string;
-  title: string;
-  year: number;
-  releaseDate: string | null;
-  desc: string;
-  posterPath: string | null;
-}
-
-/** FIX (4 Sep 2026 - static/dynamic runtime crash, see PROJECT_HANDOFF
- *  04_CLOUDFLARE_AND_COST_HISTORY.md): fetchTitle() above is deliberately
- *  `noStore` for uncurated ids, and generateMetadata() calling it (via
- *  resolve()) is exactly what crashed every uncurated /movie/[id] page -
- *  "Page changed from static to dynamic at runtime". A `no-store` fetch is a
- *  dynamic-only operation, and unlike the page body's own render,
- *  generateMetadata() does not reliably auto-opt a still-believed-static ISR
- *  route out of static rendering for one before throwing.
- *
- *  This is a SEPARATE, small, cacheable TMDB call - no append_to_response,
- *  so no credits/videos/release_dates - used ONLY for the <title>/meta
- *  description/OG image on an uncurated title. Deliberately NOT `noStore`:
- *  a `next: { revalidate }` fetch is a static-safe fetch as far as Next.js
- *  is concerned, which is what keeps generateMetadata() off the crash path
- *  without touching cacheEligibility.ts, the page body's own
- *  shouldCacheTitle()/connection() gate, or fetchTitle()'s noStore
- *  behaviour - none of that changes.
- *
- *  Cost: omitting `opts.ttl` here means ttlFor() applies the SAME tier every
- *  other /movie|/tv detail call already uses - TTL.stable, 3 days (see
- *  above) - so this is bounded, infrequent R2 write traffic (one write per
- *  distinct uncurated title actually requested, at most every 3 days per
- *  Cloudflare region), not unbounded and not per-request. It is a real,
- *  small write cost the 3 Sep 2026 cost guard did not have - the tradeoff
- *  that makes uncurated pages render at all without `force-dynamic`. */
-export async function fetchTitleMeta(kind: MovieKind, id: string): Promise<TitleMeta | null> {
-  const isTv = kind === "series";
-  const d = await get<any>(isTv ? `/tv/${id}` : `/movie/${id}`, {});
-  if (!d) return null;
-  const date = String(isTv ? d.first_air_date : d.release_date ?? "");
-  return {
-    id: tmdbId(kind, id, (isTv ? d.name : d.title) || undefined),
-    title: (isTv ? d.name : d.title) || "Untitled",
-    year: Number(date.slice(0, 4)) || 0,
-    releaseDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
-    desc: d.overview || "No synopsis available yet.",
-    posterPath: d.poster_path || null,
-  };
-}
-
 /** Resolve a cast member's TMDB person id by name — for cast rows that came
  *  from the local catalogue (or an older sync) without a stored tmdbId, so
  *  their person page can still be filled out with real, live filmography
  *  instead of just the 1-2 titles that happen to be in the local
  *  catalogue. TMDB's own relevance/popularity ranking on this endpoint
  *  means the first hit is almost always the right person for a well-known
- *  cast credit's exact name. */
+ *  cast credit's exact name.
+ *
+ *  COST GUARD (added 6 Sep 2026, see PROJECT_HANDOFF 04_CLOUDFLARE_AND_COST_HISTORY.md):
+ *  noStore - /person/[id] is `export const dynamic = "force-dynamic"`
+ *  (app/person/[id]/page.tsx), which is NOT SSG, so there is no
+ *  static/dynamic conflict this can trip (unlike /movie/[id], which is why
+ *  that route's equivalent fetch stays cacheable for now). Without noStore,
+ *  Next.js still persists this call's response to the R2-backed Data Cache
+ *  even on a force-dynamic route, because an explicit `next: { revalidate }`
+ *  fetch overrides the route's own dynamic default - which is exactly what
+ *  was happening: a permanent R2 write per distinct person id ever visited,
+ *  on the one route this project deliberately made force-dynamic specifically
+ *  to avoid persisting anything to R2. */
 export async function searchPersonTmdb(name: string): Promise<number | null> {
-  const data = await get<any>("/search/person", { query: name, include_adult: "false", page: 1 });
+  const data = await get<any>("/search/person", { query: name, include_adult: "false", page: 1 }, { noStore: true });
   return data?.results?.[0]?.id ?? null;
 }
 
 /** A cast member resolved live from TMDB, for /person/tmdb-p-<id> — people
  *  who only appear in on-demand-fetched titles (fetchTitle above) aren't in
  *  the local catalogue's peopleOf() list, so app/person/[id]/page.tsx falls
- *  back to this when the local lookup misses. */
+ *  back to this when the local lookup misses.
+ *
+ *  noStore - see searchPersonTmdb() above for why: /person/[id] is
+ *  force-dynamic (not SSG), so noStore here carries none of the
+ *  static/dynamic crash risk /movie/[id]'s fetchTitle() has, and closes the
+ *  same permanent-R2-write gap this route's force-dynamic config was meant
+ *  to close in the first place. */
 export async function fetchPerson(id: string): Promise<{ name: string; character: string; profilePath: string | null; credits: Movie[] } | null> {
-  const d = await get<any>(`/person/${id}`, { append_to_response: "combined_credits" });
+  const d = await get<any>(`/person/${id}`, { append_to_response: "combined_credits" }, { noStore: true });
   if (!d?.name) return null;
 
   const castCredits = (d.combined_credits?.cast ?? []) as any[];
